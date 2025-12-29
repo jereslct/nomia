@@ -345,75 +345,111 @@ const Dashboard = () => {
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Today's Status */}
+            {/* Today's Status / Schedule Config */}
             <Card className="glass-card">
               <CardHeader>
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <CardTitle className="text-lg">Estado de Hoy</CardTitle>
-                    <CardDescription className="text-xs">
-                      Horario: {scheduleFormatted.entry} - {scheduleFormatted.exit} (tolerancia: {scheduleConfig.toleranceMinutes} min)
-                    </CardDescription>
+                    <CardTitle className="text-lg">
+                      {isAdmin ? "Configuración de Horarios" : "Estado de Hoy"}
+                    </CardTitle>
+                    {isAdmin ? (
+                      <CardDescription className="text-xs">
+                        Tolerancia: {scheduleConfig.toleranceMinutes} min
+                      </CardDescription>
+                    ) : (
+                      <CardDescription className="text-xs">
+                        Horario: {scheduleFormatted.entry} - {scheduleFormatted.exit}
+                      </CardDescription>
+                    )}
                   </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 px-2"
-                    onClick={() => setEditingSchedule((v) => !v)}
-                  >
-                    <Settings className="w-4 h-4 mr-2" />
-                    {editingSchedule ? "Cerrar" : "Editar"}
-                  </Button>
+                  {isAdmin && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-2"
+                      onClick={() => setEditingSchedule((v) => !v)}
+                    >
+                      <Settings className="w-4 h-4 mr-2" />
+                      {editingSchedule ? "Cerrar" : "Editar"}
+                    </Button>
+                  )}
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                {editingSchedule && (
-                  <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <Label htmlFor="schedule-entry">Entrada</Label>
-                        <Input
-                          id="schedule-entry"
-                          type="time"
-                          value={scheduleFormatted.entry}
-                          onChange={(e) => {
-                            const [h, m] = e.target.value.split(":").map(Number);
-                            setScheduleConfig((prev) => ({ ...prev, entryHour: h ?? prev.entryHour, entryMinute: m ?? prev.entryMinute }));
-                          }}
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label htmlFor="schedule-exit">Salida</Label>
-                        <Input
-                          id="schedule-exit"
-                          type="time"
-                          value={scheduleFormatted.exit}
-                          onChange={(e) => {
-                            const [h, m] = e.target.value.split(":").map(Number);
-                            setScheduleConfig((prev) => ({ ...prev, exitHour: h ?? prev.exitHour, exitMinute: m ?? prev.exitMinute }));
-                          }}
-                        />
-                      </div>
-                    </div>
+                {isAdmin ? (
+                  <>
+                    {editingSchedule ? (
+                      <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label htmlFor="schedule-entry">Entrada</Label>
+                            <Input
+                              id="schedule-entry"
+                              type="time"
+                              value={scheduleFormatted.entry}
+                              onChange={(e) => {
+                                const [h, m] = e.target.value.split(":").map(Number);
+                                setScheduleConfig((prev) => ({ ...prev, entryHour: h ?? prev.entryHour, entryMinute: m ?? prev.entryMinute }));
+                              }}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label htmlFor="schedule-exit">Salida</Label>
+                            <Input
+                              id="schedule-exit"
+                              type="time"
+                              value={scheduleFormatted.exit}
+                              onChange={(e) => {
+                                const [h, m] = e.target.value.split(":").map(Number);
+                                setScheduleConfig((prev) => ({ ...prev, exitHour: h ?? prev.exitHour, exitMinute: m ?? prev.exitMinute }));
+                              }}
+                            />
+                          </div>
+                        </div>
 
-                    <div className="space-y-1">
-                      <Label htmlFor="schedule-tolerance">Tolerancia (minutos)</Label>
-                      <Input
-                        id="schedule-tolerance"
-                        type="number"
-                        min={0}
-                        max={60}
-                        value={scheduleConfig.toleranceMinutes}
-                        onChange={(e) => {
-                          const n = Number(e.target.value);
-                          setScheduleConfig((prev) => ({ ...prev, toleranceMinutes: Number.isFinite(n) ? n : prev.toleranceMinutes }));
-                        }}
-                      />
-                      <p className="text-xs text-muted-foreground">Ej: si la entrada es 09:00, hasta 09:{String(scheduleConfig.toleranceMinutes).padStart(2, "0")} cuenta como "A tiempo".</p>
-                    </div>
-                  </div>
-                )}
+                        <div className="space-y-1">
+                          <Label htmlFor="schedule-tolerance">Tolerancia (minutos)</Label>
+                          <Input
+                            id="schedule-tolerance"
+                            type="number"
+                            min={0}
+                            max={60}
+                            value={scheduleConfig.toleranceMinutes}
+                            onChange={(e) => {
+                              const n = Number(e.target.value);
+                              setScheduleConfig((prev) => ({ ...prev, toleranceMinutes: Number.isFinite(n) ? n : prev.toleranceMinutes }));
+                            }}
+                          />
+                          <p className="text-xs text-muted-foreground">Ej: si la entrada es 09:00, hasta 09:{String(scheduleConfig.toleranceMinutes).padStart(2, "0")} cuenta como "A tiempo".</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
+                          <div className="flex items-center gap-3">
+                            <Clock className="w-5 h-5 text-primary" />
+                            <span className="font-medium">Entrada</span>
+                          </div>
+                          <span className="font-mono text-lg font-semibold text-foreground">
+                            {scheduleFormatted.entry}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
+                          <div className="flex items-center gap-3">
+                            <Clock className="w-5 h-5 text-primary" />
+                            <span className="font-medium">Salida</span>
+                          </div>
+                          <span className="font-mono text-lg font-semibold text-foreground">
+                            {scheduleFormatted.exit}
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <>
 
                 {(() => {
                   const entryOnTime =
@@ -496,6 +532,8 @@ const Dashboard = () => {
                     </div>
                   );
                 })()}
+                  </>
+                )}
               </CardContent>
             </Card>
 

@@ -10,10 +10,10 @@ import Dashboard from "./pages/Dashboard";
 import ScanQR from "./pages/ScanQR";
 import AdminQR from "./pages/AdminQR";
 import Admin from "./pages/Admin";
+import AdminUsers from "./pages/AdminUsers";
 import Employee from "./pages/Employee";
 import History from "./pages/History";
 import NotFound from "./pages/NotFound";
-
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -43,6 +43,11 @@ const App = () => (
           <Route path="/admin/qr" element={
             <ProtectedRoute requireAdmin>
               <AdminQR />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/users" element={
+            <ProtectedRoute requireAdmin>
+              <AdminUsers />
             </ProtectedRoute>
           } />
           <Route path="/employee" element={

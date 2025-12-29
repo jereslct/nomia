@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
@@ -11,36 +11,110 @@ import {
   Settings,
   ChevronRight,
   CheckCircle,
-  XCircle
+  XCircle,
+  Loader2
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import QRCode from "react-qr-code";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
-// Mock data - will be replaced with real data from Supabase
-const mockUser = {
-  id: "1",
-  name: "Juan Pérez",
-  email: "juan@empresa.com",
-  role: "admin" as "admin" | "user",
-};
-
-const mockAttendanceHistory = [
-  { id: "1", type: "entrada", date: "2024-01-15", time: "08:30", location: "Oficina Central" },
-  { id: "2", type: "salida", date: "2024-01-15", time: "17:45", location: "Oficina Central" },
-  { id: "3", type: "entrada", date: "2024-01-14", time: "08:15", location: "Oficina Central" },
-  { id: "4", type: "salida", date: "2024-01-14", time: "18:00", location: "Oficina Central" },
-];
+interface AttendanceRecord {
+  id: string;
+  record_type: string;
+  recorded_at: string;
+  location_id: string;
+  locations?: {
+    name: string;
+  };
+}
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [user] = useState(mockUser);
+  const { user, profile, isAdmin, loading, signOut } = useAuth();
+  const [attendanceHistory, setAttendanceHistory] = useState<AttendanceRecord[]>([]);
+  const [todayRecords, setTodayRecords] = useState<AttendanceRecord[]>([]);
   const [qrValue] = useState(`qrtime-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
+  const [loadingRecords, setLoadingRecords] = useState(true);
 
-  const handleLogout = () => {
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/auth");
+    }
+  }, [user, loading, navigate]);
+
+  useEffect(() => {
+    if (user) {
+      fetchAttendanceRecords();
+    }
+  }, [user]);
+
+  const fetchAttendanceRecords = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("attendance_records")
+        .select(`
+          id,
+          record_type,
+          recorded_at,
+          location_id,
+          locations (name)
+        `)
+        .eq("user_id", user.id)
+        .order("recorded_at", { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+
+      const records = (data || []) as AttendanceRecord[];
+      setAttendanceHistory(records);
+      
+      // Filter today's records
+      const today = new Date().toISOString().split("T")[0];
+      const todayRecs = records.filter(r => 
+        r.recorded_at.startsWith(today)
+      );
+      setTodayRecords(todayRecs);
+    } catch (error) {
+      console.error("Error fetching attendance:", error);
+    } finally {
+      setLoadingRecords(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    await signOut();
     navigate("/");
   };
 
-  const isAdmin = user.role === "admin";
+  const formatTime = (dateStr: string) => {
+    return new Date(dateStr).toLocaleTimeString("es-ES", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString("es-ES", {
+      day: "2-digit",
+      month: "2-digit",
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) return null;
+
+  const todayEntrada = todayRecords.find(r => r.record_type === "entrada");
+  const todaySalida = todayRecords.find(r => r.record_type === "salida");
 
   return (
     <div className="min-h-screen bg-background">
@@ -60,7 +134,7 @@ const Dashboard = () => {
           </div>
           <div className="flex items-center gap-4">
             <div className="text-right hidden sm:block">
-              <p className="text-sm font-medium">{user.name}</p>
+              <p className="text-sm font-medium">{profile?.full_name || user.email}</p>
               <p className="text-xs text-muted-foreground">{user.email}</p>
             </div>
             <Button variant="ghost" size="icon" onClick={handleLogout}>
@@ -153,33 +227,47 @@ const Dashboard = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {mockAttendanceHistory.map((record) => (
-                    <div 
-                      key={record.id} 
-                      className="flex items-center gap-4 p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
-                    >
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                        record.type === "entrada" 
-                          ? "bg-success/10 text-success" 
-                          : "bg-destructive/10 text-destructive"
-                      }`}>
-                        {record.type === "entrada" 
-                          ? <CheckCircle className="w-5 h-5" /> 
-                          : <XCircle className="w-5 h-5" />
-                        }
+                {loadingRecords ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : attendanceHistory.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Clock className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>No hay registros de asistencia aún</p>
+                    <p className="text-sm mt-1">Escanea un código QR para comenzar</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {attendanceHistory.slice(0, 5).map((record) => (
+                      <div 
+                        key={record.id} 
+                        className="flex items-center gap-4 p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
+                      >
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                          record.record_type === "entrada" 
+                            ? "bg-success/10 text-success" 
+                            : "bg-destructive/10 text-destructive"
+                        }`}>
+                          {record.record_type === "entrada" 
+                            ? <CheckCircle className="w-5 h-5" /> 
+                            : <XCircle className="w-5 h-5" />
+                          }
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium capitalize">{record.record_type}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {record.locations?.name || "Ubicación no disponible"}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium">{formatTime(record.recorded_at)}</p>
+                          <p className="text-sm text-muted-foreground">{formatDate(record.recorded_at)}</p>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <p className="font-medium capitalize">{record.type}</p>
-                        <p className="text-sm text-muted-foreground">{record.location}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-medium">{record.time}</p>
-                        <p className="text-sm text-muted-foreground">{record.date}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -192,19 +280,39 @@ const Dashboard = () => {
                 <CardTitle className="text-lg">Estado de Hoy</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-3 rounded-xl bg-success/10">
+                <div className={`flex items-center justify-between p-3 rounded-xl ${
+                  todayEntrada ? "bg-success/10" : "bg-muted/50"
+                }`}>
                   <div className="flex items-center gap-3">
-                    <CheckCircle className="w-5 h-5 text-success" />
-                    <span className="font-medium">Entrada</span>
+                    {todayEntrada ? (
+                      <CheckCircle className="w-5 h-5 text-success" />
+                    ) : (
+                      <Clock className="w-5 h-5 text-muted-foreground" />
+                    )}
+                    <span className={todayEntrada ? "font-medium" : "text-muted-foreground"}>
+                      Entrada
+                    </span>
                   </div>
-                  <span className="font-mono text-success">08:30</span>
+                  <span className={todayEntrada ? "font-mono text-success" : "text-muted-foreground"}>
+                    {todayEntrada ? formatTime(todayEntrada.recorded_at) : "Pendiente"}
+                  </span>
                 </div>
-                <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
+                <div className={`flex items-center justify-between p-3 rounded-xl ${
+                  todaySalida ? "bg-destructive/10" : "bg-muted/50"
+                }`}>
                   <div className="flex items-center gap-3">
-                    <Clock className="w-5 h-5 text-muted-foreground" />
-                    <span className="text-muted-foreground">Salida</span>
+                    {todaySalida ? (
+                      <XCircle className="w-5 h-5 text-destructive" />
+                    ) : (
+                      <Clock className="w-5 h-5 text-muted-foreground" />
+                    )}
+                    <span className={todaySalida ? "font-medium" : "text-muted-foreground"}>
+                      Salida
+                    </span>
                   </div>
-                  <span className="text-muted-foreground">Pendiente</span>
+                  <span className={todaySalida ? "font-mono text-destructive" : "text-muted-foreground"}>
+                    {todaySalida ? formatTime(todaySalida.recorded_at) : "Pendiente"}
+                  </span>
                 </div>
               </CardContent>
             </Card>
@@ -224,15 +332,17 @@ const Dashboard = () => {
                       style={{ height: "auto", maxWidth: "100%", width: "100%" }}
                     />
                   </div>
-                  <Button variant="outline" size="sm" className="mt-4">
-                    <Settings className="w-4 h-4 mr-2" />
-                    Configurar
-                  </Button>
+                  <Link to="/admin/qr" className="w-full mt-4">
+                    <Button variant="outline" size="sm" className="w-full">
+                      <Settings className="w-4 h-4 mr-2" />
+                      Gestionar QR
+                    </Button>
+                  </Link>
                 </CardContent>
               </Card>
             )}
 
-            {/* Stats */}
+            {/* Quick Stats */}
             <Card className="glass-card">
               <CardHeader>
                 <CardTitle className="text-lg">Este Mes</CardTitle>
@@ -240,11 +350,13 @@ const Dashboard = () => {
               <CardContent>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="text-center p-4 rounded-xl bg-muted/50">
-                    <p className="text-3xl font-bold text-primary">18</p>
+                    <p className="text-3xl font-bold text-primary">
+                      {Math.floor(attendanceHistory.filter(r => r.record_type === "entrada").length)}
+                    </p>
                     <p className="text-sm text-muted-foreground">Días trabajados</p>
                   </div>
                   <div className="text-center p-4 rounded-xl bg-muted/50">
-                    <p className="text-3xl font-bold text-accent">144h</p>
+                    <p className="text-3xl font-bold text-accent">—</p>
                     <p className="text-sm text-muted-foreground">Horas totales</p>
                   </div>
                 </div>

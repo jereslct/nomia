@@ -6,14 +6,24 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { QrCode, Mail, Lock, User, ArrowLeft, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { z } from "zod";
+
+const authSchema = z.object({
+  email: z.string().trim().email("Correo electrónico inválido").max(255),
+  password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres").max(72),
+  name: z.string().trim().min(2, "El nombre debe tener al menos 2 caracteres").max(100).optional(),
+});
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, loading, signIn, signUp } = useAuth();
   
   const [isLogin, setIsLogin] = useState(searchParams.get("mode") !== "signup");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -24,23 +34,107 @@ const Auth = () => {
     setIsLogin(searchParams.get("mode") !== "signup");
   }, [searchParams]);
 
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!loading && user) {
+      navigate("/dashboard");
+    }
+  }, [user, loading, navigate]);
+
+  const validateForm = () => {
+    try {
+      const dataToValidate = isLogin 
+        ? { email: formData.email, password: formData.password }
+        : { email: formData.email, password: formData.password, name: formData.name };
+      
+      authSchema.parse(dataToValidate);
+      setErrors({});
+      return true;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const newErrors: Record<string, string> = {};
+        error.errors.forEach((err) => {
+          if (err.path[0]) {
+            newErrors[err.path[0] as string] = err.message;
+          }
+        });
+        setErrors(newErrors);
+      }
+      return false;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    
+    if (!validateForm()) return;
+    
+    setIsSubmitting(true);
 
-    // Simulate auth - will be replaced with Supabase
-    setTimeout(() => {
-      setIsLoading(false);
-      toast({
-        title: isLogin ? "Bienvenido de vuelta" : "Cuenta creada",
-        description: isLogin 
-          ? "Has iniciado sesión correctamente." 
-          : "Tu cuenta ha sido creada. Revisa tu email para confirmar.",
-      });
-      // For demo, navigate to dashboard
-      navigate("/dashboard");
-    }, 1500);
+    try {
+      if (isLogin) {
+        const { error } = await signIn(formData.email, formData.password);
+        
+        if (error) {
+          if (error.message.includes("Invalid login credentials")) {
+            toast({
+              title: "Error de autenticación",
+              description: "Correo o contraseña incorrectos.",
+              variant: "destructive",
+            });
+          } else {
+            toast({
+              title: "Error",
+              description: error.message,
+              variant: "destructive",
+            });
+          }
+          return;
+        }
+
+        toast({
+          title: "¡Bienvenido de vuelta!",
+          description: "Has iniciado sesión correctamente.",
+        });
+        navigate("/dashboard");
+      } else {
+        const { error } = await signUp(formData.email, formData.password, formData.name);
+        
+        if (error) {
+          if (error.message.includes("User already registered")) {
+            toast({
+              title: "Usuario existente",
+              description: "Este correo ya está registrado. Intenta iniciar sesión.",
+              variant: "destructive",
+            });
+          } else {
+            toast({
+              title: "Error",
+              description: error.message,
+              variant: "destructive",
+            });
+          }
+          return;
+        }
+
+        toast({
+          title: "¡Cuenta creada!",
+          description: "Tu cuenta ha sido creada exitosamente.",
+        });
+        navigate("/dashboard");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen gradient-hero flex flex-col">
@@ -91,9 +185,9 @@ const Auth = () => {
                         className="pl-10"
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        required={!isLogin}
                       />
                     </div>
+                    {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
                   </div>
                 )}
 
@@ -108,9 +202,9 @@ const Auth = () => {
                       className="pl-10"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      required
                     />
                   </div>
+                  {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
                 </div>
 
                 <div className="space-y-2">
@@ -124,10 +218,9 @@ const Auth = () => {
                       className="pl-10"
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      required
-                      minLength={6}
                     />
                   </div>
+                  {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
                 </div>
 
                 <Button 
@@ -135,9 +228,9 @@ const Auth = () => {
                   variant="hero" 
                   className="w-full" 
                   size="lg"
-                  disabled={isLoading}
+                  disabled={isSubmitting}
                 >
-                  {isLoading ? (
+                  {isSubmitting ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
                       {isLogin ? "Iniciando sesión..." : "Creando cuenta..."}
@@ -155,6 +248,7 @@ const Auth = () => {
                     type="button"
                     onClick={() => {
                       setIsLogin(!isLogin);
+                      setErrors({});
                       navigate(isLogin ? "/auth?mode=signup" : "/auth", { replace: true });
                     }}
                     className="text-primary hover:underline font-medium"

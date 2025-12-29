@@ -5,16 +5,25 @@ import { ArrowLeft, Camera, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Html5Qrcode } from "html5-qrcode";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 type ScanStatus = "idle" | "scanning" | "success" | "error";
 
 const ScanQR = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, loading } = useAuth();
   const [status, setStatus] = useState<ScanStatus>("idle");
-  const [scanResult, setScanResult] = useState<string | null>(null);
+  const [recordType, setRecordType] = useState<"entrada" | "salida" | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const [isInitializing, setIsInitializing] = useState(false);
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/auth");
+    }
+  }, [user, loading, navigate]);
 
   const startScanning = async () => {
     if (scannerRef.current || isInitializing) return;
@@ -33,11 +42,10 @@ const ScanQR = () => {
           qrbox: { width: 250, height: 250 },
         },
         (decodedText) => {
-          // QR code scanned successfully
           handleScanSuccess(decodedText);
         },
         () => {
-          // QR code scanning error (this is called frequently while scanning)
+          // QR code scanning error (called frequently while scanning)
         }
       );
     } catch (err) {
@@ -66,25 +74,111 @@ const ScanQR = () => {
 
   const handleScanSuccess = async (result: string) => {
     await stopScanning();
-    setScanResult(result);
-    setStatus("success");
 
     // Validate QR code format
-    if (result.startsWith("qrtime-")) {
+    if (!result.startsWith("qrtime-")) {
+      setStatus("error");
       toast({
-        title: "¡Registro exitoso!",
-        description: "Tu asistencia ha sido registrada correctamente.",
+        title: "Código inválido",
+        description: "Este código QR no es válido para registrar asistencia.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!user) {
+      setStatus("error");
+      toast({
+        title: "Error",
+        description: "Debes iniciar sesión para registrar asistencia.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Check if there's a valid QR code in the database
+      const { data: qrCode, error: qrError } = await supabase
+        .from("qr_codes")
+        .select("id, location_id, expires_at")
+        .eq("code", result)
+        .gt("expires_at", new Date().toISOString())
+        .maybeSingle();
+
+      // If no QR found, create a default location and use that
+      let locationId: string;
+      let qrCodeId: string | null = null;
+
+      if (qrCode) {
+        locationId = qrCode.location_id;
+        qrCodeId = qrCode.id;
+      } else {
+        // For demo: get or create a default location
+        const { data: existingLocation } = await supabase
+          .from("locations")
+          .select("id")
+          .eq("name", "Oficina Central")
+          .maybeSingle();
+
+        if (existingLocation) {
+          locationId = existingLocation.id;
+        } else {
+          // Location doesn't exist and user can't create one - show friendly error
+          setStatus("error");
+          toast({
+            title: "Ubicación no disponible",
+            description: "El código QR es válido, pero la ubicación aún no está configurada. Contacta al administrador.",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+
+      // Determine if this is entrada or salida based on last record
+      const today = new Date().toISOString().split("T")[0];
+      const { data: todayRecords } = await supabase
+        .from("attendance_records")
+        .select("record_type, recorded_at")
+        .eq("user_id", user.id)
+        .gte("recorded_at", `${today}T00:00:00`)
+        .order("recorded_at", { ascending: false })
+        .limit(1);
+
+      const lastRecord = todayRecords?.[0];
+      const newRecordType: "entrada" | "salida" = 
+        !lastRecord || lastRecord.record_type === "salida" ? "entrada" : "salida";
+
+      // Insert attendance record
+      const { error: insertError } = await supabase
+        .from("attendance_records")
+        .insert({
+          user_id: user.id,
+          location_id: locationId,
+          qr_code_id: qrCodeId,
+          record_type: newRecordType,
+          recorded_at: new Date().toISOString(),
+        });
+
+      if (insertError) throw insertError;
+
+      setRecordType(newRecordType);
+      setStatus("success");
+      
+      toast({
+        title: `¡${newRecordType === "entrada" ? "Entrada" : "Salida"} registrada!`,
+        description: `Tu ${newRecordType} ha sido registrada correctamente.`,
       });
       
       // Navigate back after a delay
       setTimeout(() => {
         navigate("/dashboard");
       }, 2000);
-    } else {
+    } catch (error) {
+      console.error("Error recording attendance:", error);
       setStatus("error");
       toast({
-        title: "Código inválido",
-        description: "Este código QR no es válido para registrar asistencia.",
+        title: "Error",
+        description: "No se pudo registrar la asistencia. Intenta de nuevo.",
         variant: "destructive",
       });
     }
@@ -95,6 +189,14 @@ const ScanQR = () => {
       stopScanning();
     };
   }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -152,7 +254,9 @@ const ScanQR = () => {
                     <CheckCircle className="w-10 h-10 text-success-foreground" />
                   </div>
                   <div className="text-center">
-                    <p className="font-semibold text-success">¡Registro exitoso!</p>
+                    <p className="font-semibold text-success">
+                      ¡{recordType === "entrada" ? "Entrada" : "Salida"} registrada!
+                    </p>
                     <p className="text-sm text-muted-foreground">Redirigiendo...</p>
                   </div>
                 </div>
@@ -206,14 +310,14 @@ const ScanQR = () => {
                 </Button>
               )}
 
-              {(status === "error") && (
+              {status === "error" && (
                 <Button 
                   variant="hero" 
                   size="lg" 
                   className="w-full"
                   onClick={() => {
                     setStatus("idle");
-                    setScanResult(null);
+                    setRecordType(null);
                   }}
                 >
                   Intentar de nuevo

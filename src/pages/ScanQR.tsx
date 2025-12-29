@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Camera, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { ArrowLeft, Camera, CheckCircle, XCircle, Loader2, Copy, Check } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Html5Qrcode } from "html5-qrcode";
@@ -18,6 +18,9 @@ const ScanQR = () => {
   const [recordType, setRecordType] = useState<"entrada" | "salida" | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const [isInitializing, setIsInitializing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string>("");
+  const [errorCode, setErrorCode] = useState<string>("");
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -127,12 +130,37 @@ const ScanQR = () => {
     }
   };
 
+  const setError = (message: string, code: string) => {
+    setErrorMessage(message);
+    setErrorCode(code);
+    setStatus("error");
+    setCopied(false);
+  };
+
+  const copyErrorToClipboard = async () => {
+    const fullError = `Error: ${errorMessage}\nCódigo: ${errorCode}`;
+    try {
+      await navigator.clipboard.writeText(fullError);
+      setCopied(true);
+      toast({
+        title: "Copiado",
+        description: "Información del error copiada al portapapeles",
+      });
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Error copying to clipboard:", err);
+    }
+  };
+
   const handleScanSuccess = async (result: string) => {
     await stopScanning();
 
     // Validate QR code format
     if (!result.startsWith("nomia-")) {
-      setStatus("error");
+      setError(
+        "Este código QR no es válido para registrar asistencia.",
+        `INVALID_FORMAT: ${result.substring(0, 20)}...`
+      );
       toast({
         title: "Código inválido",
         description: "Este código QR no es válido para registrar asistencia.",
@@ -142,7 +170,10 @@ const ScanQR = () => {
     }
 
     if (!user) {
-      setStatus("error");
+      setError(
+        "Debes iniciar sesión para registrar asistencia.",
+        "AUTH_REQUIRED: No user session"
+      );
       toast({
         title: "Error",
         description: "Debes iniciar sesión para registrar asistencia.",
@@ -161,8 +192,24 @@ const ScanQR = () => {
         .maybeSingle();
 
       // Require valid QR code - no fallback allowed
+      if (qrError) {
+        setError(
+          "Error al validar el código QR en la base de datos.",
+          `QR_VALIDATION_ERROR: ${qrError.code} - ${qrError.message}`
+        );
+        toast({
+          title: "Error de validación",
+          description: "No se pudo validar el código QR.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       if (!qrCode) {
-        setStatus("error");
+        setError(
+          "Este código QR no es válido o ha expirado. Solicita un nuevo código al administrador.",
+          `QR_NOT_FOUND_OR_EXPIRED: ${result}`
+        );
         toast({
           title: "Código QR inválido o expirado",
           description: "Este código QR no es válido o ha expirado. Solicita un nuevo código al administrador.",
@@ -176,13 +223,26 @@ const ScanQR = () => {
 
       // Determine if this is entrada or salida based on last record
       const today = new Date().toISOString().split("T")[0];
-      const { data: todayRecords } = await supabase
+      const { data: todayRecords, error: recordsError } = await supabase
         .from("attendance_records")
         .select("record_type, recorded_at")
         .eq("user_id", user.id)
         .gte("recorded_at", `${today}T00:00:00`)
         .order("recorded_at", { ascending: false })
         .limit(1);
+
+      if (recordsError) {
+        setError(
+          "Error al consultar registros de asistencia.",
+          `RECORDS_QUERY_ERROR: ${recordsError.code} - ${recordsError.message}`
+        );
+        toast({
+          title: "Error",
+          description: "No se pudieron consultar los registros.",
+          variant: "destructive",
+        });
+        return;
+      }
 
       const lastRecord = todayRecords?.[0];
       const newRecordType: "entrada" | "salida" = 
@@ -199,10 +259,23 @@ const ScanQR = () => {
           recorded_at: new Date().toISOString(),
         });
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        setError(
+          "No se pudo registrar la asistencia.",
+          `INSERT_ERROR: ${insertError.code} - ${insertError.message}`
+        );
+        toast({
+          title: "Error",
+          description: "No se pudo registrar la asistencia. Intenta de nuevo.",
+          variant: "destructive",
+        });
+        return;
+      }
 
       setRecordType(newRecordType);
       setStatus("success");
+      setErrorMessage("");
+      setErrorCode("");
       
       toast({
         title: `¡${newRecordType === "entrada" ? "Entrada" : "Salida"} registrada!`,
@@ -213,9 +286,12 @@ const ScanQR = () => {
       setTimeout(() => {
         navigate("/dashboard");
       }, 2000);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error recording attendance:", error);
-      setStatus("error");
+      setError(
+        "Error inesperado al registrar la asistencia.",
+        `UNEXPECTED_ERROR: ${error?.message || error?.toString() || "Unknown error"}`
+      );
       toast({
         title: "Error",
         description: "No se pudo registrar la asistencia. Intenta de nuevo.",
@@ -303,13 +379,36 @@ const ScanQR = () => {
               )}
 
               {status === "error" && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-destructive/10 animate-scale-in">
-                  <div className="w-20 h-20 rounded-full bg-destructive flex items-center justify-center">
-                    <XCircle className="w-10 h-10 text-destructive-foreground" />
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-destructive/10 animate-scale-in p-4">
+                  <div className="w-16 h-16 rounded-full bg-destructive flex items-center justify-center">
+                    <XCircle className="w-8 h-8 text-destructive-foreground" />
                   </div>
-                  <div className="text-center">
-                    <p className="font-semibold text-destructive">Error</p>
-                    <p className="text-sm text-muted-foreground">Código inválido</p>
+                  <div className="text-center w-full">
+                    <p className="font-semibold text-destructive mb-1">Error</p>
+                    <p className="text-xs text-muted-foreground mb-2 px-2 line-clamp-2">{errorMessage || "Código inválido"}</p>
+                    {errorCode && (
+                      <div className="bg-destructive/20 rounded-lg p-2 mx-2">
+                        <p className="text-[10px] text-destructive font-mono break-all mb-2">{errorCode}</p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs border-destructive/50 text-destructive hover:bg-destructive/20"
+                          onClick={copyErrorToClipboard}
+                        >
+                          {copied ? (
+                            <>
+                              <Check className="w-3 h-3 mr-1" />
+                              Copiado
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3 h-3 mr-1" />
+                              Copiar error
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -358,6 +457,8 @@ const ScanQR = () => {
                   onClick={() => {
                     setStatus("idle");
                     setRecordType(null);
+                    setErrorMessage("");
+                    setErrorCode("");
                   }}
                 >
                   Intentar de nuevo

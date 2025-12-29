@@ -214,7 +214,7 @@ const Employee = () => {
   const handleScanSuccess = async (result: string) => {
     await stopScanning();
 
-    if (!result.startsWith("qrtime-")) {
+    if (!result.startsWith("nomia-")) {
       setStatus("error");
       toast({
         title: "Código inválido",

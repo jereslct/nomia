@@ -131,7 +131,7 @@ const ScanQR = () => {
     await stopScanning();
 
     // Validate QR code format
-    if (!result.startsWith("qrtime-")) {
+    if (!result.startsWith("nomia-")) {
       setStatus("error");
       toast({
         title: "Código inválido",

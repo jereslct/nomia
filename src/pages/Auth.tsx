@@ -153,7 +153,7 @@ const Auth = () => {
             <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center mx-auto shadow-lg shadow-primary/25">
               <QrCode className="w-8 h-8 text-primary-foreground" />
             </div>
-            <h1 className="text-2xl font-bold">QRTime</h1>
+            <h1 className="text-2xl font-bold">Nomia</h1>
             <p className="text-muted-foreground text-sm">
               Control de asistencia inteligente
             </p>

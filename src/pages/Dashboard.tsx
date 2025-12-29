@@ -34,7 +34,7 @@ const Dashboard = () => {
   const { user, profile, isAdmin, loading, signOut } = useAuth();
   const [attendanceHistory, setAttendanceHistory] = useState<AttendanceRecord[]>([]);
   const [todayRecords, setTodayRecords] = useState<AttendanceRecord[]>([]);
-  const [qrValue] = useState(`qrtime-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
+  const [qrValue] = useState(`nomia-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
   const [loadingRecords, setLoadingRecords] = useState(true);
 
   useEffect(() => {
@@ -126,7 +126,7 @@ const Dashboard = () => {
               <QrCode className="w-5 h-5 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="font-bold text-lg">QRTime</h1>
+              <h1 className="font-bold text-lg">Nomia</h1>
               <p className="text-xs text-muted-foreground">
                 {isAdmin ? "Panel de Administrador" : "Panel de Usuario"}
               </p>

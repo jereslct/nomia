@@ -22,12 +22,19 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { ArrowLeft, UserPlus, Users, Mail, Loader2, Check, Clock, X } from "lucide-react";
+import { ArrowLeft, UserPlus, Users, Mail, Loader2, Check, Clock, X, Building2, Plus, ChevronRight } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
+
+interface Organization {
+  id: string;
+  name: string;
+  created_at: string;
+  member_count?: number;
+}
 
 interface OrganizationMember {
   id: string;
@@ -43,6 +50,7 @@ interface OrganizationMember {
 }
 
 const emailSchema = z.string().email("Correo electrónico inválido");
+const orgNameSchema = z.string().min(2, "El nombre debe tener al menos 2 caracteres").max(100);
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -71,9 +79,18 @@ const AdminUsers = () => {
   const { user, isAdmin, loading } = useAuth();
   const { toast } = useToast();
   
+  // Organizations state
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null);
+  const [isLoadingOrgs, setIsLoadingOrgs] = useState(true);
+  const [orgDialogOpen, setOrgDialogOpen] = useState(false);
+  const [newOrgName, setNewOrgName] = useState("");
+  const [isCreatingOrg, setIsCreatingOrg] = useState(false);
+  const [orgNameError, setOrgNameError] = useState("");
+
+  // Members state
   const [members, setMembers] = useState<OrganizationMember[]>([]);
-  const [isLoadingData, setIsLoadingData] = useState(true);
-  const [organizationId, setOrganizationId] = useState<string | null>(null);
+  const [isLoadingMembers, setIsLoadingMembers] = useState(false);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [isInviting, setIsInviting] = useState(false);
@@ -87,40 +104,69 @@ const AdminUsers = () => {
 
   useEffect(() => {
     if (user && isAdmin) {
-      fetchOrganizationAndMembers();
+      fetchOrganizations();
     }
   }, [user, isAdmin]);
 
-  const fetchOrganizationAndMembers = async () => {
+  useEffect(() => {
+    if (selectedOrg) {
+      fetchMembers(selectedOrg.id);
+    } else {
+      setMembers([]);
+    }
+  }, [selectedOrg]);
+
+  const fetchOrganizations = async () => {
     if (!user) return;
 
     try {
-      // Get organization
-      const { data: org } = await supabase
+      setIsLoadingOrgs(true);
+      
+      // Get organizations owned by this admin
+      const { data: orgs, error } = await supabase
         .from("organizations")
-        .select("id")
+        .select("id, name, created_at")
         .eq("owner_id", user.id)
-        .maybeSingle();
+        .order("created_at", { ascending: false });
 
-      if (!org) {
-        setIsLoadingData(false);
-        return;
+      if (error) throw error;
+
+      // Get member counts for each organization
+      const orgsWithCounts = await Promise.all(
+        (orgs || []).map(async (org) => {
+          const { count } = await supabase
+            .from("organization_members")
+            .select("*", { count: "exact", head: true })
+            .eq("organization_id", org.id);
+          
+          return { ...org, member_count: count || 0 };
+        })
+      );
+
+      setOrganizations(orgsWithCounts);
+      
+      // Auto-select first org if available
+      if (orgsWithCounts.length > 0 && !selectedOrg) {
+        setSelectedOrg(orgsWithCounts[0]);
       }
+    } catch (error) {
+      console.error("Error fetching organizations:", error);
+    } finally {
+      setIsLoadingOrgs(false);
+    }
+  };
 
-      setOrganizationId(org.id);
+  const fetchMembers = async (orgId: string) => {
+    try {
+      setIsLoadingMembers(true);
 
-      // Get members
       const { data: membersData, error } = await supabase
         .from("organization_members")
         .select("*")
-        .eq("organization_id", org.id)
+        .eq("organization_id", orgId)
         .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error("Error fetching members:", error);
-        setIsLoadingData(false);
-        return;
-      }
+      if (error) throw error;
 
       // Fetch profiles for accepted members
       const acceptedUserIds = membersData
@@ -140,7 +186,6 @@ const AdminUsers = () => {
         });
       }
 
-      // Combine members with profiles
       const membersWithProfiles: OrganizationMember[] = (membersData || []).map((m) => ({
         ...m,
         status: m.status as "pending" | "accepted" | "rejected",
@@ -149,9 +194,57 @@ const AdminUsers = () => {
 
       setMembers(membersWithProfiles);
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error fetching members:", error);
     } finally {
-      setIsLoadingData(false);
+      setIsLoadingMembers(false);
+    }
+  };
+
+  const handleCreateOrg = async () => {
+    setOrgNameError("");
+    
+    try {
+      orgNameSchema.parse(newOrgName);
+    } catch {
+      setOrgNameError("El nombre debe tener entre 2 y 100 caracteres");
+      return;
+    }
+
+    if (!user) return;
+
+    setIsCreatingOrg(true);
+
+    try {
+      const { data: newOrg, error } = await supabase
+        .from("organizations")
+        .insert({
+          name: newOrgName.trim(),
+          owner_id: user.id,
+        })
+        .select("id, name, created_at")
+        .single();
+
+      if (error) throw error;
+
+      const orgWithCount = { ...newOrg, member_count: 0 };
+      setOrganizations([orgWithCount, ...organizations]);
+      setSelectedOrg(orgWithCount);
+      setNewOrgName("");
+      setOrgDialogOpen(false);
+
+      toast({
+        title: "Organización creada",
+        description: `"${newOrg.name}" ha sido creada exitosamente.`,
+      });
+    } catch (error) {
+      console.error("Error creating organization:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo crear la organización.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreatingOrg(false);
     }
   };
 
@@ -165,46 +258,16 @@ const AdminUsers = () => {
       return;
     }
 
-    if (!user) return;
+    if (!selectedOrg || !user) return;
 
     setIsInviting(true);
-
-    let currentOrgId = organizationId;
-
-    // Create organization if it doesn't exist
-    if (!currentOrgId) {
-      try {
-        const { data: newOrg, error: orgError } = await supabase
-          .from("organizations")
-          .insert({
-            name: `Organización de ${user.email}`,
-            owner_id: user.id,
-          })
-          .select("id")
-          .single();
-
-        if (orgError) throw orgError;
-
-        currentOrgId = newOrg.id;
-        setOrganizationId(currentOrgId);
-      } catch (error) {
-        console.error("Error creating organization:", error);
-        toast({
-          title: "Error",
-          description: "No se pudo crear la organización.",
-          variant: "destructive",
-        });
-        setIsInviting(false);
-        return;
-      }
-    }
 
     try {
       // Check if already invited
       const { data: existing } = await supabase
         .from("organization_members")
         .select("id, status")
-        .eq("organization_id", currentOrgId)
+        .eq("organization_id", selectedOrg.id)
         .eq("invited_email", inviteEmail.toLowerCase())
         .maybeSingle();
 
@@ -212,7 +275,7 @@ const AdminUsers = () => {
         toast({
           title: "Usuario ya invitado",
           description: existing.status === "accepted" 
-            ? "Este usuario ya es parte de tu organización."
+            ? "Este usuario ya es parte de esta organización."
             : "Ya existe una invitación pendiente para este correo.",
           variant: "destructive",
         });
@@ -231,7 +294,7 @@ const AdminUsers = () => {
       const { error } = await supabase
         .from("organization_members")
         .insert({
-          organization_id: currentOrgId,
+          organization_id: selectedOrg.id,
           invited_email: inviteEmail.toLowerCase(),
           invited_by: user.id,
           user_id: existingProfile?.user_id || null,
@@ -244,13 +307,21 @@ const AdminUsers = () => {
       toast({
         title: existingProfile ? "Empleado agregado" : "Invitación enviada",
         description: existingProfile 
-          ? `${inviteEmail} ha sido agregado a tu organización.`
+          ? `${inviteEmail} ha sido agregado a "${selectedOrg.name}".`
           : `Cuando ${inviteEmail} se registre, será agregado automáticamente.`,
       });
 
       setInviteEmail("");
       setInviteDialogOpen(false);
-      fetchOrganizationAndMembers();
+      fetchMembers(selectedOrg.id);
+      
+      // Update member count
+      setOrganizations(orgs => 
+        orgs.map(o => o.id === selectedOrg.id 
+          ? { ...o, member_count: (o.member_count || 0) + 1 } 
+          : o
+        )
+      );
     } catch (error) {
       console.error("Error inviting:", error);
       toast({
@@ -264,6 +335,8 @@ const AdminUsers = () => {
   };
 
   const handleRemoveMember = async (memberId: string) => {
+    if (!selectedOrg) return;
+
     try {
       const { error } = await supabase
         .from("organization_members")
@@ -278,6 +351,14 @@ const AdminUsers = () => {
       });
 
       setMembers(members.filter((m) => m.id !== memberId));
+      
+      // Update member count
+      setOrganizations(orgs => 
+        orgs.map(o => o.id === selectedOrg.id 
+          ? { ...o, member_count: Math.max((o.member_count || 1) - 1, 0) } 
+          : o
+        )
+      );
     } catch (error) {
       console.error("Error removing member:", error);
       toast({
@@ -311,179 +392,304 @@ const AdminUsers = () => {
               </Button>
             </Link>
             <div>
-              <h1 className="font-bold text-lg">Gestión de Empleados</h1>
-              <p className="text-xs text-muted-foreground">Invita y administra tu equipo</p>
+              <h1 className="font-bold text-lg">Gestión de Organizaciones</h1>
+              <p className="text-xs text-muted-foreground">Administra tus organizaciones y equipos</p>
             </div>
           </div>
-          <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="hero" size="sm">
-                <UserPlus className="w-4 h-4" />
-                Invitar
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Invitar Empleado</DialogTitle>
-                <DialogDescription>
-                  Ingresa el correo electrónico del empleado que deseas agregar a tu organización.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Correo electrónico</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="empleado@email.com"
-                      className="pl-10"
-                      value={inviteEmail}
-                      onChange={(e) => {
-                        setInviteEmail(e.target.value);
-                        setEmailError("");
-                      }}
-                    />
-                  </div>
-                  {emailError && <p className="text-sm text-destructive">{emailError}</p>}
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setInviteDialogOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button onClick={handleInvite} disabled={isInviting || !inviteEmail}>
-                  {isInviting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Enviando...
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus className="w-4 h-4" />
-                      Enviar Invitación
-                    </>
-                  )}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-8 space-y-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card className="glass-card">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-success/20 flex items-center justify-center">
-                  <Check className="w-6 h-6 text-success" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Empleados Activos</p>
-                  <p className="text-2xl font-bold">{activeMembers}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="glass-card">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-warning/20 flex items-center justify-center">
-                  <Clock className="w-6 h-6 text-warning" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Invitaciones Pendientes</p>
-                  <p className="text-2xl font-bold">{pendingMembers}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Members Table */}
+        {/* Organizations Section */}
         <Card className="glass-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              Equipo
-            </CardTitle>
-            <CardDescription>Lista de empleados y invitaciones</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Building2 className="w-5 h-5" />
+                Organizaciones
+              </CardTitle>
+              <CardDescription>Selecciona una organización para ver sus empleados</CardDescription>
+            </div>
+            <Dialog open={orgDialogOpen} onOpenChange={setOrgDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Plus className="w-4 h-4" />
+                  Nueva Organización
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Crear Organización</DialogTitle>
+                  <DialogDescription>
+                    Crea una nueva organización para gestionar un grupo de empleados.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="orgName">Nombre de la organización</Label>
+                    <Input
+                      id="orgName"
+                      placeholder="Ej: Sucursal Norte"
+                      value={newOrgName}
+                      onChange={(e) => {
+                        setNewOrgName(e.target.value);
+                        setOrgNameError("");
+                      }}
+                    />
+                    {orgNameError && <p className="text-sm text-destructive">{orgNameError}</p>}
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setOrgDialogOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button onClick={handleCreateOrg} disabled={isCreatingOrg || !newOrgName.trim()}>
+                    {isCreatingOrg ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Creando...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4" />
+                        Crear
+                      </>
+                    )}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </CardHeader>
           <CardContent>
-            {isLoadingData ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            {isLoadingOrgs ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
               </div>
-            ) : members.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>No hay empleados en tu organización</p>
-                <p className="text-sm">Invita a tu primer empleado para comenzar</p>
+            ) : organizations.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Building2 className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>No tienes organizaciones</p>
+                <p className="text-sm">Crea tu primera organización para comenzar</p>
                 <Button 
                   variant="outline" 
                   className="mt-4"
-                  onClick={() => setInviteDialogOpen(true)}
+                  onClick={() => setOrgDialogOpen(true)}
                 >
-                  <UserPlus className="w-4 h-4" />
-                  Invitar Empleado
+                  <Plus className="w-4 h-4" />
+                  Crear Organización
                 </Button>
               </div>
             ) : (
-              <div className="rounded-lg border border-border overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/50">
-                      <TableHead className="font-semibold">Empleado</TableHead>
-                      <TableHead className="font-semibold">Email</TableHead>
-                      <TableHead className="font-semibold">Estado</TableHead>
-                      <TableHead className="font-semibold">Fecha</TableHead>
-                      <TableHead className="font-semibold text-right">Acciones</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {members.map((member) => (
-                      <TableRow key={member.id} className="hover:bg-muted/30">
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <Avatar className="w-9 h-9">
-                              <AvatarImage src={member.profile?.avatar_url || undefined} />
-                              <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
-                                {getInitials(member.profile?.full_name || member.invited_email.split("@")[0])}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="font-medium">
-                              {member.profile?.full_name || member.invited_email.split("@")[0]}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {member.invited_email}
-                        </TableCell>
-                        <TableCell>{getStatusBadge(member.status)}</TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {new Date(member.created_at).toLocaleDateString("es")}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => handleRemoveMember(member.id)}
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {organizations.map((org) => (
+                  <button
+                    key={org.id}
+                    onClick={() => setSelectedOrg(org)}
+                    className={`p-4 rounded-lg border text-left transition-all hover:border-primary/50 ${
+                      selectedOrg?.id === org.id 
+                        ? "border-primary bg-primary/5 ring-1 ring-primary" 
+                        : "border-border bg-card hover:bg-muted/50"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                          selectedOrg?.id === org.id ? "bg-primary/20" : "bg-muted"
+                        }`}>
+                          <Building2 className={`w-5 h-5 ${
+                            selectedOrg?.id === org.id ? "text-primary" : "text-muted-foreground"
+                          }`} />
+                        </div>
+                        <div>
+                          <p className="font-medium">{org.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {org.member_count} {org.member_count === 1 ? "empleado" : "empleados"}
+                          </p>
+                        </div>
+                      </div>
+                      {selectedOrg?.id === org.id && (
+                        <ChevronRight className="w-4 h-4 text-primary" />
+                      )}
+                    </div>
+                  </button>
+                ))}
               </div>
             )}
           </CardContent>
         </Card>
+
+        {/* Members Section - Only show when org is selected */}
+        {selectedOrg && (
+          <>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card className="glass-card">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-success/20 flex items-center justify-center">
+                      <Check className="w-6 h-6 text-success" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Empleados Activos</p>
+                      <p className="text-2xl font-bold">{activeMembers}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="glass-card">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-warning/20 flex items-center justify-center">
+                      <Clock className="w-6 h-6 text-warning" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Invitaciones Pendientes</p>
+                      <p className="text-2xl font-bold">{pendingMembers}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Members Table */}
+            <Card className="glass-card">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="w-5 h-5" />
+                    Empleados de {selectedOrg.name}
+                  </CardTitle>
+                  <CardDescription>Lista de empleados e invitaciones</CardDescription>
+                </div>
+                <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="hero" size="sm">
+                      <UserPlus className="w-4 h-4" />
+                      Invitar
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Invitar Empleado</DialogTitle>
+                      <DialogDescription>
+                        Ingresa el correo electrónico del empleado que deseas agregar a "{selectedOrg.name}".
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Correo electrónico</Label>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            id="email"
+                            type="email"
+                            placeholder="empleado@email.com"
+                            className="pl-10"
+                            value={inviteEmail}
+                            onChange={(e) => {
+                              setInviteEmail(e.target.value);
+                              setEmailError("");
+                            }}
+                          />
+                        </div>
+                        {emailError && <p className="text-sm text-destructive">{emailError}</p>}
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setInviteDialogOpen(false)}>
+                        Cancelar
+                      </Button>
+                      <Button onClick={handleInvite} disabled={isInviting || !inviteEmail}>
+                        {isInviting ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Enviando...
+                          </>
+                        ) : (
+                          <>
+                            <UserPlus className="w-4 h-4" />
+                            Enviar Invitación
+                          </>
+                        )}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </CardHeader>
+              <CardContent>
+                {isLoadingMembers ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                  </div>
+                ) : members.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>No hay empleados en esta organización</p>
+                    <p className="text-sm">Invita a tu primer empleado para comenzar</p>
+                    <Button 
+                      variant="outline" 
+                      className="mt-4"
+                      onClick={() => setInviteDialogOpen(true)}
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      Invitar Empleado
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-border overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/50">
+                          <TableHead className="font-semibold">Empleado</TableHead>
+                          <TableHead className="font-semibold">Email</TableHead>
+                          <TableHead className="font-semibold">Estado</TableHead>
+                          <TableHead className="font-semibold">Fecha</TableHead>
+                          <TableHead className="font-semibold text-right">Acciones</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {members.map((member) => (
+                          <TableRow key={member.id} className="hover:bg-muted/30">
+                            <TableCell>
+                              <div className="flex items-center gap-3">
+                                <Avatar className="w-9 h-9">
+                                  <AvatarImage src={member.profile?.avatar_url || undefined} />
+                                  <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
+                                    {getInitials(member.profile?.full_name || member.invited_email.split("@")[0])}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span className="font-medium">
+                                  {member.profile?.full_name || member.invited_email.split("@")[0]}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {member.invited_email}
+                            </TableCell>
+                            <TableCell>{getStatusBadge(member.status)}</TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {new Date(member.created_at).toLocaleDateString("es")}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => handleRemoveMember(member.id)}
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </>
+        )}
       </main>
     </div>
   );

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, RefreshCw, Clock, MapPin, Copy, Check, Loader2 } from "lucide-react";
+import { ArrowLeft, RefreshCw, Clock, Copy, Check, Loader2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -204,12 +204,6 @@ const AdminQR = () => {
                     <Loader2 className="w-8 h-8 animate-spin text-primary" />
                   </div>
                 )}
-              </div>
-
-              {/* Location Info */}
-              <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                <MapPin className="w-4 h-4" />
-                <span className="text-sm">Oficina Central</span>
               </div>
 
               {/* Actions */}

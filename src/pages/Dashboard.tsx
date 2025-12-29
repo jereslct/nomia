@@ -214,9 +214,12 @@ const Dashboard = () => {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <Link to="/profile" className="text-right hidden sm:block hover:opacity-80 transition-opacity">
-              <p className="text-sm font-medium">{profile?.full_name || user.email}</p>
-              <p className="text-xs text-muted-foreground">{user.email}</p>
+            <Link to="/profile" className="hidden sm:flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted/50 transition-colors group">
+              <div className="text-right">
+                <p className="text-sm font-medium group-hover:text-primary transition-colors">{profile?.full_name || user.email}</p>
+                <p className="text-xs text-muted-foreground">{user.email}</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
             </Link>
             <Button variant="ghost" size="icon" onClick={handleLogout}>
               <LogOut className="w-5 h-5" />

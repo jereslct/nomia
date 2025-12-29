@@ -109,7 +109,7 @@ export type Database = {
           invited_email: string
           organization_id: string
           status: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           accepted_at?: string | null
@@ -119,7 +119,7 @@ export type Database = {
           invited_email: string
           organization_id: string
           status?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           accepted_at?: string | null
@@ -129,7 +129,7 @@ export type Database = {
           invited_email?: string
           organization_id?: string
           status?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -256,6 +256,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_user_email: { Args: { _user_id: string }; Returns: string }
       get_user_organization_id: { Args: { _user_id: string }; Returns: string }
       get_user_role: {
         Args: { _user_id: string }

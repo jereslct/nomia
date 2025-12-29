@@ -234,6 +234,7 @@ const Employee = () => {
     }
 
     try {
+      // Validate QR code exists in database and is not expired
       const { data: qrCode } = await supabase
         .from("qr_codes")
         .select("id, location_id, expires_at")
@@ -241,31 +242,19 @@ const Employee = () => {
         .gt("expires_at", new Date().toISOString())
         .maybeSingle();
 
-      let locationId: string;
-      let qrCodeId: string | null = null;
-
-      if (qrCode) {
-        locationId = qrCode.location_id;
-        qrCodeId = qrCode.id;
-      } else {
-        const { data: existingLocation } = await supabase
-          .from("locations")
-          .select("id")
-          .eq("name", "Oficina Central")
-          .maybeSingle();
-
-        if (existingLocation) {
-          locationId = existingLocation.id;
-        } else {
-          setStatus("error");
-          toast({
-            title: "Ubicación no disponible",
-            description: "El código QR es válido, pero la ubicación no está configurada.",
-            variant: "destructive",
-          });
-          return;
-        }
+      // Require valid QR code - no fallback allowed
+      if (!qrCode) {
+        setStatus("error");
+        toast({
+          title: "Código QR inválido o expirado",
+          description: "Este código QR no es válido o ha expirado. Solicita un nuevo código al administrador.",
+          variant: "destructive",
+        });
+        return;
       }
+
+      const locationId = qrCode.location_id;
+      const qrCodeId = qrCode.id;
 
       const today = new Date().toISOString().split("T")[0];
       const { data: todayRecords } = await supabase

@@ -221,15 +221,14 @@ const ScanQR = () => {
       const locationId = qrCode.location_id;
       const qrCodeId = qrCode.id;
 
-      // Determine if this is entrada or salida based on last record
+      // Check existing records for today
       const today = new Date().toISOString().split("T")[0];
       const { data: todayRecords, error: recordsError } = await supabase
         .from("attendance_records")
         .select("record_type, recorded_at")
         .eq("user_id", user.id)
         .gte("recorded_at", `${today}T00:00:00`)
-        .order("recorded_at", { ascending: false })
-        .limit(1);
+        .order("recorded_at", { ascending: true });
 
       if (recordsError) {
         setError(
@@ -244,9 +243,41 @@ const ScanQR = () => {
         return;
       }
 
-      const lastRecord = todayRecords?.[0];
+      // Count entries and exits for today
+      const entryCount = todayRecords?.filter(r => r.record_type === "entrada").length || 0;
+      const exitCount = todayRecords?.filter(r => r.record_type === "salida").length || 0;
+      const lastRecord = todayRecords?.[todayRecords.length - 1];
+
+      // Determine what type of record this should be
       const newRecordType: "entrada" | "salida" = 
         !lastRecord || lastRecord.record_type === "salida" ? "entrada" : "salida";
+
+      // Validate: only 1 entry and 1 exit per day
+      if (newRecordType === "entrada" && entryCount >= 1) {
+        setError(
+          "Ya registraste tu entrada hoy. Solo puedes marcar una entrada por día.",
+          `ENTRY_LIMIT_EXCEEDED: entries=${entryCount}`
+        );
+        toast({
+          title: "Entrada ya registrada",
+          description: "Ya registraste tu entrada hoy.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (newRecordType === "salida" && exitCount >= 1) {
+        setError(
+          "Ya registraste tu salida hoy. Solo puedes marcar una salida por día.",
+          `EXIT_LIMIT_EXCEEDED: exits=${exitCount}`
+        );
+        toast({
+          title: "Salida ya registrada",
+          description: "Ya registraste tu salida hoy.",
+          variant: "destructive",
+        });
+        return;
+      }
 
       // Insert attendance record
       const { error: insertError } = await supabase

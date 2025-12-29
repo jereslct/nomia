@@ -330,7 +330,7 @@ const Dashboard = () => {
                           record.recorded_at,
                           scheduleConfig.entryHour,
                           scheduleConfig.entryMinute,
-                          scheduleConfig.toleranceMinutes
+                          scheduleConfig.entryToleranceMinutes
                         );
                       const isEntryLate = record.record_type === "entrada" && !isEntryOnTime;
 
@@ -385,7 +385,7 @@ const Dashboard = () => {
                     </CardTitle>
                     {isAdmin ? (
                       <CardDescription className="text-xs">
-                        Tolerancia: {scheduleConfig.toleranceMinutes} min
+                        Tolerancia entrada: {scheduleConfig.entryToleranceMinutes} min | salida: {scheduleConfig.exitToleranceMinutes} min
                       </CardDescription>
                     ) : (
                       <CardDescription className="text-xs">
@@ -440,19 +440,35 @@ const Dashboard = () => {
                         </div>
 
                         <div className="space-y-1">
-                          <Label htmlFor="schedule-tolerance">Tolerancia (minutos)</Label>
+                          <Label htmlFor="schedule-entry-tolerance">Tolerancia entrada (min)</Label>
                           <Input
-                            id="schedule-tolerance"
+                            id="schedule-entry-tolerance"
                             type="number"
                             min={0}
                             max={60}
-                            value={scheduleConfig.toleranceMinutes}
+                            value={scheduleConfig.entryToleranceMinutes}
                             onChange={(e) => {
                               const n = Number(e.target.value);
-                              setScheduleConfig((prev) => ({ ...prev, toleranceMinutes: Number.isFinite(n) ? n : prev.toleranceMinutes }));
+                              setScheduleConfig((prev) => ({ ...prev, entryToleranceMinutes: Number.isFinite(n) ? n : prev.entryToleranceMinutes }));
                             }}
                           />
-                          <p className="text-xs text-muted-foreground">Ej: si la entrada es 09:00, hasta 09:{String(scheduleConfig.toleranceMinutes).padStart(2, "0")} cuenta como "A tiempo".</p>
+                          <p className="text-xs text-muted-foreground">Puede llegar hasta {scheduleConfig.entryToleranceMinutes} min antes o después.</p>
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label htmlFor="schedule-exit-tolerance">Tolerancia salida (min)</Label>
+                          <Input
+                            id="schedule-exit-tolerance"
+                            type="number"
+                            min={0}
+                            max={120}
+                            value={scheduleConfig.exitToleranceMinutes}
+                            onChange={(e) => {
+                              const n = Number(e.target.value);
+                              setScheduleConfig((prev) => ({ ...prev, exitToleranceMinutes: Number.isFinite(n) ? n : prev.exitToleranceMinutes }));
+                            }}
+                          />
+                          <p className="text-xs text-muted-foreground">Puede salir hasta {scheduleConfig.exitToleranceMinutes} min después.</p>
                         </div>
                       </div>
                     ) : (
@@ -488,7 +504,7 @@ const Dashboard = () => {
                       todayEntrada.recorded_at,
                       scheduleConfig.entryHour,
                       scheduleConfig.entryMinute,
-                      scheduleConfig.toleranceMinutes
+                      scheduleConfig.entryToleranceMinutes
                     );
                   const entryLate = todayEntrada && !entryOnTime;
 

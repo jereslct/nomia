@@ -5,7 +5,8 @@ export type ScheduleConfig = {
   entryMinute: number;
   exitHour: number;
   exitMinute: number;
-  toleranceMinutes: number;
+  entryToleranceMinutes: number;
+  exitToleranceMinutes: number;
 };
 
 const STORAGE_KEY = "nomia:schedule_config";
@@ -15,7 +16,8 @@ const DEFAULT_CONFIG: ScheduleConfig = {
   entryMinute: 0,
   exitHour: 18,
   exitMinute: 0,
-  toleranceMinutes: 5,
+  entryToleranceMinutes: 15,
+  exitToleranceMinutes: 60,
 };
 
 const clampInt = (value: unknown, min: number, max: number, fallback: number) => {
@@ -30,7 +32,8 @@ const normalizeConfig = (raw: any): ScheduleConfig => {
     entryMinute: clampInt(raw?.entryMinute, 0, 59, DEFAULT_CONFIG.entryMinute),
     exitHour: clampInt(raw?.exitHour, 0, 23, DEFAULT_CONFIG.exitHour),
     exitMinute: clampInt(raw?.exitMinute, 0, 59, DEFAULT_CONFIG.exitMinute),
-    toleranceMinutes: clampInt(raw?.toleranceMinutes, 0, 60, DEFAULT_CONFIG.toleranceMinutes),
+    entryToleranceMinutes: clampInt(raw?.entryToleranceMinutes, 0, 60, DEFAULT_CONFIG.entryToleranceMinutes),
+    exitToleranceMinutes: clampInt(raw?.exitToleranceMinutes, 0, 120, DEFAULT_CONFIG.exitToleranceMinutes),
   };
 };
 

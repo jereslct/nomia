@@ -22,7 +22,7 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { ArrowLeft, UserPlus, Users, Mail, Loader2, Check, Clock, X, Building2, Plus, ChevronRight } from "lucide-react";
+import { ArrowLeft, UserPlus, Users, Mail, Loader2, Check, Clock, X, Building2, Plus, ChevronRight, Trash2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -464,6 +464,49 @@ const AdminUsers = () => {
     }
   };
 
+  const handleDeleteOrg = async (orgId: string, orgName: string) => {
+    if (!confirm(`¿Estás seguro de que deseas eliminar "${orgName}"? Esta acción eliminará también todos los empleados asociados.`)) {
+      return;
+    }
+
+    try {
+      // First delete all members of the organization
+      await supabase
+        .from("organization_members")
+        .delete()
+        .eq("organization_id", orgId);
+
+      // Then delete the organization
+      const { error } = await supabase
+        .from("organizations")
+        .delete()
+        .eq("id", orgId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Organización eliminada",
+        description: `"${orgName}" ha sido eliminada exitosamente.`,
+      });
+
+      // Update local state
+      setOrganizations(orgs => orgs.filter(o => o.id !== orgId));
+      
+      // Reset selection if deleted org was selected
+      if (selectedOrg?.id === orgId) {
+        setSelectedOrg(null);
+        setShowAllEmployees(true);
+      }
+    } catch (error) {
+      console.error("Error deleting organization:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar la organización.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -614,39 +657,53 @@ const AdminUsers = () => {
 
                 {/* Organization Cards */}
                 {organizations.map((org) => (
-                  <button
-                    key={org.id}
-                    onClick={() => {
-                      setSelectedOrg(org);
-                      setShowAllEmployees(false);
-                    }}
-                    className={`p-4 rounded-lg border text-left transition-all hover:border-primary/50 ${
-                      selectedOrg?.id === org.id && !showAllEmployees
-                        ? "border-primary bg-primary/5 ring-1 ring-primary" 
-                        : "border-border bg-card hover:bg-muted/50"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                          selectedOrg?.id === org.id && !showAllEmployees ? "bg-primary/20" : "bg-muted"
-                        }`}>
-                          <Building2 className={`w-5 h-5 ${
-                            selectedOrg?.id === org.id && !showAllEmployees ? "text-primary" : "text-muted-foreground"
-                          }`} />
-                        </div>
-                        <div>
-                          <p className="font-medium">{org.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {org.member_count} {org.member_count === 1 ? "empleado" : "empleados"}
-                          </p>
-                        </div>
+                <div
+                  key={org.id}
+                  className={`p-4 rounded-lg border text-left transition-all hover:border-primary/50 ${
+                    selectedOrg?.id === org.id && !showAllEmployees
+                      ? "border-primary bg-primary/5 ring-1 ring-primary" 
+                      : "border-border bg-card hover:bg-muted/50"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <button
+                      onClick={() => {
+                        setSelectedOrg(org);
+                        setShowAllEmployees(false);
+                      }}
+                      className="flex items-center gap-3 flex-1 text-left"
+                    >
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        selectedOrg?.id === org.id && !showAllEmployees ? "bg-primary/20" : "bg-muted"
+                      }`}>
+                        <Building2 className={`w-5 h-5 ${
+                          selectedOrg?.id === org.id && !showAllEmployees ? "text-primary" : "text-muted-foreground"
+                        }`} />
                       </div>
+                      <div>
+                        <p className="font-medium">{org.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {org.member_count} {org.member_count === 1 ? "empleado" : "empleados"}
+                        </p>
+                      </div>
+                    </button>
+                    <div className="flex items-center gap-2">
                       {selectedOrg?.id === org.id && !showAllEmployees && (
                         <ChevronRight className="w-4 h-4 text-primary" />
                       )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteOrg(org.id, org.name);
+                        }}
+                        className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                        title="Eliminar organización"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
-                  </button>
+                  </div>
+                </div>
                 ))}
               </div>
             )}

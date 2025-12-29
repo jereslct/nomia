@@ -3,23 +3,25 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { 
-  QrCode, 
-  Clock, 
-  LogOut, 
-  ScanLine, 
-  History, 
+import {
+  QrCode,
+  Clock,
+  LogOut,
+  ScanLine,
+  History,
   Users,
   Settings,
   ChevronRight,
   CheckCircle,
   XCircle,
   Loader2,
-  AlertCircle
+  AlertCircle,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import QRCode from "react-qr-code";
+import { isSameDay } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
+import { useScheduleConfig } from "@/hooks/useScheduleConfig";
 import { supabase } from "@/integrations/supabase/client";
 
 interface AttendanceRecord {
@@ -36,15 +38,6 @@ interface AttendanceRecord {
   };
 }
 
-// Schedule configuration - tolerancia de 5 minutos
-const SCHEDULE_CONFIG = {
-  entryHour: 9,
-  entryMinute: 0,
-  toleranceMinutes: 5,
-  exitHour: 18,
-  exitMinute: 0,
-};
-
 const isOnTime = (recordedAt: string, scheduleHour: number, scheduleMinute: number, tolerance: number): boolean => {
   const recordDate = new Date(recordedAt);
   const scheduleTime = scheduleHour * 60 + scheduleMinute + tolerance;
@@ -59,13 +52,17 @@ const isEarlyExit = (recordedAt: string, scheduleHour: number, scheduleMinute: n
   return recordTime < scheduleTime;
 };
 
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, profile, isAdmin, loading, signOut } = useAuth();
+  const { config: scheduleConfig, setConfig: setScheduleConfig, formatted: scheduleFormatted } = useScheduleConfig();
+
   const [attendanceHistory, setAttendanceHistory] = useState<AttendanceRecord[]>([]);
   const [todayRecords, setTodayRecords] = useState<AttendanceRecord[]>([]);
   const [qrValue] = useState(`nomia-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
   const [loadingRecords, setLoadingRecords] = useState(true);
+  const [editingSchedule, setEditingSchedule] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -81,19 +78,21 @@ const Dashboard = () => {
 
   const fetchAttendanceRecords = async () => {
     if (!user) return;
-    
+
     try {
       // Admins see all records, users see only their own
       let query = supabase
         .from("attendance_records")
-        .select(`
+        .select(
+          `
           id,
           user_id,
           record_type,
           recorded_at,
           location_id,
           locations (name)
-        `)
+        `
+        )
         .order("recorded_at", { ascending: false })
         .limit(20);
 
@@ -107,31 +106,28 @@ const Dashboard = () => {
       if (error) throw error;
 
       // Fetch profiles for the records
-      const userIds = [...new Set((data || []).map(r => r.user_id))];
+      const userIds = [...new Set((data || []).map((r) => r.user_id).filter(Boolean))] as string[];
       let profilesMap = new Map<string, { full_name: string }>();
-      
-      if (userIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from("profiles")
-          .select("user_id, full_name")
-          .in("user_id", userIds);
 
-        profiles?.forEach(p => {
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase.from("profiles").select("user_id, full_name").in("user_id", userIds);
+
+        profiles?.forEach((p) => {
           profilesMap.set(p.user_id, { full_name: p.full_name });
         });
       }
 
-      const recordsWithProfiles = (data || []).map(r => ({
+      const recordsWithProfiles = (data || []).map((r) => ({
         ...r,
-        profiles: profilesMap.get(r.user_id) || null,
+        profiles: r.user_id ? profilesMap.get(r.user_id) || null : null,
       })) as AttendanceRecord[];
 
       setAttendanceHistory(recordsWithProfiles);
-      
+
       // Filter today's records for current user only (for Estado de Hoy)
-      const today = new Date().toISOString().split("T")[0];
-      const todayUserRecs = recordsWithProfiles.filter(r => 
-        r.recorded_at.startsWith(today) && r.user_id === user.id
+      const now = new Date();
+      const todayUserRecs = recordsWithProfiles.filter(
+        (r) => r.user_id === user.id && isSameDay(new Date(r.recorded_at), now)
       );
       setTodayRecords(todayUserRecs);
     } catch (error) {
@@ -140,6 +136,7 @@ const Dashboard = () => {
       setLoadingRecords(false);
     }
   };
+
 
   const handleLogout = async () => {
     await signOut();
@@ -297,10 +294,16 @@ const Dashboard = () => {
                 ) : (
                   <div className="space-y-3">
                     {attendanceHistory.slice(0, 8).map((record) => {
-                      const isEntryOnTime = record.record_type === "entrada" && 
-                        isOnTime(record.recorded_at, SCHEDULE_CONFIG.entryHour, SCHEDULE_CONFIG.entryMinute, SCHEDULE_CONFIG.toleranceMinutes);
+                      const isEntryOnTime =
+                        record.record_type === "entrada" &&
+                        isOnTime(
+                          record.recorded_at,
+                          scheduleConfig.entryHour,
+                          scheduleConfig.entryMinute,
+                          scheduleConfig.toleranceMinutes
+                        );
                       const isEntryLate = record.record_type === "entrada" && !isEntryOnTime;
-                      
+
                       return (
                         <div 
                           key={record.id} 
@@ -345,96 +348,149 @@ const Dashboard = () => {
             {/* Today's Status */}
             <Card className="glass-card">
               <CardHeader>
-                <CardTitle className="text-lg">Estado de Hoy</CardTitle>
-                <CardDescription className="text-xs">
-                  Horario: {SCHEDULE_CONFIG.entryHour}:{SCHEDULE_CONFIG.entryMinute.toString().padStart(2, '0')} - {SCHEDULE_CONFIG.exitHour}:{SCHEDULE_CONFIG.exitMinute.toString().padStart(2, '0')} (tolerancia: {SCHEDULE_CONFIG.toleranceMinutes} min)
-                </CardDescription>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <CardTitle className="text-lg">Estado de Hoy</CardTitle>
+                    <CardDescription className="text-xs">
+                      Horario: {scheduleFormatted.entry} - {scheduleFormatted.exit} (tolerancia: {scheduleConfig.toleranceMinutes} min)
+                    </CardDescription>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2"
+                    onClick={() => setEditingSchedule((v) => !v)}
+                  >
+                    <Settings className="w-4 h-4 mr-2" />
+                    {editingSchedule ? "Cerrar" : "Editar"}
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
+                {editingSchedule && (
+                  <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label htmlFor="schedule-entry">Entrada</Label>
+                        <Input
+                          id="schedule-entry"
+                          type="time"
+                          value={scheduleFormatted.entry}
+                          onChange={(e) => {
+                            const [h, m] = e.target.value.split(":").map(Number);
+                            setScheduleConfig((prev) => ({ ...prev, entryHour: h ?? prev.entryHour, entryMinute: m ?? prev.entryMinute }));
+                          }}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="schedule-exit">Salida</Label>
+                        <Input
+                          id="schedule-exit"
+                          type="time"
+                          value={scheduleFormatted.exit}
+                          onChange={(e) => {
+                            const [h, m] = e.target.value.split(":").map(Number);
+                            setScheduleConfig((prev) => ({ ...prev, exitHour: h ?? prev.exitHour, exitMinute: m ?? prev.exitMinute }));
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label htmlFor="schedule-tolerance">Tolerancia (minutos)</Label>
+                      <Input
+                        id="schedule-tolerance"
+                        type="number"
+                        min={0}
+                        max={60}
+                        value={scheduleConfig.toleranceMinutes}
+                        onChange={(e) => {
+                          const n = Number(e.target.value);
+                          setScheduleConfig((prev) => ({ ...prev, toleranceMinutes: Number.isFinite(n) ? n : prev.toleranceMinutes }));
+                        }}
+                      />
+                      <p className="text-xs text-muted-foreground">Ej: si la entrada es 09:00, hasta 09:{String(scheduleConfig.toleranceMinutes).padStart(2, "0")} cuenta como "A tiempo".</p>
+                    </div>
+                  </div>
+                )}
+
                 {(() => {
-                  const entryOnTime = todayEntrada && isOnTime(
-                    todayEntrada.recorded_at, 
-                    SCHEDULE_CONFIG.entryHour, 
-                    SCHEDULE_CONFIG.entryMinute, 
-                    SCHEDULE_CONFIG.toleranceMinutes
-                  );
+                  const entryOnTime =
+                    todayEntrada &&
+                    isOnTime(
+                      todayEntrada.recorded_at,
+                      scheduleConfig.entryHour,
+                      scheduleConfig.entryMinute,
+                      scheduleConfig.toleranceMinutes
+                    );
                   const entryLate = todayEntrada && !entryOnTime;
-                  
+
                   return (
-                    <div className={`flex items-center justify-between p-3 rounded-xl ${
-                      todayEntrada 
-                        ? entryLate ? "bg-warning/10" : "bg-success/10"
-                        : "bg-muted/50"
-                    }`}>
+                    <div
+                      className={`flex items-center justify-between p-3 rounded-xl ${
+                        todayEntrada ? (entryLate ? "bg-warning/10" : "bg-success/10") : "bg-muted/50"
+                      }`}
+                    >
                       <div className="flex items-center gap-3">
                         {todayEntrada ? (
-                          entryLate 
-                            ? <AlertCircle className="w-5 h-5 text-warning" />
-                            : <CheckCircle className="w-5 h-5 text-success" />
+                          entryLate ? (
+                            <AlertCircle className="w-5 h-5 text-warning" />
+                          ) : (
+                            <CheckCircle className="w-5 h-5 text-success" />
+                          )
                         ) : (
                           <Clock className="w-5 h-5 text-muted-foreground" />
                         )}
                         <div>
-                          <span className={todayEntrada ? "font-medium" : "text-muted-foreground"}>
-                            Entrada
-                          </span>
-                          {entryLate && (
-                            <p className="text-xs text-warning">Llegó tarde</p>
-                          )}
-                          {entryOnTime && (
-                            <p className="text-xs text-success">A tiempo</p>
-                          )}
+                          <span className={todayEntrada ? "font-medium" : "text-muted-foreground"}>Entrada</span>
+                          {entryLate && <p className="text-xs text-warning">Llegó tarde</p>}
+                          {entryOnTime && <p className="text-xs text-success">A tiempo</p>}
                         </div>
                       </div>
-                      <span className={`font-mono ${
-                        todayEntrada 
-                          ? entryLate ? "text-warning" : "text-success"
-                          : "text-muted-foreground"
-                      }`}>
+                      <span
+                        className={`font-mono ${
+                          todayEntrada ? (entryLate ? "text-warning" : "text-success") : "text-muted-foreground"
+                        }`}
+                      >
                         {todayEntrada ? formatTime(todayEntrada.recorded_at) : "Pendiente"}
                       </span>
                     </div>
                   );
                 })()}
-                
+
                 {(() => {
-                  const exitEarly = todaySalida && isEarlyExit(
-                    todaySalida.recorded_at, 
-                    SCHEDULE_CONFIG.exitHour, 
-                    SCHEDULE_CONFIG.exitMinute
-                  );
-                  
+                  const exitEarly =
+                    todaySalida &&
+                    isEarlyExit(todaySalida.recorded_at, scheduleConfig.exitHour, scheduleConfig.exitMinute);
+
                   return (
-                    <div className={`flex items-center justify-between p-3 rounded-xl ${
-                      todaySalida 
-                        ? exitEarly ? "bg-warning/10" : "bg-success/10"
-                        : "bg-muted/50"
-                    }`}>
+                    <div
+                      className={`flex items-center justify-between p-3 rounded-xl ${
+                        todaySalida ? (exitEarly ? "bg-warning/10" : "bg-success/10") : "bg-muted/50"
+                      }`}
+                    >
                       <div className="flex items-center gap-3">
                         {todaySalida ? (
-                          exitEarly 
-                            ? <AlertCircle className="w-5 h-5 text-warning" />
-                            : <CheckCircle className="w-5 h-5 text-success" />
+                          exitEarly ? (
+                            <AlertCircle className="w-5 h-5 text-warning" />
+                          ) : (
+                            <CheckCircle className="w-5 h-5 text-success" />
+                          )
                         ) : (
                           <Clock className="w-5 h-5 text-muted-foreground" />
                         )}
                         <div>
-                          <span className={todaySalida ? "font-medium" : "text-muted-foreground"}>
-                            Salida
-                          </span>
-                          {exitEarly && (
-                            <p className="text-xs text-warning">Salió temprano</p>
-                          )}
-                          {todaySalida && !exitEarly && (
-                            <p className="text-xs text-success">Completo</p>
-                          )}
+                          <span className={todaySalida ? "font-medium" : "text-muted-foreground"}>Salida</span>
+                          {exitEarly && <p className="text-xs text-warning">Salió temprano</p>}
+                          {todaySalida && !exitEarly && <p className="text-xs text-success">Completo</p>}
                         </div>
                       </div>
-                      <span className={`font-mono ${
-                        todaySalida 
-                          ? exitEarly ? "text-warning" : "text-success"
-                          : "text-muted-foreground"
-                      }`}>
+                      <span
+                        className={`font-mono ${
+                          todaySalida ? (exitEarly ? "text-warning" : "text-success") : "text-muted-foreground"
+                        }`}
+                      >
                         {todaySalida ? formatTime(todaySalida.recorded_at) : "Pendiente"}
                       </span>
                     </div>
@@ -442,6 +498,7 @@ const Dashboard = () => {
                 })()}
               </CardContent>
             </Card>
+
 
             {/* Admin QR Preview */}
             {isAdmin && (

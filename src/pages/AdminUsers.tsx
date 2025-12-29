@@ -506,19 +506,6 @@ const AdminUsers = () => {
               <CardDescription>Selecciona una organización para ver sus empleados</CardDescription>
             </div>
             <div className="flex items-center gap-2">
-              <Button 
-                variant={showAllEmployees ? "default" : "outline"} 
-                size="sm"
-                onClick={() => {
-                  setShowAllEmployees(!showAllEmployees);
-                  if (!showAllEmployees) {
-                    setSelectedOrg(null);
-                  }
-                }}
-              >
-                <Users className="w-4 h-4" />
-                {showAllEmployees ? "Viendo todos" : "Ver todos los empleados"}
-              </Button>
             <Dialog open={orgDialogOpen} onOpenChange={setOrgDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm">
@@ -591,12 +578,50 @@ const AdminUsers = () => {
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {/* All Employees Card */}
+                <button
+                  onClick={() => {
+                    setShowAllEmployees(true);
+                    setSelectedOrg(null);
+                  }}
+                  className={`p-4 rounded-lg border text-left transition-all hover:border-accent/50 ${
+                    showAllEmployees 
+                      ? "border-accent bg-accent/5 ring-1 ring-accent" 
+                      : "border-border bg-card hover:bg-muted/50"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        showAllEmployees ? "bg-accent/20" : "bg-muted"
+                      }`}>
+                        <Users className={`w-5 h-5 ${
+                          showAllEmployees ? "text-accent" : "text-muted-foreground"
+                        }`} />
+                      </div>
+                      <div>
+                        <p className="font-medium">Todos mis empleados</p>
+                        <p className="text-xs text-muted-foreground">
+                          {organizations.reduce((acc, org) => acc + (org.member_count || 0), 0)} empleados en total
+                        </p>
+                      </div>
+                    </div>
+                    {showAllEmployees && (
+                      <ChevronRight className="w-4 h-4 text-accent" />
+                    )}
+                  </div>
+                </button>
+
+                {/* Organization Cards */}
                 {organizations.map((org) => (
                   <button
                     key={org.id}
-                    onClick={() => setSelectedOrg(org)}
+                    onClick={() => {
+                      setSelectedOrg(org);
+                      setShowAllEmployees(false);
+                    }}
                     className={`p-4 rounded-lg border text-left transition-all hover:border-primary/50 ${
-                      selectedOrg?.id === org.id 
+                      selectedOrg?.id === org.id && !showAllEmployees
                         ? "border-primary bg-primary/5 ring-1 ring-primary" 
                         : "border-border bg-card hover:bg-muted/50"
                     }`}
@@ -604,10 +629,10 @@ const AdminUsers = () => {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                          selectedOrg?.id === org.id ? "bg-primary/20" : "bg-muted"
+                          selectedOrg?.id === org.id && !showAllEmployees ? "bg-primary/20" : "bg-muted"
                         }`}>
                           <Building2 className={`w-5 h-5 ${
-                            selectedOrg?.id === org.id ? "text-primary" : "text-muted-foreground"
+                            selectedOrg?.id === org.id && !showAllEmployees ? "text-primary" : "text-muted-foreground"
                           }`} />
                         </div>
                         <div>
@@ -617,7 +642,7 @@ const AdminUsers = () => {
                           </p>
                         </div>
                       </div>
-                      {selectedOrg?.id === org.id && (
+                      {selectedOrg?.id === org.id && !showAllEmployees && (
                         <ChevronRight className="w-4 h-4 text-primary" />
                       )}
                     </div>

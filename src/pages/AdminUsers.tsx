@@ -204,8 +204,9 @@ const AdminUsers = () => {
           organization_id: organizationId,
           invited_email: inviteEmail.toLowerCase(),
           invited_by: user.id,
-          user_id: existingProfile?.user_id || user.id, // Temporarily use inviter's ID if user doesn't exist
-          status: existingProfile ? "accepted" : "pending", // Auto-accept if user exists
+          user_id: existingProfile?.user_id || null,
+          status: existingProfile ? "accepted" : "pending",
+          accepted_at: existingProfile ? new Date().toISOString() : null,
         });
 
       if (error) throw error;
@@ -214,7 +215,7 @@ const AdminUsers = () => {
         title: existingProfile ? "Empleado agregado" : "Invitación enviada",
         description: existingProfile 
           ? `${inviteEmail} ha sido agregado a tu organización.`
-          : `Se ha enviado una invitación a ${inviteEmail}.`,
+          : `Cuando ${inviteEmail} se registre, será agregado automáticamente.`,
       });
 
       setInviteEmail("");

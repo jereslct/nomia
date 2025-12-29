@@ -116,6 +116,15 @@ const Employee = () => {
     } catch (err: any) {
       console.error("Camera permission error:", err);
       
+      // Show technical error details for debugging
+      const technicalError = JSON.stringify({
+        name: err?.name,
+        message: err?.message,
+        stack: err?.stack,
+        raw: String(err)
+      }, null, 2);
+      alert(`Error técnico de cámara:\n\n${technicalError}`);
+      
       let errorMessage = "No se pudo acceder a la cámara.";
       
       if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
@@ -182,6 +191,16 @@ const Employee = () => {
       );
     } catch (err: any) {
       console.error("Error starting scanner:", err);
+      
+      // Show technical error details for debugging
+      const technicalError = JSON.stringify({
+        name: err?.name,
+        message: err?.message,
+        stack: err?.stack,
+        raw: String(err)
+      }, null, 2);
+      alert(`Error técnico al iniciar escáner:\n\n${technicalError}`);
+      
       setStatus("error");
       
       let errorMessage = "No se pudo iniciar el escáner.";

@@ -347,7 +347,7 @@ const Admin = () => {
   }, [qrDialogOpen, qrValue]);
 
   const generateQR = async () => {
-    const newCode = `qrtime-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const newCode = `nomia-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     setQrValue(newCode);
     setTimeLeft(300);
 

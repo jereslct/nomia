@@ -78,7 +78,7 @@ const AdminQR = () => {
     setIsGenerating(true);
 
     try {
-      const newCode = `qrtime-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const newCode = `nomia-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString(); // 5 minutes
 
       // Insert new QR code
@@ -98,7 +98,7 @@ const AdminQR = () => {
     } catch (error) {
       console.error("Error generating QR:", error);
       // Fallback to local QR generation
-      const newCode = `qrtime-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const newCode = `nomia-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       setQrValue(newCode);
       setTimeLeft(300);
     } finally {

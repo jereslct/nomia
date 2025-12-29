@@ -165,16 +165,46 @@ const AdminUsers = () => {
       return;
     }
 
-    if (!organizationId || !user) return;
+    if (!user) return;
 
     setIsInviting(true);
+
+    let currentOrgId = organizationId;
+
+    // Create organization if it doesn't exist
+    if (!currentOrgId) {
+      try {
+        const { data: newOrg, error: orgError } = await supabase
+          .from("organizations")
+          .insert({
+            name: `Organización de ${user.email}`,
+            owner_id: user.id,
+          })
+          .select("id")
+          .single();
+
+        if (orgError) throw orgError;
+
+        currentOrgId = newOrg.id;
+        setOrganizationId(currentOrgId);
+      } catch (error) {
+        console.error("Error creating organization:", error);
+        toast({
+          title: "Error",
+          description: "No se pudo crear la organización.",
+          variant: "destructive",
+        });
+        setIsInviting(false);
+        return;
+      }
+    }
 
     try {
       // Check if already invited
       const { data: existing } = await supabase
         .from("organization_members")
         .select("id, status")
-        .eq("organization_id", organizationId)
+        .eq("organization_id", currentOrgId)
         .eq("invited_email", inviteEmail.toLowerCase())
         .maybeSingle();
 
@@ -201,7 +231,7 @@ const AdminUsers = () => {
       const { error } = await supabase
         .from("organization_members")
         .insert({
-          organization_id: organizationId,
+          organization_id: currentOrgId,
           invited_email: inviteEmail.toLowerCase(),
           invited_by: user.id,
           user_id: existingProfile?.user_id || null,

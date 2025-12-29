@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { 
   QrCode, 
   Clock, 
@@ -12,7 +14,8 @@ import {
   ChevronRight,
   CheckCircle,
   XCircle,
-  Loader2
+  Loader2,
+  AlertCircle
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import QRCode from "react-qr-code";
@@ -21,13 +24,40 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface AttendanceRecord {
   id: string;
+  user_id?: string;
   record_type: string;
   recorded_at: string;
   location_id: string;
   locations?: {
     name: string;
   };
+  profiles?: {
+    full_name: string;
+  };
 }
+
+// Schedule configuration - tolerancia de 5 minutos
+const SCHEDULE_CONFIG = {
+  entryHour: 9,
+  entryMinute: 0,
+  toleranceMinutes: 5,
+  exitHour: 18,
+  exitMinute: 0,
+};
+
+const isOnTime = (recordedAt: string, scheduleHour: number, scheduleMinute: number, tolerance: number): boolean => {
+  const recordDate = new Date(recordedAt);
+  const scheduleTime = scheduleHour * 60 + scheduleMinute + tolerance;
+  const recordTime = recordDate.getHours() * 60 + recordDate.getMinutes();
+  return recordTime <= scheduleTime;
+};
+
+const isEarlyExit = (recordedAt: string, scheduleHour: number, scheduleMinute: number): boolean => {
+  const recordDate = new Date(recordedAt);
+  const scheduleTime = scheduleHour * 60 + scheduleMinute;
+  const recordTime = recordDate.getHours() * 60 + recordDate.getMinutes();
+  return recordTime < scheduleTime;
+};
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -44,39 +74,66 @@ const Dashboard = () => {
   }, [user, loading, navigate]);
 
   useEffect(() => {
-    if (user) {
+    if (user && isAdmin !== undefined) {
       fetchAttendanceRecords();
     }
-  }, [user]);
+  }, [user, isAdmin]);
 
   const fetchAttendanceRecords = async () => {
     if (!user) return;
     
     try {
-      const { data, error } = await supabase
+      // Admins see all records, users see only their own
+      let query = supabase
         .from("attendance_records")
         .select(`
           id,
+          user_id,
           record_type,
           recorded_at,
           location_id,
           locations (name)
         `)
-        .eq("user_id", user.id)
         .order("recorded_at", { ascending: false })
-        .limit(10);
+        .limit(20);
+
+      // If not admin, filter by user_id
+      if (!isAdmin) {
+        query = query.eq("user_id", user.id);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
-      const records = (data || []) as AttendanceRecord[];
-      setAttendanceHistory(records);
+      // Fetch profiles for the records
+      const userIds = [...new Set((data || []).map(r => r.user_id))];
+      let profilesMap = new Map<string, { full_name: string }>();
       
-      // Filter today's records
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", userIds);
+
+        profiles?.forEach(p => {
+          profilesMap.set(p.user_id, { full_name: p.full_name });
+        });
+      }
+
+      const recordsWithProfiles = (data || []).map(r => ({
+        ...r,
+        profiles: profilesMap.get(r.user_id) || null,
+      })) as AttendanceRecord[];
+
+      setAttendanceHistory(recordsWithProfiles);
+      
+      // Filter today's records for current user only (for Estado de Hoy)
       const today = new Date().toISOString().split("T")[0];
-      const todayRecs = records.filter(r => 
-        r.recorded_at.startsWith(today)
+      const todayUserRecs = recordsWithProfiles.filter(r => 
+        r.recorded_at.startsWith(today) && r.user_id === user.id
       );
-      setTodayRecords(todayRecs);
+      setTodayRecords(todayUserRecs);
     } catch (error) {
       console.error("Error fetching attendance:", error);
     } finally {
@@ -223,7 +280,7 @@ const Dashboard = () => {
                   Actividad Reciente
                 </CardTitle>
                 <CardDescription>
-                  Últimos registros de asistencia
+                  {isAdmin ? "Últimos registros de todos los empleados" : "Últimos registros de asistencia"}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -239,33 +296,44 @@ const Dashboard = () => {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {attendanceHistory.slice(0, 5).map((record) => (
-                      <div 
-                        key={record.id} 
-                        className="flex items-center gap-4 p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
-                      >
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                          record.record_type === "entrada" 
-                            ? "bg-success/10 text-success" 
-                            : "bg-destructive/10 text-destructive"
-                        }`}>
-                          {record.record_type === "entrada" 
-                            ? <CheckCircle className="w-5 h-5" /> 
-                            : <XCircle className="w-5 h-5" />
-                          }
+                    {attendanceHistory.slice(0, 8).map((record) => {
+                      const isEntryOnTime = record.record_type === "entrada" && 
+                        isOnTime(record.recorded_at, SCHEDULE_CONFIG.entryHour, SCHEDULE_CONFIG.entryMinute, SCHEDULE_CONFIG.toleranceMinutes);
+                      const isEntryLate = record.record_type === "entrada" && !isEntryOnTime;
+                      
+                      return (
+                        <div 
+                          key={record.id} 
+                          className="flex items-center gap-4 p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
+                        >
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                            record.record_type === "entrada" 
+                              ? isEntryLate ? "bg-warning/10 text-warning" : "bg-success/10 text-success"
+                              : "bg-destructive/10 text-destructive"
+                          }`}>
+                            {record.record_type === "entrada" 
+                              ? isEntryLate ? <AlertCircle className="w-5 h-5" /> : <CheckCircle className="w-5 h-5" />
+                              : <XCircle className="w-5 h-5" />
+                            }
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium capitalize">{record.record_type}</p>
+                              {isEntryLate && (
+                                <span className="text-xs bg-warning/20 text-warning px-2 py-0.5 rounded-full">Tarde</span>
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground truncate">
+                              {isAdmin && record.profiles?.full_name ? record.profiles.full_name : (record.locations?.name || "Ubicación no disponible")}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-medium font-mono">{formatTime(record.recorded_at)}</p>
+                            <p className="text-sm text-muted-foreground">{formatDate(record.recorded_at)}</p>
+                          </div>
                         </div>
-                        <div className="flex-1">
-                          <p className="font-medium capitalize">{record.record_type}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {record.locations?.name || "Ubicación no disponible"}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-medium">{formatTime(record.recorded_at)}</p>
-                          <p className="text-sm text-muted-foreground">{formatDate(record.recorded_at)}</p>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>
@@ -278,42 +346,100 @@ const Dashboard = () => {
             <Card className="glass-card">
               <CardHeader>
                 <CardTitle className="text-lg">Estado de Hoy</CardTitle>
+                <CardDescription className="text-xs">
+                  Horario: {SCHEDULE_CONFIG.entryHour}:{SCHEDULE_CONFIG.entryMinute.toString().padStart(2, '0')} - {SCHEDULE_CONFIG.exitHour}:{SCHEDULE_CONFIG.exitMinute.toString().padStart(2, '0')} (tolerancia: {SCHEDULE_CONFIG.toleranceMinutes} min)
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className={`flex items-center justify-between p-3 rounded-xl ${
-                  todayEntrada ? "bg-success/10" : "bg-muted/50"
-                }`}>
-                  <div className="flex items-center gap-3">
-                    {todayEntrada ? (
-                      <CheckCircle className="w-5 h-5 text-success" />
-                    ) : (
-                      <Clock className="w-5 h-5 text-muted-foreground" />
-                    )}
-                    <span className={todayEntrada ? "font-medium" : "text-muted-foreground"}>
-                      Entrada
-                    </span>
-                  </div>
-                  <span className={todayEntrada ? "font-mono text-success" : "text-muted-foreground"}>
-                    {todayEntrada ? formatTime(todayEntrada.recorded_at) : "Pendiente"}
-                  </span>
-                </div>
-                <div className={`flex items-center justify-between p-3 rounded-xl ${
-                  todaySalida ? "bg-destructive/10" : "bg-muted/50"
-                }`}>
-                  <div className="flex items-center gap-3">
-                    {todaySalida ? (
-                      <XCircle className="w-5 h-5 text-destructive" />
-                    ) : (
-                      <Clock className="w-5 h-5 text-muted-foreground" />
-                    )}
-                    <span className={todaySalida ? "font-medium" : "text-muted-foreground"}>
-                      Salida
-                    </span>
-                  </div>
-                  <span className={todaySalida ? "font-mono text-destructive" : "text-muted-foreground"}>
-                    {todaySalida ? formatTime(todaySalida.recorded_at) : "Pendiente"}
-                  </span>
-                </div>
+                {(() => {
+                  const entryOnTime = todayEntrada && isOnTime(
+                    todayEntrada.recorded_at, 
+                    SCHEDULE_CONFIG.entryHour, 
+                    SCHEDULE_CONFIG.entryMinute, 
+                    SCHEDULE_CONFIG.toleranceMinutes
+                  );
+                  const entryLate = todayEntrada && !entryOnTime;
+                  
+                  return (
+                    <div className={`flex items-center justify-between p-3 rounded-xl ${
+                      todayEntrada 
+                        ? entryLate ? "bg-warning/10" : "bg-success/10"
+                        : "bg-muted/50"
+                    }`}>
+                      <div className="flex items-center gap-3">
+                        {todayEntrada ? (
+                          entryLate 
+                            ? <AlertCircle className="w-5 h-5 text-warning" />
+                            : <CheckCircle className="w-5 h-5 text-success" />
+                        ) : (
+                          <Clock className="w-5 h-5 text-muted-foreground" />
+                        )}
+                        <div>
+                          <span className={todayEntrada ? "font-medium" : "text-muted-foreground"}>
+                            Entrada
+                          </span>
+                          {entryLate && (
+                            <p className="text-xs text-warning">Llegó tarde</p>
+                          )}
+                          {entryOnTime && (
+                            <p className="text-xs text-success">A tiempo</p>
+                          )}
+                        </div>
+                      </div>
+                      <span className={`font-mono ${
+                        todayEntrada 
+                          ? entryLate ? "text-warning" : "text-success"
+                          : "text-muted-foreground"
+                      }`}>
+                        {todayEntrada ? formatTime(todayEntrada.recorded_at) : "Pendiente"}
+                      </span>
+                    </div>
+                  );
+                })()}
+                
+                {(() => {
+                  const exitEarly = todaySalida && isEarlyExit(
+                    todaySalida.recorded_at, 
+                    SCHEDULE_CONFIG.exitHour, 
+                    SCHEDULE_CONFIG.exitMinute
+                  );
+                  
+                  return (
+                    <div className={`flex items-center justify-between p-3 rounded-xl ${
+                      todaySalida 
+                        ? exitEarly ? "bg-warning/10" : "bg-success/10"
+                        : "bg-muted/50"
+                    }`}>
+                      <div className="flex items-center gap-3">
+                        {todaySalida ? (
+                          exitEarly 
+                            ? <AlertCircle className="w-5 h-5 text-warning" />
+                            : <CheckCircle className="w-5 h-5 text-success" />
+                        ) : (
+                          <Clock className="w-5 h-5 text-muted-foreground" />
+                        )}
+                        <div>
+                          <span className={todaySalida ? "font-medium" : "text-muted-foreground"}>
+                            Salida
+                          </span>
+                          {exitEarly && (
+                            <p className="text-xs text-warning">Salió temprano</p>
+                          )}
+                          {todaySalida && !exitEarly && (
+                            <p className="text-xs text-success">Completo</p>
+                          )}
+                        </div>
+                      </div>
+                      <span className={`font-mono ${
+                        todaySalida 
+                          ? exitEarly ? "text-warning" : "text-success"
+                          : "text-muted-foreground"
+                      }`}>
+                        {todaySalida ? formatTime(todaySalida.recorded_at) : "Pendiente"}
+                      </span>
+                    </div>
+                  );
+                })()}
               </CardContent>
             </Card>
 

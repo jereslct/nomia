@@ -109,7 +109,22 @@ export const useAuth = () => {
   };
 
   const signOut = async () => {
+    // Clear local state first
+    setUser(null);
+    setSession(null);
+    setProfile(null);
+    setRole(null);
+    
+    // Attempt to sign out from Supabase
     const { error } = await supabase.auth.signOut();
+    
+    // Even if signOut fails (e.g., session already expired), 
+    // clear localStorage to ensure clean state
+    if (error) {
+      console.warn("Sign out error (clearing local storage anyway):", error);
+      localStorage.removeItem('sb-xlcxdmbuhbcfdwzesuos-auth-token');
+    }
+    
     return { error };
   };
 

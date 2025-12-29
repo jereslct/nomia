@@ -347,7 +347,8 @@ const Admin = () => {
   }, [qrDialogOpen, qrValue]);
 
   const generateQR = async () => {
-    const newCode = `nomia-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    // Use cryptographically secure random generation
+    const newCode = `nomia-${crypto.randomUUID()}`;
     setQrValue(newCode);
     setTimeLeft(300);
 

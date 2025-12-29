@@ -8,6 +8,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import ScanQR from "./pages/ScanQR";
 import AdminQR from "./pages/AdminQR";
+import Admin from "./pages/Admin";
 import History from "./pages/History";
 import NotFound from "./pages/NotFound";
 
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/scan" element={<ScanQR />} />
+          <Route path="/admin" element={<Admin />} />
           <Route path="/admin/qr" element={<AdminQR />} />
           <Route path="/history" element={<History />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

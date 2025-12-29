@@ -22,7 +22,7 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { ArrowLeft, UserPlus, Users, Mail, Loader2, Check, Clock, X, Building2, Plus, ChevronRight, Trash2 } from "lucide-react";
+import { ArrowLeft, UserPlus, Users, Mail, Loader2, Check, Clock, X, Building2, Plus, ChevronRight, Trash2, Phone } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -48,6 +48,7 @@ interface OrganizationMember {
   profile?: {
     full_name: string;
     avatar_url: string | null;
+    phone_number: string | null;
   } | null;
 }
 
@@ -184,16 +185,16 @@ const AdminUsers = () => {
         ?.filter((m) => m.user_id && m.status === "accepted")
         .map((m) => m.user_id) as string[];
 
-      let profilesMap = new Map<string, { full_name: string; avatar_url: string | null }>();
+      let profilesMap = new Map<string, { full_name: string; avatar_url: string | null; phone_number: string | null }>();
 
       if (acceptedUserIds?.length > 0) {
         const { data: profiles } = await supabase
           .from("profiles")
-          .select("user_id, full_name, avatar_url")
+          .select("user_id, full_name, avatar_url, phone_number")
           .in("user_id", acceptedUserIds);
 
         profiles?.forEach((p) => {
-          profilesMap.set(p.user_id, { full_name: p.full_name, avatar_url: p.avatar_url });
+          profilesMap.set(p.user_id, { full_name: p.full_name, avatar_url: p.avatar_url, phone_number: p.phone_number });
         });
       }
 
@@ -245,16 +246,16 @@ const AdminUsers = () => {
         ?.filter((m) => m.user_id && m.status === "accepted")
         .map((m) => m.user_id) as string[];
 
-      let profilesMap = new Map<string, { full_name: string; avatar_url: string | null }>();
+      let profilesMap = new Map<string, { full_name: string; avatar_url: string | null; phone_number: string | null }>();
 
       if (acceptedUserIds?.length > 0) {
         const { data: profiles } = await supabase
           .from("profiles")
-          .select("user_id, full_name, avatar_url")
+          .select("user_id, full_name, avatar_url, phone_number")
           .in("user_id", acceptedUserIds);
 
         profiles?.forEach((p) => {
-          profilesMap.set(p.user_id, { full_name: p.full_name, avatar_url: p.avatar_url });
+          profilesMap.set(p.user_id, { full_name: p.full_name, avatar_url: p.avatar_url, phone_number: p.phone_number });
         });
       }
 
@@ -739,6 +740,7 @@ const AdminUsers = () => {
                       <TableRow className="bg-muted/50">
                         <TableHead className="font-semibold">Empleado</TableHead>
                         <TableHead className="font-semibold">Email</TableHead>
+                        <TableHead className="font-semibold">Teléfono</TableHead>
                         <TableHead className="font-semibold">Organización</TableHead>
                         <TableHead className="font-semibold">Estado</TableHead>
                         <TableHead className="font-semibold">Fecha</TableHead>
@@ -762,6 +764,16 @@ const AdminUsers = () => {
                           </TableCell>
                           <TableCell className="text-muted-foreground">
                             {member.invited_email}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {member.profile?.phone_number ? (
+                              <div className="flex items-center gap-1">
+                                <Phone className="w-3 h-3" />
+                                {member.profile.phone_number}
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground/50">—</span>
+                            )}
                           </TableCell>
                           <TableCell>
                             <Badge variant="outline">{member.organization_name}</Badge>
@@ -904,6 +916,7 @@ const AdminUsers = () => {
                         <TableRow className="bg-muted/50">
                           <TableHead className="font-semibold">Empleado</TableHead>
                           <TableHead className="font-semibold">Email</TableHead>
+                          <TableHead className="font-semibold">Teléfono</TableHead>
                           <TableHead className="font-semibold">Estado</TableHead>
                           <TableHead className="font-semibold">Fecha</TableHead>
                           <TableHead className="font-semibold text-right">Acciones</TableHead>
@@ -927,6 +940,16 @@ const AdminUsers = () => {
                             </TableCell>
                             <TableCell className="text-muted-foreground">
                               {member.invited_email}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {member.profile?.phone_number ? (
+                                <div className="flex items-center gap-1">
+                                  <Phone className="w-3 h-3" />
+                                  {member.profile.phone_number}
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground/50">—</span>
+                              )}
                             </TableCell>
                             <TableCell>{getStatusBadge(member.status)}</TableCell>
                             <TableCell className="text-muted-foreground">

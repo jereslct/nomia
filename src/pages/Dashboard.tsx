@@ -187,10 +187,10 @@ const Dashboard = () => {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <div className="text-right hidden sm:block">
+            <Link to="/profile" className="text-right hidden sm:block hover:opacity-80 transition-opacity">
               <p className="text-sm font-medium">{profile?.full_name || user.email}</p>
               <p className="text-xs text-muted-foreground">{user.email}</p>
-            </div>
+            </Link>
             <Button variant="ghost" size="icon" onClick={handleLogout}>
               <LogOut className="w-5 h-5" />
             </Button>

@@ -43,6 +43,8 @@ interface OrganizationMember {
   status: "pending" | "accepted" | "rejected";
   created_at: string;
   accepted_at: string | null;
+  organization_id?: string;
+  organization_name?: string;
   profile?: {
     full_name: string;
     avatar_url: string | null;
@@ -90,11 +92,14 @@ const AdminUsers = () => {
 
   // Members state
   const [members, setMembers] = useState<OrganizationMember[]>([]);
+  const [allMembers, setAllMembers] = useState<OrganizationMember[]>([]);
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
+  const [isLoadingAllMembers, setIsLoadingAllMembers] = useState(false);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [isInviting, setIsInviting] = useState(false);
   const [emailError, setEmailError] = useState("");
+  const [showAllEmployees, setShowAllEmployees] = useState(false);
 
   useEffect(() => {
     if (!loading && (!user || !isAdmin)) {
@@ -115,6 +120,12 @@ const AdminUsers = () => {
       setMembers([]);
     }
   }, [selectedOrg]);
+
+  useEffect(() => {
+    if (user && isAdmin && showAllEmployees) {
+      fetchAllMembers();
+    }
+  }, [user, isAdmin, showAllEmployees]);
 
   const fetchOrganizations = async () => {
     if (!user) return;
@@ -197,6 +208,68 @@ const AdminUsers = () => {
       console.error("Error fetching members:", error);
     } finally {
       setIsLoadingMembers(false);
+    }
+  };
+
+  const fetchAllMembers = async () => {
+    if (!user) return;
+
+    try {
+      setIsLoadingAllMembers(true);
+
+      // Get all organizations
+      const { data: orgs } = await supabase
+        .from("organizations")
+        .select("id, name")
+        .eq("owner_id", user.id);
+
+      if (!orgs || orgs.length === 0) {
+        setAllMembers([]);
+        return;
+      }
+
+      const orgMap = new Map<string, string>();
+      orgs.forEach((o) => orgMap.set(o.id, o.name));
+
+      // Get all members from all organizations
+      const { data: membersData, error } = await supabase
+        .from("organization_members")
+        .select("*")
+        .in("organization_id", orgs.map((o) => o.id))
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      // Fetch profiles for accepted members
+      const acceptedUserIds = membersData
+        ?.filter((m) => m.user_id && m.status === "accepted")
+        .map((m) => m.user_id) as string[];
+
+      let profilesMap = new Map<string, { full_name: string; avatar_url: string | null }>();
+
+      if (acceptedUserIds?.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, full_name, avatar_url")
+          .in("user_id", acceptedUserIds);
+
+        profiles?.forEach((p) => {
+          profilesMap.set(p.user_id, { full_name: p.full_name, avatar_url: p.avatar_url });
+        });
+      }
+
+      const membersWithProfiles: OrganizationMember[] = (membersData || []).map((m) => ({
+        ...m,
+        status: m.status as "pending" | "accepted" | "rejected",
+        organization_name: orgMap.get(m.organization_id) || "Desconocida",
+        profile: m.user_id ? profilesMap.get(m.user_id) : null,
+      }));
+
+      setAllMembers(membersWithProfiles);
+    } catch (error) {
+      console.error("Error fetching all members:", error);
+    } finally {
+      setIsLoadingAllMembers(false);
     }
   };
 
@@ -424,7 +497,7 @@ const AdminUsers = () => {
       <main className="container mx-auto px-4 py-8 space-y-8">
         {/* Organizations Section */}
         <Card className="glass-card">
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-4">
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Building2 className="w-5 h-5" />
@@ -432,6 +505,20 @@ const AdminUsers = () => {
               </CardTitle>
               <CardDescription>Selecciona una organización para ver sus empleados</CardDescription>
             </div>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant={showAllEmployees ? "default" : "outline"} 
+                size="sm"
+                onClick={() => {
+                  setShowAllEmployees(!showAllEmployees);
+                  if (!showAllEmployees) {
+                    setSelectedOrg(null);
+                  }
+                }}
+              >
+                <Users className="w-4 h-4" />
+                {showAllEmployees ? "Viendo todos" : "Ver todos los empleados"}
+              </Button>
             <Dialog open={orgDialogOpen} onOpenChange={setOrgDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm">
@@ -481,6 +568,7 @@ const AdminUsers = () => {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+            </div>
           </CardHeader>
           <CardContent>
             {isLoadingOrgs ? (
@@ -539,6 +627,76 @@ const AdminUsers = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* All Employees Section */}
+        {showAllEmployees && (
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                Todos los Empleados
+              </CardTitle>
+              <CardDescription>
+                Empleados de todas tus organizaciones ({allMembers.length} total)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoadingAllMembers ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              ) : allMembers.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>No hay empleados en ninguna organización</p>
+                </div>
+              ) : (
+                <div className="rounded-lg border border-border overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50">
+                        <TableHead className="font-semibold">Empleado</TableHead>
+                        <TableHead className="font-semibold">Email</TableHead>
+                        <TableHead className="font-semibold">Organización</TableHead>
+                        <TableHead className="font-semibold">Estado</TableHead>
+                        <TableHead className="font-semibold">Fecha</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {allMembers.map((member) => (
+                        <TableRow key={member.id} className="hover:bg-muted/30">
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Avatar className="w-9 h-9">
+                                <AvatarImage src={member.profile?.avatar_url || undefined} />
+                                <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
+                                  {getInitials(member.profile?.full_name || member.invited_email.split("@")[0])}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="font-medium">
+                                {member.profile?.full_name || member.invited_email.split("@")[0]}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {member.invited_email}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{member.organization_name}</Badge>
+                          </TableCell>
+                          <TableCell>{getStatusBadge(member.status)}</TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {new Date(member.created_at).toLocaleDateString("es")}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Members Section - Only show when org is selected */}
         {selectedOrg && (

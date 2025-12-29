@@ -173,7 +173,7 @@ const Dashboard = () => {
                           <Users className="w-7 h-7 text-accent" />
                         </div>
                         <div className="flex-1">
-                          <h3 className="font-semibold">Empleados</h3>
+                          <h3 className="font-semibold">Organizaciones</h3>
                           <p className="text-sm text-muted-foreground">Gestionar equipo</p>
                         </div>
                         <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />

@@ -60,7 +60,7 @@ const Dashboard = () => {
 
   const [attendanceHistory, setAttendanceHistory] = useState<AttendanceRecord[]>([]);
   const [todayRecords, setTodayRecords] = useState<AttendanceRecord[]>([]);
-  const [qrValue] = useState(`nomia-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
+  const [activeQrCode, setActiveQrCode] = useState<string | null>(null);
   const [loadingRecords, setLoadingRecords] = useState(true);
   const [editingSchedule, setEditingSchedule] = useState(false);
 
@@ -73,6 +73,9 @@ const Dashboard = () => {
   useEffect(() => {
     if (user && isAdmin !== undefined) {
       fetchAttendanceRecords();
+      if (isAdmin) {
+        fetchActiveQrCode();
+      }
     }
   }, [user, isAdmin]);
 
@@ -137,6 +140,30 @@ const Dashboard = () => {
     }
   };
 
+  const fetchActiveQrCode = async () => {
+    if (!user) return;
+
+    try {
+      // Get the most recent non-expired QR code created by this admin
+      const { data: qrCode, error } = await supabase
+        .from("qr_codes")
+        .select("code")
+        .eq("created_by", user.id)
+        .gt("expires_at", new Date().toISOString())
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!error && qrCode) {
+        setActiveQrCode(qrCode.code);
+      } else {
+        setActiveQrCode(null);
+      }
+    } catch (error) {
+      console.error("Error fetching active QR code:", error);
+      setActiveQrCode(null);
+    }
+  };
 
   const handleLogout = async () => {
     await signOut();
@@ -546,13 +573,21 @@ const Dashboard = () => {
                   <CardDescription>Código actual para escanear</CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col items-center">
-                  <div className="bg-card p-4 rounded-2xl shadow-inner">
-                    <QRCode
-                      value={qrValue}
-                      size={160}
-                      style={{ height: "auto", maxWidth: "100%", width: "100%" }}
-                    />
-                  </div>
+                  {activeQrCode ? (
+                    <div className="bg-card p-4 rounded-2xl shadow-inner">
+                      <QRCode
+                        value={activeQrCode}
+                        size={160}
+                        style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <QrCode className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                      <p className="text-sm">No hay QR activo</p>
+                      <p className="text-xs">Genera uno desde Gestionar QR</p>
+                    </div>
+                  )}
                   <Link to="/admin/qr" className="w-full mt-4">
                     <Button variant="outline" size="sm" className="w-full">
                       <Settings className="w-4 h-4 mr-2" />

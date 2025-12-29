@@ -1,26 +1,56 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ArrowLeft, Camera, Loader2, Save, User } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { ArrowLeft, Camera, Loader2, Save, User, Check, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import ReactCrop, { Crop, PixelCrop, centerCrop, makeAspectCrop } from "react-image-crop";
+import "react-image-crop/dist/ReactCrop.css";
+
+function centerAspectCrop(
+  mediaWidth: number,
+  mediaHeight: number,
+  aspect: number
+) {
+  return centerCrop(
+    makeAspectCrop(
+      {
+        unit: "%",
+        width: 90,
+      },
+      aspect,
+      mediaWidth,
+      mediaHeight
+    ),
+    mediaWidth,
+    mediaHeight
+  );
+}
 
 const Profile = () => {
   const navigate = useNavigate();
   const { user, profile, loading } = useAuth();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
 
   const [fullName, setFullName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+
+  // Cropping state
+  const [cropDialogOpen, setCropDialogOpen] = useState(false);
+  const [imageSrc, setImageSrc] = useState<string | null>(null);
+  const [crop, setCrop] = useState<Crop>();
+  const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
 
   useEffect(() => {
     if (!loading && !user) {
@@ -59,6 +89,11 @@ const Profile = () => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
+    // Reset input so the same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+
     // Validate file type
     if (!file.type.startsWith("image/")) {
       toast({
@@ -79,30 +114,97 @@ const Profile = () => {
       return;
     }
 
+    // Read file and open crop dialog
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      setImageSrc(result);
+      setCropDialogOpen(true);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const onImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
+    const { width, height } = e.currentTarget;
+    setCrop(centerAspectCrop(width, height, 1));
+  }, []);
+
+  const getCroppedImg = useCallback((): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const image = imgRef.current;
+      if (!image || !completedCrop) {
+        reject(new Error("No image or crop"));
+        return;
+      }
+
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        reject(new Error("No canvas context"));
+        return;
+      }
+
+      const scaleX = image.naturalWidth / image.width;
+      const scaleY = image.naturalHeight / image.height;
+
+      // Set output size (max 400px for avatar)
+      const outputSize = 400;
+      canvas.width = outputSize;
+      canvas.height = outputSize;
+
+      ctx.drawImage(
+        image,
+        completedCrop.x * scaleX,
+        completedCrop.y * scaleY,
+        completedCrop.width * scaleX,
+        completedCrop.height * scaleY,
+        0,
+        0,
+        outputSize,
+        outputSize
+      );
+
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(new Error("Canvas is empty"));
+            return;
+          }
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            resolve(reader.result as string);
+          };
+          reader.readAsDataURL(blob);
+        },
+        "image/jpeg",
+        0.9
+      );
+    });
+  }, [completedCrop]);
+
+  const handleCropConfirm = async () => {
+    if (!user || !completedCrop) return;
+
     setIsUploadingAvatar(true);
 
     try {
-      // Convert to base64 for simple storage (can be upgraded to Supabase Storage later)
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const base64 = event.target?.result as string;
-        
-        // Update avatar in database
-        const { error } = await supabase
-          .from("profiles")
-          .update({ avatar_url: base64 })
-          .eq("user_id", user.id);
+      const croppedBase64 = await getCroppedImg();
 
-        if (error) throw error;
+      // Update avatar in database
+      const { error } = await supabase
+        .from("profiles")
+        .update({ avatar_url: croppedBase64 })
+        .eq("user_id", user.id);
 
-        setAvatarUrl(base64);
-        toast({
-          title: "Avatar actualizado",
-          description: "Tu foto de perfil ha sido actualizada.",
-        });
-        setIsUploadingAvatar(false);
-      };
-      reader.readAsDataURL(file);
+      if (error) throw error;
+
+      setAvatarUrl(croppedBase64);
+      setCropDialogOpen(false);
+      setImageSrc(null);
+      toast({
+        title: "Avatar actualizado",
+        description: "Tu foto de perfil ha sido actualizada.",
+      });
     } catch (error) {
       console.error("Error uploading avatar:", error);
       toast({
@@ -110,8 +212,16 @@ const Profile = () => {
         description: "No se pudo actualizar la foto.",
         variant: "destructive",
       });
+    } finally {
       setIsUploadingAvatar(false);
     }
+  };
+
+  const handleCropCancel = () => {
+    setCropDialogOpen(false);
+    setImageSrc(null);
+    setCrop(undefined);
+    setCompletedCrop(undefined);
   };
 
   const handleSave = async () => {
@@ -188,7 +298,7 @@ const Profile = () => {
             <div className="flex justify-center mb-4">
               <div className="relative group">
                 <Avatar className="w-24 h-24 border-4 border-background shadow-lg">
-                  <AvatarImage src={avatarUrl || undefined} alt={fullName} />
+                  <AvatarImage src={avatarUrl || undefined} alt={fullName} className="object-cover" />
                   <AvatarFallback className="text-2xl bg-primary/10 text-primary">
                     {fullName ? getInitials(fullName) : <User className="w-8 h-8" />}
                   </AvatarFallback>
@@ -276,6 +386,56 @@ const Profile = () => {
           </CardContent>
         </Card>
       </main>
+
+      {/* Crop Dialog */}
+      <Dialog open={cropDialogOpen} onOpenChange={setCropDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Recortar imagen</DialogTitle>
+          </DialogHeader>
+          <div className="flex justify-center py-4">
+            {imageSrc && (
+              <ReactCrop
+                crop={crop}
+                onChange={(_, percentCrop) => setCrop(percentCrop)}
+                onComplete={(c) => setCompletedCrop(c)}
+                aspect={1}
+                circularCrop
+                className="max-h-[400px]"
+              >
+                <img
+                  ref={imgRef}
+                  alt="Crop preview"
+                  src={imageSrc}
+                  onLoad={onImageLoad}
+                  className="max-h-[400px] w-auto"
+                />
+              </ReactCrop>
+            )}
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={handleCropCancel}
+              disabled={isUploadingAvatar}
+            >
+              <X className="w-4 h-4 mr-2" />
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleCropConfirm}
+              disabled={isUploadingAvatar || !completedCrop}
+            >
+              {isUploadingAvatar ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Check className="w-4 h-4 mr-2" />
+              )}
+              Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

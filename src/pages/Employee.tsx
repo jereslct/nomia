@@ -93,14 +93,77 @@ const Employee = () => {
     }
   };
 
+  const requestCameraPermission = async (): Promise<boolean> => {
+    try {
+      // First check if camera is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        toast({
+          title: "Cámara no disponible",
+          description: "Tu navegador no soporta acceso a la cámara. Usa Safari o Chrome.",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      // Request camera permission explicitly first
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" },
+      });
+      
+      // Stop the stream immediately - we just needed to trigger permission
+      stream.getTracks().forEach((track) => track.stop());
+      return true;
+    } catch (err: any) {
+      console.error("Camera permission error:", err);
+      
+      let errorMessage = "No se pudo acceder a la cámara.";
+      
+      if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+        errorMessage = "Permiso de cámara denegado. Ve a Ajustes > Safari > Cámara y permite el acceso.";
+      } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
+        errorMessage = "No se encontró ninguna cámara en tu dispositivo.";
+      } else if (err.name === "NotReadableError" || err.name === "TrackStartError") {
+        errorMessage = "La cámara está siendo usada por otra aplicación.";
+      } else if (err.name === "OverconstrainedError") {
+        errorMessage = "No se pudo configurar la cámara correctamente.";
+      } else if (err.name === "SecurityError") {
+        errorMessage = "Acceso a cámara bloqueado. Asegúrate de usar HTTPS.";
+      }
+      
+      toast({
+        title: "Error de cámara",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   const startScanning = async () => {
     if (scannerRef.current || isInitializing) return;
 
     setIsInitializing(true);
+    
+    // Request permission first
+    const hasPermission = await requestCameraPermission();
+    if (!hasPermission) {
+      setIsInitializing(false);
+      setStatus("error");
+      return;
+    }
+
     setStatus("scanning");
 
     try {
-      const html5QrCode = new Html5Qrcode("qr-reader-employee");
+      // Small delay for iOS to properly release the camera
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      const html5QrCode = new Html5Qrcode("qr-reader-employee", {
+        verbose: false,
+        experimentalFeatures: {
+          useBarCodeDetectorIfSupported: true,
+        },
+      });
       scannerRef.current = html5QrCode;
 
       await html5QrCode.start(
@@ -108,18 +171,27 @@ const Employee = () => {
         {
           fps: 10,
           qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0,
         },
         (decodedText) => {
           handleScanSuccess(decodedText);
         },
-        () => {}
+        () => {
+          // Ignore scan errors - they happen continuously while scanning
+        }
       );
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error starting scanner:", err);
       setStatus("error");
+      
+      let errorMessage = "No se pudo iniciar el escáner.";
+      if (err.toString().includes("Camera access denied")) {
+        errorMessage = "Permiso de cámara denegado. Permite el acceso en la configuración del navegador.";
+      }
+      
       toast({
-        title: "Error de cámara",
-        description: "No se pudo acceder a la cámara. Verifica los permisos.",
+        title: "Error de escáner",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -445,8 +517,10 @@ const Employee = () => {
                     <XCircle className="w-10 h-10 text-destructive-foreground" />
                   </div>
                   <div className="text-center">
-                    <p className="font-semibold text-destructive">Código inválido</p>
-                    <p className="text-sm text-muted-foreground">Intenta escanear de nuevo</p>
+                    <p className="font-semibold text-destructive">Error</p>
+                    <p className="text-sm text-muted-foreground px-4">
+                      Verifica los permisos de cámara en Ajustes → Safari → Cámara
+                    </p>
                   </div>
                   <Button
                     variant="outline"

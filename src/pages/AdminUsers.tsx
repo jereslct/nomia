@@ -56,16 +56,16 @@ interface OrganizationMember {
 const emailSchema = z.string().email("Correo electrónico inválido");
 const orgNameSchema = z.string().min(2, "El nombre debe tener al menos 2 caracteres").max(100);
 
-const getStatusBadge = (status: string) => {
+const getStatusText = (status: string) => {
   switch (status) {
     case "accepted":
-      return <Badge className="bg-success text-success-foreground">Aceptada</Badge>;
+      return <span className="text-success font-medium">Aceptada</span>;
     case "pending":
-      return <Badge className="bg-warning/20 text-warning border border-warning">Pendiente</Badge>;
+      return <span className="text-warning font-medium">Pendiente</span>;
     case "rejected":
-      return <Badge variant="destructive">Rechazada</Badge>;
+      return <span className="text-destructive font-medium">Rechazada</span>;
     default:
-      return <Badge variant="outline">Desconocida</Badge>;
+      return <span className="text-muted-foreground">Desconocida</span>;
   }
 };
 
@@ -828,7 +828,7 @@ const AdminUsers = () => {
                         <TableHead className="font-semibold">Email</TableHead>
                         <TableHead className="font-semibold">Teléfono</TableHead>
                         <TableHead className="font-semibold">Organización</TableHead>
-                        <TableHead className="font-semibold">Trabajando</TableHead>
+                        <TableHead className="font-semibold">Disponible</TableHead>
                         <TableHead className="font-semibold">Solicitud</TableHead>
                         <TableHead className="font-semibold">Fecha</TableHead>
                       </TableRow>
@@ -866,7 +866,7 @@ const AdminUsers = () => {
                             <Badge variant="outline">{member.organization_name}</Badge>
                           </TableCell>
                           <TableCell>{getWorkingBadge(member.isWorking)}</TableCell>
-                          <TableCell>{getStatusBadge(member.status)}</TableCell>
+                          <TableCell>{getStatusText(member.status)}</TableCell>
                           <TableCell className="text-muted-foreground">
                             {new Date(member.created_at).toLocaleDateString("es")}
                           </TableCell>
@@ -1005,7 +1005,7 @@ const AdminUsers = () => {
                           <TableHead className="font-semibold">Empleado</TableHead>
                           <TableHead className="font-semibold">Email</TableHead>
                           <TableHead className="font-semibold">Teléfono</TableHead>
-                          <TableHead className="font-semibold">Trabajando</TableHead>
+                          <TableHead className="font-semibold">Disponible</TableHead>
                           <TableHead className="font-semibold">Solicitud</TableHead>
                           <TableHead className="font-semibold">Fecha</TableHead>
                           <TableHead className="font-semibold text-right">Acciones</TableHead>
@@ -1041,7 +1041,7 @@ const AdminUsers = () => {
                               )}
                             </TableCell>
                             <TableCell>{getWorkingBadge(member.isWorking)}</TableCell>
-                            <TableCell>{getStatusBadge(member.status)}</TableCell>
+                            <TableCell>{getStatusText(member.status)}</TableCell>
                             <TableCell className="text-muted-foreground">
                               {new Date(member.created_at).toLocaleDateString("es")}
                             </TableCell>

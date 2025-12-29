@@ -173,7 +173,7 @@ const Index = () => {
                 Comienza a controlar tu asistencia hoy
               </h2>
               <p className="text-primary-foreground/80 max-w-xl mx-auto">
-                Únete a cientos de empresas que ya simplifican su gestión de tiempo con QRTime.
+                Únete a cientos de empresas que ya simplifican su gestión de tiempo con Nomia.
               </p>
               <Link to="/auth?mode=signup">
                 <Button 
@@ -196,10 +196,10 @@ const Index = () => {
             <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
               <QrCode className="w-4 h-4 text-primary-foreground" />
             </div>
-            <span className="font-semibold">QRTime</span>
+            <span className="font-semibold">Nomia</span>
           </div>
           <p className="text-sm text-muted-foreground">
-            © 2024 QRTime. Todos los derechos reservados.
+            © 2024 Nomia. Todos los derechos reservados.
           </p>
         </div>
       </footer>

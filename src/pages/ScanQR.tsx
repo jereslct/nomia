@@ -25,14 +25,69 @@ const ScanQR = () => {
     }
   }, [user, loading, navigate]);
 
+  const requestCameraPermission = async (): Promise<boolean> => {
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        toast({
+          title: "Cámara no disponible",
+          description: "Tu navegador no soporta acceso a la cámara. Usa Safari o Chrome.",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" },
+      });
+      stream.getTracks().forEach((track) => track.stop());
+      return true;
+    } catch (err: any) {
+      console.error("Camera permission error:", err);
+      
+      let errorMessage = "No se pudo acceder a la cámara.";
+      
+      if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+        errorMessage = "Permiso de cámara denegado. Ve a Ajustes > Safari > Cámara y permite el acceso.";
+      } else if (err.name === "NotFoundError") {
+        errorMessage = "No se encontró ninguna cámara en tu dispositivo.";
+      } else if (err.name === "NotReadableError") {
+        errorMessage = "La cámara está siendo usada por otra aplicación.";
+      } else if (err.name === "SecurityError") {
+        errorMessage = "Acceso a cámara bloqueado. Asegúrate de usar HTTPS.";
+      }
+      
+      toast({
+        title: "Error de cámara",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   const startScanning = async () => {
     if (scannerRef.current || isInitializing) return;
     
     setIsInitializing(true);
+    
+    const hasPermission = await requestCameraPermission();
+    if (!hasPermission) {
+      setIsInitializing(false);
+      setStatus("error");
+      return;
+    }
+
     setStatus("scanning");
 
     try {
-      const html5QrCode = new Html5Qrcode("qr-reader");
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      const html5QrCode = new Html5Qrcode("qr-reader", {
+        verbose: false,
+        experimentalFeatures: {
+          useBarCodeDetectorIfSupported: true,
+        },
+      });
       scannerRef.current = html5QrCode;
 
       await html5QrCode.start(
@@ -40,20 +95,19 @@ const ScanQR = () => {
         {
           fps: 10,
           qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0,
         },
         (decodedText) => {
           handleScanSuccess(decodedText);
         },
-        () => {
-          // QR code scanning error (called frequently while scanning)
-        }
+        () => {}
       );
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error starting scanner:", err);
       setStatus("error");
       toast({
-        title: "Error de cámara",
-        description: "No se pudo acceder a la cámara. Verifica los permisos.",
+        title: "Error de escáner",
+        description: "No se pudo iniciar el escáner. Verifica los permisos de cámara.",
         variant: "destructive",
       });
     } finally {

@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import ScanQR from "./pages/ScanQR";
 import AdminQR from "./pages/AdminQR";
 import Admin from "./pages/Admin";
+import Employee from "./pages/Employee";
 import History from "./pages/History";
 import NotFound from "./pages/NotFound";
 
@@ -27,6 +28,7 @@ const App = () => (
           <Route path="/scan" element={<ScanQR />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/admin/qr" element={<AdminQR />} />
+          <Route path="/employee" element={<Employee />} />
           <Route path="/history" element={<History />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

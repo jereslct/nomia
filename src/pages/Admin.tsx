@@ -99,6 +99,7 @@ const Admin = () => {
   const [employees, setEmployees] = useState<EmployeeStatus[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [locationId, setLocationId] = useState<string | null>(null);
+  const [organizationId, setOrganizationId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && (!user || !isAdmin)) {
@@ -142,27 +143,73 @@ const Admin = () => {
     if (!user) return;
 
     try {
-      const { data: existingLocation } = await supabase
-        .from("locations")
+      // First check for existing organization
+      const { data: existingOrg } = await supabase
+        .from("organizations")
         .select("id")
-        .eq("created_by", user.id)
+        .eq("owner_id", user.id)
         .maybeSingle();
 
-      if (existingLocation) {
-        setLocationId(existingLocation.id);
-      } else {
-        const { data: newLocation } = await supabase
-          .from("locations")
+      let orgId = existingOrg?.id;
+
+      // Create organization if doesn't exist
+      if (!orgId) {
+        const { data: newOrg } = await supabase
+          .from("organizations")
           .insert({
-            name: "Oficina Central",
-            address: "Dirección principal",
-            created_by: user.id,
+            name: "Mi Empresa",
+            owner_id: user.id,
           })
           .select("id")
           .single();
 
-        if (newLocation) {
-          setLocationId(newLocation.id);
+        orgId = newOrg?.id;
+      }
+
+      if (orgId) {
+        setOrganizationId(orgId);
+
+        // Check for existing location linked to this organization
+        const { data: existingLocation } = await supabase
+          .from("locations")
+          .select("id")
+          .eq("created_by", user.id)
+          .eq("organization_id", orgId)
+          .maybeSingle();
+
+        if (existingLocation) {
+          setLocationId(existingLocation.id);
+        } else {
+          // Update existing location without org or create new one
+          const { data: unlinkedLocation } = await supabase
+            .from("locations")
+            .select("id")
+            .eq("created_by", user.id)
+            .is("organization_id", null)
+            .maybeSingle();
+
+          if (unlinkedLocation) {
+            await supabase
+              .from("locations")
+              .update({ organization_id: orgId })
+              .eq("id", unlinkedLocation.id);
+            setLocationId(unlinkedLocation.id);
+          } else {
+            const { data: newLocation } = await supabase
+              .from("locations")
+              .insert({
+                name: "Oficina Central",
+                address: "Dirección principal",
+                created_by: user.id,
+                organization_id: orgId,
+              })
+              .select("id")
+              .single();
+
+            if (newLocation) {
+              setLocationId(newLocation.id);
+            }
+          }
         }
       }
     } catch (error) {

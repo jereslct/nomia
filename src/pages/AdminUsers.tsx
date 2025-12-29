@@ -50,6 +50,7 @@ interface OrganizationMember {
     avatar_url: string | null;
     phone_number: string | null;
   } | null;
+  isWorking?: boolean | null;
 }
 
 const emailSchema = z.string().email("Correo electrónico inválido");
@@ -58,14 +59,21 @@ const orgNameSchema = z.string().min(2, "El nombre debe tener al menos 2 caracte
 const getStatusBadge = (status: string) => {
   switch (status) {
     case "accepted":
-      return <Badge className="bg-success text-success-foreground">Activo</Badge>;
+      return <Badge className="bg-success text-success-foreground">Aceptada</Badge>;
     case "pending":
-      return <Badge variant="outline" className="text-warning border-warning">Pendiente</Badge>;
+      return <Badge className="bg-warning/20 text-warning border border-warning">Pendiente</Badge>;
     case "rejected":
-      return <Badge variant="destructive">Rechazado</Badge>;
+      return <Badge variant="destructive">Rechazada</Badge>;
     default:
-      return <Badge variant="outline">Desconocido</Badge>;
+      return <Badge variant="outline">Desconocida</Badge>;
   }
+};
+
+const getWorkingBadge = (isWorking: boolean | null) => {
+  if (isWorking === null) return <span className="text-muted-foreground/50">—</span>;
+  return isWorking 
+    ? <Badge className="bg-success text-success-foreground">Activo</Badge>
+    : <Badge variant="outline" className="text-muted-foreground">Fuera de trabajo</Badge>;
 };
 
 const getInitials = (name: string) => {
@@ -198,10 +206,49 @@ const AdminUsers = () => {
         });
       }
 
+      // Fetch today's attendance to determine working status
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      let workingStatusMap = new Map<string, boolean | null>();
+
+      if (acceptedUserIds?.length > 0) {
+        const { data: attendanceRecords } = await supabase
+          .from("attendance_records")
+          .select("user_id, record_type")
+          .in("user_id", acceptedUserIds)
+          .gte("recorded_at", today.toISOString())
+          .lt("recorded_at", tomorrow.toISOString())
+          .order("recorded_at", { ascending: false });
+
+        // Group records by user and determine working status
+        const userRecords = new Map<string, string[]>();
+        attendanceRecords?.forEach((r) => {
+          if (!userRecords.has(r.user_id)) {
+            userRecords.set(r.user_id, []);
+          }
+          userRecords.get(r.user_id)?.push(r.record_type);
+        });
+
+        acceptedUserIds.forEach((userId) => {
+          const records = userRecords.get(userId) || [];
+          if (records.length === 0) {
+            workingStatusMap.set(userId, null); // No records today
+          } else {
+            // If latest record is entrada -> working, if salida -> not working
+            const latestRecord = records[0];
+            workingStatusMap.set(userId, latestRecord === "entrada");
+          }
+        });
+      }
+
       const membersWithProfiles: OrganizationMember[] = (membersData || []).map((m) => ({
         ...m,
         status: m.status as "pending" | "accepted" | "rejected",
         profile: m.user_id ? profilesMap.get(m.user_id) : null,
+        isWorking: m.user_id ? workingStatusMap.get(m.user_id) ?? null : null,
       }));
 
       setMembers(membersWithProfiles);
@@ -259,11 +306,50 @@ const AdminUsers = () => {
         });
       }
 
+      // Fetch today's attendance to determine working status
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      let workingStatusMap = new Map<string, boolean | null>();
+
+      if (acceptedUserIds?.length > 0) {
+        const { data: attendanceRecords } = await supabase
+          .from("attendance_records")
+          .select("user_id, record_type")
+          .in("user_id", acceptedUserIds)
+          .gte("recorded_at", today.toISOString())
+          .lt("recorded_at", tomorrow.toISOString())
+          .order("recorded_at", { ascending: false });
+
+        // Group records by user and determine working status
+        const userRecords = new Map<string, string[]>();
+        attendanceRecords?.forEach((r) => {
+          if (!userRecords.has(r.user_id)) {
+            userRecords.set(r.user_id, []);
+          }
+          userRecords.get(r.user_id)?.push(r.record_type);
+        });
+
+        acceptedUserIds.forEach((userId) => {
+          const records = userRecords.get(userId) || [];
+          if (records.length === 0) {
+            workingStatusMap.set(userId, null); // No records today
+          } else {
+            // If latest record is entrada -> working, if salida -> not working
+            const latestRecord = records[0];
+            workingStatusMap.set(userId, latestRecord === "entrada");
+          }
+        });
+      }
+
       const membersWithProfiles: OrganizationMember[] = (membersData || []).map((m) => ({
         ...m,
         status: m.status as "pending" | "accepted" | "rejected",
         organization_name: orgMap.get(m.organization_id) || "Desconocida",
         profile: m.user_id ? profilesMap.get(m.user_id) : null,
+        isWorking: m.user_id ? workingStatusMap.get(m.user_id) ?? null : null,
       }));
 
       setAllMembers(membersWithProfiles);
@@ -742,7 +828,8 @@ const AdminUsers = () => {
                         <TableHead className="font-semibold">Email</TableHead>
                         <TableHead className="font-semibold">Teléfono</TableHead>
                         <TableHead className="font-semibold">Organización</TableHead>
-                        <TableHead className="font-semibold">Estado</TableHead>
+                        <TableHead className="font-semibold">Trabajando</TableHead>
+                        <TableHead className="font-semibold">Solicitud</TableHead>
                         <TableHead className="font-semibold">Fecha</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -778,6 +865,7 @@ const AdminUsers = () => {
                           <TableCell>
                             <Badge variant="outline">{member.organization_name}</Badge>
                           </TableCell>
+                          <TableCell>{getWorkingBadge(member.isWorking)}</TableCell>
                           <TableCell>{getStatusBadge(member.status)}</TableCell>
                           <TableCell className="text-muted-foreground">
                             {new Date(member.created_at).toLocaleDateString("es")}
@@ -917,7 +1005,8 @@ const AdminUsers = () => {
                           <TableHead className="font-semibold">Empleado</TableHead>
                           <TableHead className="font-semibold">Email</TableHead>
                           <TableHead className="font-semibold">Teléfono</TableHead>
-                          <TableHead className="font-semibold">Estado</TableHead>
+                          <TableHead className="font-semibold">Trabajando</TableHead>
+                          <TableHead className="font-semibold">Solicitud</TableHead>
                           <TableHead className="font-semibold">Fecha</TableHead>
                           <TableHead className="font-semibold text-right">Acciones</TableHead>
                         </TableRow>
@@ -951,6 +1040,7 @@ const AdminUsers = () => {
                                 <span className="text-muted-foreground/50">—</span>
                               )}
                             </TableCell>
+                            <TableCell>{getWorkingBadge(member.isWorking)}</TableCell>
                             <TableCell>{getStatusBadge(member.status)}</TableCell>
                             <TableCell className="text-muted-foreground">
                               {new Date(member.created_at).toLocaleDateString("es")}

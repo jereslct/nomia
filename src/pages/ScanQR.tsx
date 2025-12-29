@@ -151,7 +151,7 @@ const ScanQR = () => {
     }
 
     try {
-      // Check if there's a valid QR code in the database
+      // Validate QR code exists in database and is not expired
       const { data: qrCode, error: qrError } = await supabase
         .from("qr_codes")
         .select("id, location_id, expires_at")
@@ -159,34 +159,19 @@ const ScanQR = () => {
         .gt("expires_at", new Date().toISOString())
         .maybeSingle();
 
-      // If no QR found, create a default location and use that
-      let locationId: string;
-      let qrCodeId: string | null = null;
-
-      if (qrCode) {
-        locationId = qrCode.location_id;
-        qrCodeId = qrCode.id;
-      } else {
-        // For demo: get or create a default location
-        const { data: existingLocation } = await supabase
-          .from("locations")
-          .select("id")
-          .eq("name", "Oficina Central")
-          .maybeSingle();
-
-        if (existingLocation) {
-          locationId = existingLocation.id;
-        } else {
-          // Location doesn't exist and user can't create one - show friendly error
-          setStatus("error");
-          toast({
-            title: "Ubicación no disponible",
-            description: "El código QR es válido, pero la ubicación aún no está configurada. Contacta al administrador.",
-            variant: "destructive",
-          });
-          return;
-        }
+      // Require valid QR code - no fallback allowed
+      if (!qrCode) {
+        setStatus("error");
+        toast({
+          title: "Código QR inválido o expirado",
+          description: "Este código QR no es válido o ha expirado. Solicita un nuevo código al administrador.",
+          variant: "destructive",
+        });
+        return;
       }
+
+      const locationId = qrCode.location_id;
+      const qrCodeId = qrCode.id;
 
       // Determine if this is entrada or salida based on last record
       const today = new Date().toISOString().split("T")[0];

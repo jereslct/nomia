@@ -76,7 +76,7 @@ const getInitials = (name: string) => {
 
 const AdminUsers = () => {
   const navigate = useNavigate();
-  const { user, isAdmin, loading } = useAuth();
+  const { user, profile, isAdmin, loading } = useAuth();
   const { toast } = useToast();
   
   // Organizations state
@@ -304,11 +304,33 @@ const AdminUsers = () => {
 
       if (error) throw error;
 
+      // Send invitation email for pending invitations
+      if (!existingProfile) {
+        try {
+          const appUrl = window.location.origin;
+          const { error: emailError } = await supabase.functions.invoke("send-invitation-email", {
+            body: {
+              to_email: inviteEmail.toLowerCase(),
+              organization_name: selectedOrg.name,
+              inviter_name: profile?.full_name || user.email || "Un administrador",
+              app_url: appUrl,
+            },
+          });
+
+          if (emailError) {
+            console.error("Error sending invitation email:", emailError);
+            // Don't fail the invitation, just log the error
+          }
+        } catch (emailErr) {
+          console.error("Failed to send invitation email:", emailErr);
+        }
+      }
+
       toast({
         title: existingProfile ? "Empleado agregado" : "Invitación enviada",
         description: existingProfile 
           ? `${inviteEmail} ha sido agregado a "${selectedOrg.name}".`
-          : `Cuando ${inviteEmail} se registre, será agregado automáticamente.`,
+          : `Se envió un correo de invitación a ${inviteEmail}.`,
       });
 
       setInviteEmail("");

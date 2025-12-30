@@ -1,13 +1,26 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.2";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+// Helper to get CORS headers with origin validation
+function getCorsHeaders(origin: string | null): Record<string, string> {
+  const allowedOrigins = [
+    Deno.env.get("APP_URL") || "",
+    "http://localhost:5173",
+    "http://localhost:8080",
+  ].filter(Boolean);
+  
+  const allowedOrigin = origin && allowedOrigins.some(allowed => 
+    origin === allowed || origin.endsWith(".lovable.app")
+  ) ? origin : allowedOrigins[0] || "*";
+  
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  };
+}
 
 interface InvitationEmailRequest {
   to_email: string;
@@ -53,12 +66,56 @@ function isValidEmail(email: string): boolean {
 const handler = async (req: Request): Promise<Response> => {
   console.log("send-invitation-email function called");
 
+  const origin = req.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
+
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // Verify authentication
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      console.error("No authorization header provided");
+      return new Response(
+        JSON.stringify({ success: false, error: "Unauthorized" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Create Supabase client and verify the user
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+
+    if (authError || !user) {
+      console.error("Auth error:", authError?.message);
+      return new Response(
+        JSON.stringify({ success: false, error: "Unauthorized" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Verify user has admin role
+    const { data: roleData, error: roleError } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .single();
+
+    if (roleError || roleData?.role !== "admin") {
+      console.error("User is not an admin:", user.id);
+      return new Response(
+        JSON.stringify({ success: false, error: "Forbidden - Admin access required" }),
+        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
     const { to_email, organization_name, inviter_name, app_url }: InvitationEmailRequest = await req.json();
 
     // Input validation
@@ -91,7 +148,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log(`Sending invitation email to: ${to_email}`);
+    console.log(`Sending invitation email to: ${to_email} by admin: ${user.id}`);
     console.log(`Organization: ${organization_name}, Inviter: ${inviter_name}`);
 
     // Escape all user-controlled inputs for HTML context

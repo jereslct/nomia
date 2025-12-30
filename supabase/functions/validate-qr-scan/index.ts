@@ -31,9 +31,18 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const qrSigningSecret = Deno.env.get("QR_SIGNING_SECRET") || supabaseServiceKey.slice(0, 32);
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error("Missing environment variables");
+      return new Response(
+        JSON.stringify({ error: "Server configuration error", code: "CONFIG_ERROR" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const qrSigningSecret = supabaseServiceKey.slice(0, 32);
 
     // Get auth token from request
     const authHeader = req.headers.get("Authorization");
@@ -44,15 +53,17 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Create client with user's token
-    const supabase = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    // Extract the JWT token
+    const token = authHeader.replace("Bearer ", "");
 
-    // Verify user
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // Create admin client to verify the user
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    
+    // Verify user with the provided token
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
+    
     if (userError || !user) {
-      console.error("Auth error:", userError);
+      console.error("Auth error:", userError?.message);
       return new Response(
         JSON.stringify({ error: "Unauthorized", code: "AUTH_FAILED" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -124,9 +135,7 @@ Deno.serve(async (req) => {
     }
 
     // Verify QR exists in database and matches
-    const adminClient = createClient(supabaseUrl, supabaseServiceKey);
-    
-    const { data: qrData, error: qrError } = await adminClient
+    const { data: qrData, error: qrError } = await supabaseAdmin
       .from("qr_codes")
       .select("id, location_id")
       .eq("code", qr_code)
@@ -146,7 +155,7 @@ Deno.serve(async (req) => {
 
     // Check existing records for today
     const today = new Date().toISOString().split("T")[0];
-    const { data: todayRecords, error: recordsError } = await adminClient
+    const { data: todayRecords, error: recordsError } = await supabaseAdmin
       .from("attendance_records")
       .select("record_type, recorded_at")
       .eq("user_id", user.id)
@@ -195,7 +204,7 @@ Deno.serve(async (req) => {
     }
 
     // Insert attendance record
-    const { error: insertError } = await adminClient
+    const { error: insertError } = await supabaseAdmin
       .from("attendance_records")
       .insert({
         user_id: user.id,

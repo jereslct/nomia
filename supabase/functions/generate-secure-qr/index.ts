@@ -29,43 +29,58 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const qrSigningSecret = Deno.env.get("QR_SIGNING_SECRET") || supabaseServiceKey.slice(0, 32);
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+
+    if (!supabaseUrl || !supabaseServiceKey || !supabaseAnonKey) {
+      console.error("Missing environment variables");
+      return new Response(
+        JSON.stringify({ error: "Server configuration error" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const qrSigningSecret = supabaseServiceKey.slice(0, 32);
 
     // Get auth token from request
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
+      console.error("No authorization header provided");
       return new Response(
         JSON.stringify({ error: "No authorization header" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Create client with user's token
-    const supabase = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    // Extract the JWT token
+    const token = authHeader.replace("Bearer ", "");
 
-    // Verify user is admin
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // Create client with service role to verify the user
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    
+    // Verify user with the provided token
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
+    
     if (userError || !user) {
-      console.error("Auth error:", userError);
+      console.error("Auth error:", userError?.message);
       return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
+        JSON.stringify({ error: "Unauthorized", details: userError?.message }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    console.log(`User authenticated: ${user.id}`);
+
     // Check admin role
-    const { data: roleData, error: roleError } = await supabase
+    const { data: roleData, error: roleError } = await supabaseAdmin
       .from("user_roles")
       .select("role")
       .eq("user_id", user.id)
       .maybeSingle();
 
     if (roleError || roleData?.role !== "admin") {
-      console.error("Role check failed:", roleError);
+      console.error("Role check failed:", roleError?.message || "Not admin");
       return new Response(
         JSON.stringify({ error: "Admin access required" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -92,10 +107,8 @@ Deno.serve(async (req) => {
     // Create the full QR code value
     const qrCode = `nomia:${payload}|${signature}`;
 
-    // Use service role client to insert QR code
-    const adminClient = createClient(supabaseUrl, supabaseServiceKey);
-    
-    const { data: qrData, error: insertError } = await adminClient
+    // Insert QR code using admin client
+    const { data: qrData, error: insertError } = await supabaseAdmin
       .from("qr_codes")
       .insert({
         location_id,
@@ -108,9 +121,9 @@ Deno.serve(async (req) => {
       .single();
 
     if (insertError) {
-      console.error("Insert error:", insertError);
+      console.error("Insert error:", insertError.message);
       return new Response(
-        JSON.stringify({ error: "Failed to create QR code" }),
+        JSON.stringify({ error: "Failed to create QR code", details: insertError.message }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -130,7 +143,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error("Error generating QR:", error);
     return new Response(
-      JSON.stringify({ error: "Internal server error" }),
+      JSON.stringify({ error: "Internal server error", details: String(error) }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

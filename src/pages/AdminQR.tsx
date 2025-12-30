@@ -172,7 +172,6 @@ const AdminQR = () => {
           </Link>
           <div>
             <h1 className="font-bold text-lg">Código QR Seguro</h1>
-            <p className="text-xs text-muted-foreground">Firmado con HMAC-SHA256</p>
           </div>
         </div>
       </header>

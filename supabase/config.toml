@@ -4,7 +4,7 @@ project_id = "xlcxdmbuhbcfdwzesuos"
 verify_jwt = false
 
 [functions.generate-secure-qr]
-verify_jwt = true
+verify_jwt = false
 
 [functions.validate-qr-scan]
-verify_jwt = true
+verify_jwt = false

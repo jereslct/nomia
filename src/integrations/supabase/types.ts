@@ -309,30 +309,7 @@ export type Database = {
       }
     }
     Views: {
-      profiles_public: {
-        Row: {
-          avatar_url: string | null
-          created_at: string | null
-          full_name: string | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          avatar_url?: string | null
-          created_at?: string | null
-          full_name?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          avatar_url?: string | null
-          created_at?: string | null
-          full_name?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       get_org_default_shift: {

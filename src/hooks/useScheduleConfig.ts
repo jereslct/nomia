@@ -1,15 +1,29 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 export type ScheduleConfig = {
+  id?: string;
   entryHour: number;
   entryMinute: number;
   exitHour: number;
   exitMinute: number;
   entryToleranceMinutes: number;
   exitToleranceMinutes: number;
+  activeDays: number[]; // 0=Sunday, 1=Monday, ..., 6=Saturday
 };
 
-const STORAGE_KEY = "nomia:schedule_config";
+export type WorkShift = {
+  id: string;
+  organization_id: string;
+  name: string;
+  start_time: string;
+  end_time: string;
+  entry_grace_minutes: number;
+  exit_grace_minutes: number;
+  active_days: number[];
+  is_default: boolean;
+};
 
 const DEFAULT_CONFIG: ScheduleConfig = {
   entryHour: 9,
@@ -18,43 +32,172 @@ const DEFAULT_CONFIG: ScheduleConfig = {
   exitMinute: 0,
   entryToleranceMinutes: 15,
   exitToleranceMinutes: 60,
+  activeDays: [1, 2, 3, 4, 5], // Monday to Friday
 };
 
-const clampInt = (value: unknown, min: number, max: number, fallback: number) => {
-  const n = typeof value === "number" ? value : Number(value);
-  if (!Number.isFinite(n)) return fallback;
-  return Math.min(max, Math.max(min, Math.round(n)));
+const parseTimeString = (timeStr: string): { hour: number; minute: number } => {
+  const [hour, minute] = timeStr.split(":").map(Number);
+  return { hour: hour || 0, minute: minute || 0 };
 };
 
-const normalizeConfig = (raw: any): ScheduleConfig => {
-  return {
-    entryHour: clampInt(raw?.entryHour, 0, 23, DEFAULT_CONFIG.entryHour),
-    entryMinute: clampInt(raw?.entryMinute, 0, 59, DEFAULT_CONFIG.entryMinute),
-    exitHour: clampInt(raw?.exitHour, 0, 23, DEFAULT_CONFIG.exitHour),
-    exitMinute: clampInt(raw?.exitMinute, 0, 59, DEFAULT_CONFIG.exitMinute),
-    entryToleranceMinutes: clampInt(raw?.entryToleranceMinutes, 0, 60, DEFAULT_CONFIG.entryToleranceMinutes),
-    exitToleranceMinutes: clampInt(raw?.exitToleranceMinutes, 0, 120, DEFAULT_CONFIG.exitToleranceMinutes),
-  };
+const formatTimeForDB = (hour: number, minute: number): string => {
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`;
 };
 
 export function useScheduleConfig() {
-  const [config, setConfig] = useState<ScheduleConfig>(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return DEFAULT_CONFIG;
-      return normalizeConfig(JSON.parse(raw));
-    } catch {
-      return DEFAULT_CONFIG;
-    }
-  });
+  const { user, isAdmin } = useAuth();
+  const [config, setConfig] = useState<ScheduleConfig>(DEFAULT_CONFIG);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [organizationId, setOrganizationId] = useState<string | null>(null);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-    } catch {
-      // ignore
+  // Fetch organization ID for the current user
+  const fetchOrganizationId = useCallback(async () => {
+    if (!user) return null;
+
+    // If admin, get their owned organization
+    if (isAdmin) {
+      const { data } = await supabase
+        .from("organizations")
+        .select("id")
+        .eq("owner_id", user.id)
+        .maybeSingle();
+      return data?.id || null;
     }
-  }, [config]);
+
+    // If employee, get their organization through membership
+    const { data } = await supabase
+      .from("organization_members")
+      .select("organization_id")
+      .eq("user_id", user.id)
+      .eq("status", "accepted")
+      .maybeSingle();
+    return data?.organization_id || null;
+  }, [user, isAdmin]);
+
+  // Load schedule config from database
+  const loadConfig = useCallback(async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const orgId = await fetchOrganizationId();
+      setOrganizationId(orgId);
+
+      if (!orgId) {
+        // No organization, use defaults
+        setConfig(DEFAULT_CONFIG);
+        setLoading(false);
+        return;
+      }
+
+      // Fetch the default work shift for the organization
+      const { data: shift, error: shiftError } = await supabase
+        .from("work_shifts")
+        .select("*")
+        .eq("organization_id", orgId)
+        .eq("is_default", true)
+        .maybeSingle();
+
+      if (shiftError) {
+        console.error("Error fetching work shift:", shiftError);
+        setError("Error al cargar configuración de horarios");
+        setConfig(DEFAULT_CONFIG);
+      } else if (shift) {
+        const startTime = parseTimeString(shift.start_time);
+        const endTime = parseTimeString(shift.end_time);
+
+        setConfig({
+          id: shift.id,
+          entryHour: startTime.hour,
+          entryMinute: startTime.minute,
+          exitHour: endTime.hour,
+          exitMinute: endTime.minute,
+          entryToleranceMinutes: shift.entry_grace_minutes,
+          exitToleranceMinutes: shift.exit_grace_minutes,
+          activeDays: shift.active_days || DEFAULT_CONFIG.activeDays,
+        });
+      } else {
+        // No shift exists, use defaults
+        setConfig(DEFAULT_CONFIG);
+      }
+    } catch (err) {
+      console.error("Error loading schedule config:", err);
+      setError("Error inesperado al cargar horarios");
+      setConfig(DEFAULT_CONFIG);
+    } finally {
+      setLoading(false);
+    }
+  }, [user, fetchOrganizationId]);
+
+  // Save schedule config to database (admin only)
+  const saveConfig = useCallback(async (newConfig: ScheduleConfig): Promise<boolean> => {
+    if (!user || !isAdmin || !organizationId) {
+      console.error("Cannot save: no user, not admin, or no organization");
+      return false;
+    }
+
+    try {
+      const shiftData = {
+        organization_id: organizationId,
+        name: "Horario Principal",
+        start_time: formatTimeForDB(newConfig.entryHour, newConfig.entryMinute),
+        end_time: formatTimeForDB(newConfig.exitHour, newConfig.exitMinute),
+        entry_grace_minutes: newConfig.entryToleranceMinutes,
+        exit_grace_minutes: newConfig.exitToleranceMinutes,
+        active_days: newConfig.activeDays,
+        is_default: true,
+      };
+
+      if (newConfig.id) {
+        // Update existing shift
+        const { error } = await supabase
+          .from("work_shifts")
+          .update(shiftData)
+          .eq("id", newConfig.id);
+
+        if (error) {
+          console.error("Error updating work shift:", error);
+          return false;
+        }
+      } else {
+        // Create new shift
+        const { data, error } = await supabase
+          .from("work_shifts")
+          .insert(shiftData)
+          .select("id")
+          .single();
+
+        if (error) {
+          console.error("Error creating work shift:", error);
+          return false;
+        }
+
+        newConfig.id = data.id;
+      }
+
+      setConfig(newConfig);
+      return true;
+    } catch (err) {
+      console.error("Error saving schedule config:", err);
+      return false;
+    }
+  }, [user, isAdmin, organizationId]);
+
+  // Update config locally (for form state)
+  const updateConfig = useCallback((updates: Partial<ScheduleConfig>) => {
+    setConfig(prev => ({ ...prev, ...updates }));
+  }, []);
+
+  // Load config on mount and when user changes
+  useEffect(() => {
+    loadConfig();
+  }, [loadConfig]);
 
   const formatted = useMemo(() => {
     const entry = `${String(config.entryHour).padStart(2, "0")}:${String(config.entryMinute).padStart(2, "0")}`;
@@ -62,5 +205,22 @@ export function useScheduleConfig() {
     return { entry, exit };
   }, [config]);
 
-  return { config, setConfig, formatted, defaults: DEFAULT_CONFIG };
+  const dayNames = useMemo(() => {
+    const names = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+    return config.activeDays.map(d => names[d]).join(", ");
+  }, [config.activeDays]);
+
+  return { 
+    config, 
+    setConfig: updateConfig,
+    saveConfig,
+    loadConfig,
+    formatted, 
+    dayNames,
+    defaults: DEFAULT_CONFIG,
+    loading,
+    error,
+    organizationId,
+    isConfigured: !!config.id,
+  };
 }

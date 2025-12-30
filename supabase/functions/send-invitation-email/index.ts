@@ -16,6 +16,40 @@ interface InvitationEmailRequest {
   app_url: string;
 }
 
+// HTML escape function to prevent XSS/HTML injection
+function escapeHtml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+// Validate URL is from allowed origins
+function isValidAppUrl(url: string): boolean {
+  try {
+    const parsedUrl = new URL(url);
+    // Only allow https in production, http for localhost development
+    if (parsedUrl.protocol !== "https:" && parsedUrl.protocol !== "http:") {
+      return false;
+    }
+    // Block javascript: and data: URLs
+    if (url.toLowerCase().startsWith("javascript:") || url.toLowerCase().startsWith("data:")) {
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Validate email format
+function isValidEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email) && email.length <= 254;
+}
+
 const handler = async (req: Request): Promise<Response> => {
   console.log("send-invitation-email function called");
 
@@ -27,20 +61,57 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const { to_email, organization_name, inviter_name, app_url }: InvitationEmailRequest = await req.json();
 
+    // Input validation
+    if (!to_email || !organization_name || !inviter_name || !app_url) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Missing required fields" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    if (!isValidEmail(to_email)) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Invalid email format" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    if (!isValidAppUrl(app_url)) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Invalid app URL" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Validate string lengths to prevent abuse
+    if (organization_name.length > 100 || inviter_name.length > 100) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Field length exceeds maximum" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
     console.log(`Sending invitation email to: ${to_email}`);
     console.log(`Organization: ${organization_name}, Inviter: ${inviter_name}`);
+
+    // Escape all user-controlled inputs for HTML context
+    const safeOrgName = escapeHtml(organization_name);
+    const safeInviterName = escapeHtml(inviter_name);
+    const safeToEmail = escapeHtml(to_email);
+    // app_url is validated and used in href, needs URL encoding for safety
+    const safeAppUrl = encodeURI(app_url);
 
     const emailResponse = await resend.emails.send({
       from: "BeamInOut <onboarding@resend.dev>",
       to: [to_email],
-      subject: `Te han invitado a unirte a ${organization_name}`,
+      subject: `Te han invitado a unirte a ${safeOrgName}`,
       html: `
         <!DOCTYPE html>
         <html>
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Invitación a ${organization_name}</title>
+          <title>Invitación a ${safeOrgName}</title>
         </head>
         <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f4f4f5;">
           <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f5; padding: 40px 20px;">
@@ -63,7 +134,7 @@ const handler = async (req: Request): Promise<Response> => {
                         Hola,
                       </p>
                       <p style="margin: 0 0 24px; font-size: 16px; line-height: 24px; color: #3f3f46;">
-                        <strong>${inviter_name}</strong> te ha invitado a unirte a la organización <strong>"${organization_name}"</strong> en BeamInOut.
+                        <strong>${safeInviterName}</strong> te ha invitado a unirte a la organización <strong>"${safeOrgName}"</strong> en BeamInOut.
                       </p>
                       
                       <p style="margin: 0 0 24px; font-size: 16px; line-height: 24px; color: #3f3f46;">
@@ -74,7 +145,7 @@ const handler = async (req: Request): Promise<Response> => {
                       <table width="100%" cellpadding="0" cellspacing="0">
                         <tr>
                           <td align="center" style="padding: 8px 0 24px;">
-                            <a href="${app_url}/auth" 
+                            <a href="${safeAppUrl}/auth" 
                                style="display: inline-block; padding: 14px 32px; background-color: #3b82f6; color: #ffffff; text-decoration: none; font-weight: 600; font-size: 16px; border-radius: 8px;">
                               Crear mi cuenta
                             </a>
@@ -83,7 +154,7 @@ const handler = async (req: Request): Promise<Response> => {
                       </table>
                       
                       <p style="margin: 0; font-size: 14px; line-height: 20px; color: #71717a;">
-                        Regístrate usando este correo electrónico (<strong>${to_email}</strong>) para unirte automáticamente a la organización.
+                        Regístrate usando este correo electrónico (<strong>${safeToEmail}</strong>) para unirte automáticamente a la organización.
                       </p>
                     </td>
                   </tr>
@@ -117,7 +188,7 @@ const handler = async (req: Request): Promise<Response> => {
   } catch (error: any) {
     console.error("Error in send-invitation-email function:", error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ success: false, error: "Failed to send invitation email" }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },

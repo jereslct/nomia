@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, RefreshCw, Clock, Copy, Check, Loader2 } from "lucide-react";
+import { ArrowLeft, RefreshCw, Clock, Copy, Check, Loader2, Shield } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -13,7 +13,7 @@ const AdminQR = () => {
   const navigate = useNavigate();
   const { user, isAdmin, loading } = useAuth();
   const [qrValue, setQrValue] = useState("");
-  const [timeLeft, setTimeLeft] = useState(300); // 5 minutes
+  const [timeLeft, setTimeLeft] = useState(30); // 30 seconds now
   const [copied, setCopied] = useState(false);
   const [locationId, setLocationId] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -43,7 +43,7 @@ const AdminQR = () => {
 
       if (existingLocation) {
         setLocationId(existingLocation.id);
-        generateNewQR(existingLocation.id);
+        generateSecureQR(existingLocation.id);
       } else {
         // Create default location for this admin
         const { data: newLocation, error } = await supabase
@@ -59,7 +59,7 @@ const AdminQR = () => {
         if (error) throw error;
         
         setLocationId(newLocation.id);
-        generateNewQR(newLocation.id);
+        generateSecureQR(newLocation.id);
       }
     } catch (error) {
       console.error("Error initializing location:", error);
@@ -71,38 +71,41 @@ const AdminQR = () => {
     }
   };
 
-  const generateNewQR = async (locId?: string) => {
+  const generateSecureQR = async (locId?: string) => {
     const targetLocationId = locId || locationId;
     if (!targetLocationId || !user) return;
 
     setIsGenerating(true);
 
     try {
-      // Use cryptographically secure random generation
-      const newCode = `nomia-${crypto.randomUUID()}`;
-      const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString(); // 5 minutes
+      // Call edge function to generate signed QR
+      const { data, error } = await supabase.functions.invoke("generate-secure-qr", {
+        body: { location_id: targetLocationId },
+      });
 
-      // Insert new QR code
-      const { error } = await supabase
-        .from("qr_codes")
-        .insert({
-          location_id: targetLocationId,
-          code: newCode,
-          expires_at: expiresAt,
-          created_by: user.id,
-        });
+      if (error) {
+        console.error("Edge function error:", error);
+        throw error;
+      }
 
-      if (error) throw error;
+      if (!data?.success || !data?.qr_code) {
+        throw new Error(data?.error || "Failed to generate QR");
+      }
 
-      setQrValue(newCode);
-      setTimeLeft(300);
-    } catch (error) {
-      console.error("Error generating QR:", error);
-      // Fallback to local QR generation
-      // Use cryptographically secure random generation
-      const newCode = `nomia-${crypto.randomUUID()}`;
-      setQrValue(newCode);
-      setTimeLeft(300);
+      setQrValue(data.qr_code);
+      setTimeLeft(30);
+
+      toast({
+        title: "QR Generado",
+        description: "Código seguro con validez de 30 segundos.",
+      });
+    } catch (error: any) {
+      console.error("Error generating secure QR:", error);
+      toast({
+        title: "Error",
+        description: error?.message || "No se pudo generar el código QR seguro.",
+        variant: "destructive",
+      });
     } finally {
       setIsGenerating(false);
     }
@@ -114,8 +117,8 @@ const AdminQR = () => {
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
-          generateNewQR();
-          return 300;
+          generateSecureQR();
+          return 30;
         }
         return prev - 1;
       });
@@ -127,7 +130,10 @@ const AdminQR = () => {
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
+    if (mins > 0) {
+      return `${mins}:${secs.toString().padStart(2, "0")}`;
+    }
+    return `${secs}s`;
   };
 
   const copyToClipboard = () => {
@@ -141,8 +147,8 @@ const AdminQR = () => {
   };
 
   const getTimeColor = () => {
-    if (timeLeft <= 60) return "text-destructive";
-    if (timeLeft <= 120) return "text-warning";
+    if (timeLeft <= 10) return "text-destructive";
+    if (timeLeft <= 20) return "text-warning";
     return "text-success";
   };
 
@@ -165,14 +171,20 @@ const AdminQR = () => {
             </Button>
           </Link>
           <div>
-            <h1 className="font-bold text-lg">Código QR</h1>
-            <p className="text-xs text-muted-foreground">Muestra esto a los empleados</p>
+            <h1 className="font-bold text-lg">Código QR Seguro</h1>
+            <p className="text-xs text-muted-foreground">Firmado con HMAC-SHA256</p>
           </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-8 max-w-lg">
         <div className="space-y-6">
+          {/* Security Badge */}
+          <div className="flex items-center justify-center gap-2 text-success">
+            <Shield className="w-5 h-5" />
+            <span className="text-sm font-medium">Código Firmado Criptográficamente</span>
+          </div>
+
           {/* QR Card */}
           <Card className="glass-card overflow-hidden">
             <CardHeader className="text-center pb-2">
@@ -231,7 +243,7 @@ const AdminQR = () => {
                 <Button 
                   variant="hero" 
                   className="flex-1"
-                  onClick={() => generateNewQR()}
+                  onClick={() => generateSecureQR()}
                   disabled={isGenerating}
                 >
                   {isGenerating ? (
@@ -248,21 +260,21 @@ const AdminQR = () => {
           {/* Instructions */}
           <Card className="glass-card">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">Información</CardTitle>
+              <CardTitle className="text-base">Seguridad Reforzada</CardTitle>
             </CardHeader>
             <CardContent>
               <ul className="text-sm text-muted-foreground space-y-2">
                 <li className="flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary mt-2" />
-                  El código se regenera automáticamente cada 5 minutos
+                  <span className="w-1.5 h-1.5 rounded-full bg-success mt-2" />
+                  El código se regenera cada 30 segundos para máxima seguridad
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary mt-2" />
-                  Cada escaneo registra entrada o salida según corresponda
+                  <span className="w-1.5 h-1.5 rounded-full bg-success mt-2" />
+                  Firmado digitalmente - imposible de falsificar o compartir
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary mt-2" />
-                  Los registros se guardan en tiempo real
+                  <span className="w-1.5 h-1.5 rounded-full bg-success mt-2" />
+                  Validación backend estricta rechaza códigos expirados
                 </li>
               </ul>
             </CardContent>

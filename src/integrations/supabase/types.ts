@@ -206,6 +206,7 @@ export type Database = {
           expires_at: string
           id: string
           location_id: string
+          signature: string | null
         }
         Insert: {
           code: string
@@ -214,6 +215,7 @@ export type Database = {
           expires_at: string
           id?: string
           location_id: string
+          signature?: string | null
         }
         Update: {
           code?: string
@@ -222,6 +224,7 @@ export type Database = {
           expires_at?: string
           id?: string
           location_id?: string
+          signature?: string | null
         }
         Relationships: [
           {
@@ -254,11 +257,72 @@ export type Database = {
         }
         Relationships: []
       }
+      work_shifts: {
+        Row: {
+          active_days: number[]
+          created_at: string
+          end_time: string
+          entry_grace_minutes: number
+          exit_grace_minutes: number
+          id: string
+          is_default: boolean
+          name: string
+          organization_id: string
+          start_time: string
+          updated_at: string
+        }
+        Insert: {
+          active_days?: number[]
+          created_at?: string
+          end_time?: string
+          entry_grace_minutes?: number
+          exit_grace_minutes?: number
+          id?: string
+          is_default?: boolean
+          name?: string
+          organization_id: string
+          start_time?: string
+          updated_at?: string
+        }
+        Update: {
+          active_days?: number[]
+          created_at?: string
+          end_time?: string
+          entry_grace_minutes?: number
+          exit_grace_minutes?: number
+          id?: string
+          is_default?: boolean
+          name?: string
+          organization_id?: string
+          start_time?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_shifts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      get_org_default_shift: {
+        Args: { _org_id: string }
+        Returns: {
+          active_days: number[]
+          end_time: string
+          entry_grace_minutes: number
+          exit_grace_minutes: number
+          id: string
+          start_time: string
+        }[]
+      }
       get_user_email: { Args: { _user_id: string }; Returns: string }
       get_user_organization_id: { Args: { _user_id: string }; Returns: string }
       get_user_role: {

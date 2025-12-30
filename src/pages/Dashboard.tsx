@@ -56,7 +56,7 @@ const isEarlyExit = (recordedAt: string, scheduleHour: number, scheduleMinute: n
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, profile, isAdmin, loading, signOut } = useAuth();
-  const { config: scheduleConfig, setConfig: setScheduleConfig, formatted: scheduleFormatted } = useScheduleConfig();
+  const { config: scheduleConfig, setConfig: setScheduleConfig, saveConfig: saveScheduleConfig, formatted: scheduleFormatted, loading: scheduleLoading } = useScheduleConfig();
 
   const [attendanceHistory, setAttendanceHistory] = useState<AttendanceRecord[]>([]);
   const [todayRecords, setTodayRecords] = useState<AttendanceRecord[]>([]);
@@ -421,7 +421,7 @@ const Dashboard = () => {
                               value={scheduleFormatted.entry}
                               onChange={(e) => {
                                 const [h, m] = e.target.value.split(":").map(Number);
-                                setScheduleConfig((prev) => ({ ...prev, entryHour: h ?? prev.entryHour, entryMinute: m ?? prev.entryMinute }));
+                                setScheduleConfig({ entryHour: h ?? scheduleConfig.entryHour, entryMinute: m ?? scheduleConfig.entryMinute });
                               }}
                             />
                           </div>
@@ -433,7 +433,7 @@ const Dashboard = () => {
                               value={scheduleFormatted.exit}
                               onChange={(e) => {
                                 const [h, m] = e.target.value.split(":").map(Number);
-                                setScheduleConfig((prev) => ({ ...prev, exitHour: h ?? prev.exitHour, exitMinute: m ?? prev.exitMinute }));
+                                setScheduleConfig({ exitHour: h ?? scheduleConfig.exitHour, exitMinute: m ?? scheduleConfig.exitMinute });
                               }}
                             />
                           </div>
@@ -449,7 +449,7 @@ const Dashboard = () => {
                             value={scheduleConfig.entryToleranceMinutes}
                             onChange={(e) => {
                               const n = Number(e.target.value);
-                              setScheduleConfig((prev) => ({ ...prev, entryToleranceMinutes: Number.isFinite(n) ? n : prev.entryToleranceMinutes }));
+                              setScheduleConfig({ entryToleranceMinutes: Number.isFinite(n) ? n : scheduleConfig.entryToleranceMinutes });
                             }}
                           />
                           <p className="text-xs text-muted-foreground">Puede llegar hasta {scheduleConfig.entryToleranceMinutes} min antes o después.</p>
@@ -465,11 +465,24 @@ const Dashboard = () => {
                             value={scheduleConfig.exitToleranceMinutes}
                             onChange={(e) => {
                               const n = Number(e.target.value);
-                              setScheduleConfig((prev) => ({ ...prev, exitToleranceMinutes: Number.isFinite(n) ? n : prev.exitToleranceMinutes }));
+                              setScheduleConfig({ exitToleranceMinutes: Number.isFinite(n) ? n : scheduleConfig.exitToleranceMinutes });
                             }}
                           />
                           <p className="text-xs text-muted-foreground">Puede salir hasta {scheduleConfig.exitToleranceMinutes} min después.</p>
                         </div>
+                        
+                        <Button 
+                          variant="hero" 
+                          className="w-full mt-3"
+                          onClick={async () => {
+                            const success = await saveScheduleConfig(scheduleConfig);
+                            if (success) {
+                              setEditingSchedule(false);
+                            }
+                          }}
+                        >
+                          Guardar Horario
+                        </Button>
                       </div>
                     ) : (
                       <>

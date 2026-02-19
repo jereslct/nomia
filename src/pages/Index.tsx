@@ -199,7 +199,7 @@ const Index = () => {
             <span className="font-semibold">Nomia</span>
           </div>
           <p className="text-sm text-muted-foreground">
-            © 2024 Nomia. Todos los derechos reservados.
+            © 2026 Nomia. Todos los derechos reservados.
           </p>
         </div>
       </footer>

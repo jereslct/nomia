@@ -1,0 +1,10 @@
+project_id = "xlcxdmbuhbcfdwzesuos"
+
+[functions.send-invitation-email]
+verify_jwt = false
+
+[functions.generate-secure-qr]
+verify_jwt = false
+
+[functions.validate-qr-scan]
+verify_jwt = false

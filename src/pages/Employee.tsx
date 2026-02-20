@@ -6,6 +6,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   ArrowLeft,
@@ -41,6 +43,10 @@ const Employee = () => {
   const [isLoadingStatus, setIsLoadingStatus] = useState(true);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const [isInitializing, setIsInitializing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string>("");
+  const [reentryDialogOpen, setReentryDialogOpen] = useState(false);
+  const [pendingQrCode, setPendingQrCode] = useState<string | null>(null);
+  const [reentryInfo, setReentryInfo] = useState<{ entry_count: number; exit_count: number } | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -211,83 +217,41 @@ const Employee = () => {
     }
   };
 
-  const handleScanSuccess = async (result: string) => {
-    await stopScanning();
-
-    if (!result.startsWith("nomia-")) {
-      setStatus("error");
-      toast({
-        title: "Código inválido",
-        description: "Este código QR no es válido para registrar asistencia.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!user) {
-      setStatus("error");
-      toast({
-        title: "Error",
-        description: "Debes iniciar sesión para registrar asistencia.",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const validateQrScan = async (qrCode: string, forceReentry: boolean = false) => {
     try {
-      // Validate QR code exists in database and is not expired
-      const { data: qrCode } = await supabase
-        .from("qr_codes")
-        .select("id, location_id, expires_at")
-        .eq("code", result)
-        .gt("expires_at", new Date().toISOString())
-        .maybeSingle();
+      const response = await supabase.functions.invoke("validate-qr-scan", {
+        body: { qr_code: qrCode, force_reentry: forceReentry },
+      });
 
-      // Require valid QR code - no fallback allowed
-      if (!qrCode) {
-        setStatus("error");
-        toast({
-          title: "Código QR inválido o expirado",
-          description: "Este código QR no es válido o ha expirado. Solicita un nuevo código al administrador.",
-          variant: "destructive",
-        });
+      const responseData = response.data || (response.error as any)?.context || response.error;
+      const parsed = typeof responseData === "string" ? (() => { try { return JSON.parse(responseData); } catch { return null; } })() : responseData;
+
+      if (parsed?.code === "REENTRY_CONFIRMATION_NEEDED") {
+        setPendingQrCode(qrCode);
+        setReentryInfo({ entry_count: parsed.entry_count, exit_count: parsed.exit_count });
+        setReentryDialogOpen(true);
         return;
       }
 
-      const locationId = qrCode.location_id;
-      const qrCodeId = qrCode.id;
+      if (response.error && !parsed?.success) {
+        setErrorMessage("Error de conexión con el servidor.");
+        setStatus("error");
+        toast({ title: "Error", description: "No se pudo validar el código.", variant: "destructive" });
+        return;
+      }
 
-      const today = new Date().toISOString().split("T")[0];
-      const { data: todayRecords } = await supabase
-        .from("attendance_records")
-        .select("record_type, recorded_at")
-        .eq("user_id", user.id)
-        .gte("recorded_at", `${today}T00:00:00`)
-        .order("recorded_at", { ascending: false })
-        .limit(1);
+      if (!parsed?.success) {
+        setErrorMessage(parsed?.error || "Código inválido o expirado.");
+        setStatus("error");
+        toast({ title: "Error", description: parsed?.error || "Validación fallida.", variant: "destructive" });
+        return;
+      }
 
-      const lastRecord = todayRecords?.[0];
-      const newRecordType: "entrada" | "salida" =
-        !lastRecord || lastRecord.record_type === "salida" ? "entrada" : "salida";
-
-      const { error: insertError } = await supabase
-        .from("attendance_records")
-        .insert({
-          user_id: user.id,
-          location_id: locationId,
-          qr_code_id: qrCodeId,
-          record_type: newRecordType,
-          recorded_at: new Date().toISOString(),
-        });
-
-      if (insertError) throw insertError;
-
-      setRecordType(newRecordType);
+      setRecordType(parsed.record_type);
       setStatus("success");
-
       toast({
-        title: `¡${newRecordType === "entrada" ? "Entrada" : "Salida"} registrada!`,
-        description: `Tu ${newRecordType} ha sido registrada correctamente.`,
+        title: `¡${parsed.record_type === "entrada" ? "Entrada" : "Salida"} registrada!`,
+        description: parsed.message,
       });
 
       setTimeout(() => {
@@ -298,6 +262,7 @@ const Employee = () => {
       }, 2000);
     } catch (error) {
       console.error("Error recording attendance:", error);
+      setErrorMessage("Error inesperado.");
       setStatus("error");
       toast({
         title: "Error",
@@ -305,6 +270,46 @@ const Employee = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleScanSuccess = async (result: string) => {
+    await stopScanning();
+
+    if (!result.startsWith("nomia:")) {
+      setErrorMessage("Código QR no reconocido. Usa el formato seguro.");
+      setStatus("error");
+      toast({
+        title: "Código inválido",
+        description: "Formato no reconocido.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!user) {
+      setErrorMessage("Debes iniciar sesión.");
+      setStatus("error");
+      return;
+    }
+
+    await validateQrScan(result, false);
+  };
+
+  const handleConfirmReentry = async () => {
+    setReentryDialogOpen(false);
+    if (pendingQrCode) {
+      setStatus("scanning");
+      await validateQrScan(pendingQrCode, true);
+      setPendingQrCode(null);
+      setReentryInfo(null);
+    }
+  };
+
+  const handleCancelReentry = () => {
+    setReentryDialogOpen(false);
+    setPendingQrCode(null);
+    setReentryInfo(null);
+    setStatus("idle");
   };
 
   const handleDialogChange = (open: boolean) => {
@@ -509,12 +514,12 @@ const Employee = () => {
                   <div className="text-center">
                     <p className="font-semibold text-destructive">Error</p>
                     <p className="text-sm text-muted-foreground px-4">
-                      Verifica los permisos de cámara en Ajustes → Safari → Cámara
+                      {errorMessage || "Verifica los permisos de cámara en Ajustes → Safari → Cámara"}
                     </p>
                   </div>
                   <Button
                     variant="outline"
-                    onClick={() => setStatus("idle")}
+                    onClick={() => { setStatus("idle"); setErrorMessage(""); }}
                     className="mt-2"
                   >
                     Reintentar
@@ -543,6 +548,22 @@ const Employee = () => {
               Apunta la cámara hacia el código QR mostrado por el administrador
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+      {/* Re-entry confirmation dialog */}
+      <Dialog open={reentryDialogOpen} onOpenChange={(open) => { if (!open) handleCancelReentry(); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>¿Volver a marcar ingreso?</DialogTitle>
+            <DialogDescription>
+              Ya completaste {reentryInfo?.entry_count} ingreso(s) y {reentryInfo?.exit_count} salida(s) hoy.
+              ¿Deseas registrar un nuevo ingreso?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2 sm:gap-0">
+            <Button variant="outline" onClick={handleCancelReentry}>Cancelar</Button>
+            <Button variant="hero" onClick={handleConfirmReentry}>Sí, marcar ingreso</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

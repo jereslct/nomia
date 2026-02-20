@@ -143,28 +143,18 @@ const Admin = () => {
     if (!user) return;
 
     try {
-      // First check for existing organization
-      const { data: existingOrg } = await supabase
+      // Get the first organization owned by this user
+      const { data: existingOrgs } = await supabase
         .from("organizations")
         .select("id")
         .eq("owner_id", user.id)
-        .maybeSingle();
+        .order("created_at", { ascending: true })
+        .limit(1);
 
-      let orgId = existingOrg?.id;
+      const orgId = existingOrgs?.[0]?.id;
 
-      // Create organization if doesn't exist
-      if (!orgId) {
-        const { data: newOrg } = await supabase
-          .from("organizations")
-          .insert({
-            name: "Mi Empresa",
-            owner_id: user.id,
-          })
-          .select("id")
-          .single();
-
-        orgId = newOrg?.id;
-      }
+      // Don't auto-create organizations - admin should create them manually
+      if (!orgId) return;
 
       if (orgId) {
         setOrganizationId(orgId);

@@ -50,7 +50,7 @@ interface OrganizationMember {
     avatar_url: string | null;
     phone_number: string | null;
   } | null;
-  isWorking?: boolean | null;
+  entryStatus?: "a_tiempo" | "tarde" | "ausente" | null;
 }
 
 const emailSchema = z.string().email("Correo electrónico inválido");
@@ -69,11 +69,11 @@ const getStatusText = (status: string) => {
   }
 };
 
-const getWorkingBadge = (isWorking: boolean | null) => {
-  if (isWorking === null) return <span className="text-muted-foreground/50">—</span>;
-  return isWorking 
-    ? <Badge className="bg-success text-success-foreground">Activo</Badge>
-    : <Badge variant="outline" className="text-muted-foreground">Fuera de trabajo</Badge>;
+const getEntryStatusBadge = (entryStatus: "a_tiempo" | "tarde" | "ausente" | null | undefined) => {
+  if (!entryStatus || entryStatus === "ausente") return <span className="text-muted-foreground/50">Sin registro</span>;
+  if (entryStatus === "a_tiempo") return <Badge className="bg-success text-success-foreground">A tiempo</Badge>;
+  if (entryStatus === "tarde") return <Badge className="bg-warning text-warning-foreground">Tarde</Badge>;
+  return <span className="text-muted-foreground/50">—</span>;
 };
 
 const getInitials = (name: string) => {
@@ -206,40 +206,57 @@ const AdminUsers = () => {
         });
       }
 
-      // Fetch today's attendance to determine working status
+      // Fetch today's attendance to determine entry status
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
 
-      let workingStatusMap = new Map<string, boolean | null>();
+      let entryStatusMap = new Map<string, "a_tiempo" | "tarde" | "ausente">();
+
+      // Fetch work shift for this org to know start_time and grace
+      let shiftStartTime = "09:00";
+      let graceMinutes = 15;
+      
+      const { data: shiftData } = await supabase
+        .from("work_shifts")
+        .select("start_time, entry_grace_minutes")
+        .eq("organization_id", orgId)
+        .eq("is_default", true)
+        .maybeSingle();
+
+      if (shiftData) {
+        shiftStartTime = shiftData.start_time;
+        graceMinutes = shiftData.entry_grace_minutes;
+      }
 
       if (acceptedUserIds?.length > 0) {
         const { data: attendanceRecords } = await supabase
           .from("attendance_records")
-          .select("user_id, record_type")
+          .select("user_id, record_type, recorded_at")
           .in("user_id", acceptedUserIds)
           .gte("recorded_at", today.toISOString())
           .lt("recorded_at", tomorrow.toISOString())
-          .order("recorded_at", { ascending: false });
+          .order("recorded_at", { ascending: true });
 
-        // Group records by user and determine working status
-        const userRecords = new Map<string, string[]>();
+        // For each user, find their first "entrada" and compare with shift
+        const userFirstEntry = new Map<string, string>();
         attendanceRecords?.forEach((r) => {
-          if (!userRecords.has(r.user_id)) {
-            userRecords.set(r.user_id, []);
+          if (r.record_type === "entrada" && !userFirstEntry.has(r.user_id)) {
+            userFirstEntry.set(r.user_id, r.recorded_at);
           }
-          userRecords.get(r.user_id)?.push(r.record_type);
         });
 
         acceptedUserIds.forEach((userId) => {
-          const records = userRecords.get(userId) || [];
-          if (records.length === 0) {
-            workingStatusMap.set(userId, null); // No records today
+          const firstEntry = userFirstEntry.get(userId);
+          if (!firstEntry) {
+            entryStatusMap.set(userId, "ausente");
           } else {
-            // If latest record is entrada -> working, if salida -> not working
-            const latestRecord = records[0];
-            workingStatusMap.set(userId, latestRecord === "entrada");
+            const entryDate = new Date(firstEntry);
+            const [startH, startM] = shiftStartTime.split(":").map(Number);
+            const limitDate = new Date(entryDate);
+            limitDate.setHours(startH, startM + graceMinutes, 0, 0);
+            entryStatusMap.set(userId, entryDate <= limitDate ? "a_tiempo" : "tarde");
           }
         });
       }
@@ -248,7 +265,7 @@ const AdminUsers = () => {
         ...m,
         status: m.status as "pending" | "accepted" | "rejected",
         profile: m.user_id ? profilesMap.get(m.user_id) : null,
-        isWorking: m.user_id ? workingStatusMap.get(m.user_id) ?? null : null,
+        entryStatus: m.user_id ? entryStatusMap.get(m.user_id) ?? null : null,
       }));
 
       setMembers(membersWithProfiles);
@@ -306,40 +323,60 @@ const AdminUsers = () => {
         });
       }
 
-      // Fetch today's attendance to determine working status
+      // Fetch today's attendance to determine entry status
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
 
-      let workingStatusMap = new Map<string, boolean | null>();
+      let entryStatusMap = new Map<string, "a_tiempo" | "tarde" | "ausente">();
+
+      // Fetch shifts for all orgs
+      const { data: shiftsData } = await supabase
+        .from("work_shifts")
+        .select("organization_id, start_time, entry_grace_minutes")
+        .in("organization_id", orgs.map((o) => o.id))
+        .eq("is_default", true);
+
+      const shiftMap = new Map<string, { start_time: string; grace: number }>();
+      shiftsData?.forEach((s) => shiftMap.set(s.organization_id, { start_time: s.start_time, grace: s.entry_grace_minutes }));
 
       if (acceptedUserIds?.length > 0) {
         const { data: attendanceRecords } = await supabase
           .from("attendance_records")
-          .select("user_id, record_type")
+          .select("user_id, record_type, recorded_at")
           .in("user_id", acceptedUserIds)
           .gte("recorded_at", today.toISOString())
           .lt("recorded_at", tomorrow.toISOString())
-          .order("recorded_at", { ascending: false });
+          .order("recorded_at", { ascending: true });
 
-        // Group records by user and determine working status
-        const userRecords = new Map<string, string[]>();
+        const userFirstEntry = new Map<string, string>();
         attendanceRecords?.forEach((r) => {
-          if (!userRecords.has(r.user_id)) {
-            userRecords.set(r.user_id, []);
+          if (r.record_type === "entrada" && !userFirstEntry.has(r.user_id)) {
+            userFirstEntry.set(r.user_id, r.recorded_at);
           }
-          userRecords.get(r.user_id)?.push(r.record_type);
+        });
+
+        // Map user to their org
+        const userOrgMap = new Map<string, string>();
+        membersData?.forEach((m) => {
+          if (m.user_id) userOrgMap.set(m.user_id, m.organization_id);
         });
 
         acceptedUserIds.forEach((userId) => {
-          const records = userRecords.get(userId) || [];
-          if (records.length === 0) {
-            workingStatusMap.set(userId, null); // No records today
+          const firstEntry = userFirstEntry.get(userId);
+          if (!firstEntry) {
+            entryStatusMap.set(userId, "ausente");
           } else {
-            // If latest record is entrada -> working, if salida -> not working
-            const latestRecord = records[0];
-            workingStatusMap.set(userId, latestRecord === "entrada");
+            const orgIdForUser = userOrgMap.get(userId);
+            const shift = orgIdForUser ? shiftMap.get(orgIdForUser) : null;
+            const startTime = shift?.start_time || "09:00";
+            const grace = shift?.grace || 15;
+            const entryDate = new Date(firstEntry);
+            const [startH, startM] = startTime.split(":").map(Number);
+            const limitDate = new Date(entryDate);
+            limitDate.setHours(startH, startM + grace, 0, 0);
+            entryStatusMap.set(userId, entryDate <= limitDate ? "a_tiempo" : "tarde");
           }
         });
       }
@@ -349,7 +386,7 @@ const AdminUsers = () => {
         status: m.status as "pending" | "accepted" | "rejected",
         organization_name: orgMap.get(m.organization_id) || "Desconocida",
         profile: m.user_id ? profilesMap.get(m.user_id) : null,
-        isWorking: m.user_id ? workingStatusMap.get(m.user_id) ?? null : null,
+        entryStatus: m.user_id ? entryStatusMap.get(m.user_id) ?? null : null,
       }));
 
       setAllMembers(membersWithProfiles);
@@ -828,7 +865,7 @@ const AdminUsers = () => {
                         <TableHead className="font-semibold">Email</TableHead>
                         <TableHead className="font-semibold">Teléfono</TableHead>
                         <TableHead className="font-semibold">Organización</TableHead>
-                        <TableHead className="font-semibold">Disponible</TableHead>
+                        <TableHead className="font-semibold">Estado</TableHead>
                         <TableHead className="font-semibold">Solicitud</TableHead>
                         <TableHead className="font-semibold">Fecha</TableHead>
                       </TableRow>
@@ -865,7 +902,7 @@ const AdminUsers = () => {
                           <TableCell>
                             <Badge variant="outline">{member.organization_name}</Badge>
                           </TableCell>
-                          <TableCell>{getWorkingBadge(member.isWorking)}</TableCell>
+                          <TableCell>{getEntryStatusBadge(member.entryStatus)}</TableCell>
                           <TableCell>{getStatusText(member.status)}</TableCell>
                           <TableCell className="text-muted-foreground">
                             {new Date(member.created_at).toLocaleDateString("es")}
@@ -1005,7 +1042,7 @@ const AdminUsers = () => {
                           <TableHead className="font-semibold">Empleado</TableHead>
                           <TableHead className="font-semibold">Email</TableHead>
                           <TableHead className="font-semibold">Teléfono</TableHead>
-                          <TableHead className="font-semibold">Disponible</TableHead>
+                          <TableHead className="font-semibold">Estado</TableHead>
                           <TableHead className="font-semibold">Solicitud</TableHead>
                           <TableHead className="font-semibold">Fecha</TableHead>
                           <TableHead className="font-semibold text-right">Acciones</TableHead>
@@ -1040,7 +1077,7 @@ const AdminUsers = () => {
                                 <span className="text-muted-foreground/50">—</span>
                               )}
                             </TableCell>
-                            <TableCell>{getWorkingBadge(member.isWorking)}</TableCell>
+                            <TableCell>{getEntryStatusBadge(member.entryStatus)}</TableCell>
                             <TableCell>{getStatusText(member.status)}</TableCell>
                             <TableCell className="text-muted-foreground">
                               {new Date(member.created_at).toLocaleDateString("es")}

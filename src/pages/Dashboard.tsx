@@ -16,6 +16,7 @@ import {
   XCircle,
   Loader2,
   AlertCircle,
+  BarChart3,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import QRCode from "react-qr-code";
@@ -66,6 +67,7 @@ const Dashboard = () => {
   const [activeQrCode, setActiveQrCode] = useState<string | null>(null);
   const [loadingRecords, setLoadingRecords] = useState(true);
   const [editingSchedule, setEditingSchedule] = useState(false);
+  const [monthlyStats, setMonthlyStats] = useState<{ daysWorked: number; totalHours: number; totalMinutes: number }>({ daysWorked: 0, totalHours: 0, totalMinutes: 0 });
 
   useEffect(() => {
     if (!loading && !user) {
@@ -76,6 +78,7 @@ const Dashboard = () => {
   useEffect(() => {
     if (user && isAdmin !== undefined) {
       fetchAttendanceRecords();
+      fetchMonthlyStats();
       if (isAdmin) {
         fetchActiveQrCode();
       }
@@ -140,6 +143,59 @@ const Dashboard = () => {
       console.error("Error fetching attendance:", error);
     } finally {
       setLoadingRecords(false);
+    }
+  };
+
+  const fetchMonthlyStats = async () => {
+    if (!user) return;
+
+    try {
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString();
+
+      let query = supabase
+        .from("attendance_records")
+        .select("user_id, record_type, recorded_at")
+        .gte("recorded_at", monthStart)
+        .lte("recorded_at", monthEnd)
+        .order("recorded_at", { ascending: true });
+
+      if (!isAdmin) {
+        query = query.eq("user_id", user.id);
+      }
+
+      const { data, error } = await query;
+      if (error || !data) return;
+
+      const byUserDate = new Map<string, { entradas: Date[]; salidas: Date[] }>();
+      for (const r of data) {
+        const dateKey = `${r.user_id}_${r.recorded_at.split("T")[0]}`;
+        if (!byUserDate.has(dateKey)) byUserDate.set(dateKey, { entradas: [], salidas: [] });
+        const group = byUserDate.get(dateKey)!;
+        if (r.record_type === "entrada") group.entradas.push(new Date(r.recorded_at));
+        else if (r.record_type === "salida") group.salidas.push(new Date(r.recorded_at));
+      }
+
+      let totalMinutesAll = 0;
+      const daysWithEntry = new Set<string>();
+
+      byUserDate.forEach((group, key) => {
+        if (group.entradas.length > 0) daysWithEntry.add(key);
+        const pairs = Math.min(group.entradas.length, group.salidas.length);
+        for (let i = 0; i < pairs; i++) {
+          const diff = group.salidas[i].getTime() - group.entradas[i].getTime();
+          if (diff > 0) totalMinutesAll += diff / (1000 * 60);
+        }
+      });
+
+      setMonthlyStats({
+        daysWorked: daysWithEntry.size,
+        totalHours: Math.floor(totalMinutesAll / 60),
+        totalMinutes: Math.round(totalMinutesAll % 60),
+      });
+    } catch (error) {
+      console.error("Error fetching monthly stats:", error);
     }
   };
 
@@ -237,7 +293,7 @@ const Dashboard = () => {
 
       <main className="container mx-auto px-4 py-8 max-w-6xl space-y-6">
         {/* Quick Actions - Full Width */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {isAdmin ? (
             <>
               <Link to="/admin/qr">
@@ -277,6 +333,20 @@ const Dashboard = () => {
                     <div className="flex-1">
                       <h3 className="font-semibold">Administración</h3>
                       <p className="text-sm text-muted-foreground">Monitor en vivo</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                  </CardContent>
+                </Card>
+              </Link>
+              <Link to="/admin/reports">
+                <Card className="glass-card hover-lift cursor-pointer group h-full">
+                  <CardContent className="p-6 flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <BarChart3 className="w-7 h-7 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold">Reportes</h3>
+                      <p className="text-sm text-muted-foreground">Estadísticas y reportes</p>
                     </div>
                     <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
                   </CardContent>
@@ -579,18 +649,34 @@ const Dashboard = () => {
           {/* Quick Stats */}
           <Card className="glass-card">
             <CardHeader>
-              <CardTitle className="text-lg">Este Mes</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">Este Mes</CardTitle>
+                {isAdmin && (
+                  <Link to="/admin/reports">
+                    <Button variant="ghost" size="sm" className="text-xs h-7">
+                      Ver reportes
+                      <ChevronRight className="w-3 h-3 ml-1" />
+                    </Button>
+                  </Link>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-4">
                 <div className="text-center p-4 rounded-xl bg-muted/50">
                   <p className="text-3xl font-bold text-primary">
-                    {Math.floor(attendanceHistory.filter(r => r.record_type === "entrada").length)}
+                    {monthlyStats.daysWorked}
                   </p>
-                  <p className="text-sm text-muted-foreground">Días trabajados</p>
+                  <p className="text-sm text-muted-foreground">
+                    {isAdmin ? "Registros de entrada" : "Días trabajados"}
+                  </p>
                 </div>
                 <div className="text-center p-4 rounded-xl bg-muted/50">
-                  <p className="text-3xl font-bold text-accent">—</p>
+                  <p className="text-3xl font-bold text-accent">
+                    {monthlyStats.totalHours > 0 || monthlyStats.totalMinutes > 0
+                      ? `${monthlyStats.totalHours}h ${monthlyStats.totalMinutes}m`
+                      : "—"}
+                  </p>
                   <p className="text-sm text-muted-foreground">Horas totales</p>
                 </div>
               </div>

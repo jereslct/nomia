@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ArrowLeft, Camera, Loader2, Save, User, Check, X } from "lucide-react";
+import { ArrowLeft, Camera, Loader2, Save, User, Check, X, Shield, Briefcase } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,7 +36,7 @@ function centerAspectCrop(
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { user, profile, loading } = useAuth();
+  const { user, profile, role, loading } = useAuth();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
@@ -324,7 +325,18 @@ const Profile = () => {
                 />
               </div>
             </div>
-            <CardTitle>Información Personal</CardTitle>
+            <CardTitle className="flex items-center justify-center gap-2">
+              Información Personal
+              {role && (
+                <Badge variant={role === "admin" ? "default" : "secondary"} className="ml-1">
+                  {role === "admin" ? (
+                    <><Shield className="w-3 h-3 mr-1" /> Admin</>
+                  ) : (
+                    <><Briefcase className="w-3 h-3 mr-1" /> Empleado</>
+                  )}
+                </Badge>
+              )}
+            </CardTitle>
             <CardDescription>
               Actualiza tu nombre, foto y número de teléfono
             </CardDescription>

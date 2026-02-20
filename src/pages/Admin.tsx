@@ -460,7 +460,7 @@ const Admin = () => {
                   <QrCode className="w-7 h-7 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-lg">Kiosco QR</h3>
+                  <h3 className="font-semibold text-lg">QR</h3>
                   <p className="text-sm text-muted-foreground">
                     Muestra el código QR para que los empleados registren su asistencia
                   </p>

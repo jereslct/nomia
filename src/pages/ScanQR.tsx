@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { ArrowLeft, Camera, CheckCircle, XCircle, Loader2, Copy, Check, Shield } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -21,6 +22,9 @@ const ScanQR = () => {
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [errorCode, setErrorCode] = useState<string>("");
   const [copied, setCopied] = useState(false);
+  const [reentryDialogOpen, setReentryDialogOpen] = useState(false);
+  const [pendingQrCode, setPendingQrCode] = useState<string | null>(null);
+  const [reentryInfo, setReentryInfo] = useState<{ entry_count: number; exit_count: number } | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -31,22 +35,14 @@ const ScanQR = () => {
   const requestCameraPermission = async (): Promise<boolean> => {
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        toast({
-          title: "Cámara no disponible",
-          description: "Tu navegador no soporta acceso a la cámara.",
-          variant: "destructive",
-        });
+        toast({ title: "Cámara no disponible", description: "Tu navegador no soporta acceso a la cámara.", variant: "destructive" });
         return false;
       }
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
       stream.getTracks().forEach((track) => track.stop());
       return true;
     } catch (err: any) {
-      toast({
-        title: "Error de cámara",
-        description: "No se pudo acceder a la cámara.",
-        variant: "destructive",
-      });
+      toast({ title: "Error de cámara", description: "No se pudo acceder a la cámara.", variant: "destructive" });
       return false;
     }
   };
@@ -106,30 +102,23 @@ const ScanQR = () => {
     } catch {}
   };
 
-  const handleScanSuccess = async (result: string) => {
-    await stopScanning();
-
-    // Validate format: new secure format starts with "nomia:"
-    if (!result.startsWith("nomia:")) {
-      setError("Código QR no reconocido. Usa el formato seguro.", "INVALID_FORMAT");
-      toast({ title: "Código inválido", description: "Formato no reconocido.", variant: "destructive" });
-      return;
-    }
-
-    if (!user) {
-      setError("Debes iniciar sesión.", "AUTH_REQUIRED");
-      return;
-    }
-
+  const validateQrScan = async (qrCode: string, forceReentry: boolean = false) => {
     try {
-      // Call edge function for backend validation
       const { data, error } = await supabase.functions.invoke("validate-qr-scan", {
-        body: { qr_code: result },
+        body: { qr_code: qrCode, force_reentry: forceReentry },
       });
 
       if (error) {
         setError("Error de conexión con el servidor.", `NETWORK_ERROR: ${error.message}`);
         toast({ title: "Error", description: "No se pudo validar el código.", variant: "destructive" });
+        return;
+      }
+
+      // Check if re-entry confirmation is needed
+      if (data?.code === "REENTRY_CONFIRMATION_NEEDED") {
+        setPendingQrCode(qrCode);
+        setReentryInfo({ entry_count: data.entry_count, exit_count: data.exit_count });
+        setReentryDialogOpen(true);
         return;
       }
 
@@ -151,6 +140,40 @@ const ScanQR = () => {
       setError("Error inesperado.", `UNEXPECTED: ${err?.message}`);
       toast({ title: "Error", description: "Error inesperado.", variant: "destructive" });
     }
+  };
+
+  const handleScanSuccess = async (result: string) => {
+    await stopScanning();
+
+    if (!result.startsWith("nomia:")) {
+      setError("Código QR no reconocido. Usa el formato seguro.", "INVALID_FORMAT");
+      toast({ title: "Código inválido", description: "Formato no reconocido.", variant: "destructive" });
+      return;
+    }
+
+    if (!user) {
+      setError("Debes iniciar sesión.", "AUTH_REQUIRED");
+      return;
+    }
+
+    await validateQrScan(result, false);
+  };
+
+  const handleConfirmReentry = async () => {
+    setReentryDialogOpen(false);
+    if (pendingQrCode) {
+      setStatus("scanning"); // Show loading state
+      await validateQrScan(pendingQrCode, true);
+      setPendingQrCode(null);
+      setReentryInfo(null);
+    }
+  };
+
+  const handleCancelReentry = () => {
+    setReentryDialogOpen(false);
+    setPendingQrCode(null);
+    setReentryInfo(null);
+    setStatus("idle");
   };
 
   useEffect(() => {
@@ -251,6 +274,23 @@ const ScanQR = () => {
           </CardContent>
         </Card>
       </main>
+
+      {/* Re-entry confirmation dialog */}
+      <Dialog open={reentryDialogOpen} onOpenChange={(open) => { if (!open) handleCancelReentry(); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>¿Volver a marcar ingreso?</DialogTitle>
+            <DialogDescription>
+              Ya completaste {reentryInfo?.entry_count} ingreso(s) y {reentryInfo?.exit_count} salida(s) hoy. 
+              ¿Deseas registrar un nuevo ingreso?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2 sm:gap-0">
+            <Button variant="outline" onClick={handleCancelReentry}>Cancelar</Button>
+            <Button variant="hero" onClick={handleConfirmReentry}>Sí, marcar ingreso</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -194,8 +194,12 @@ const Dashboard = () => {
 
   if (!user) return null;
 
-  const todayEntrada = todayRecords.find(r => r.record_type === "entrada");
-  const todaySalida = todayRecords.find(r => r.record_type === "salida");
+  const todayEntradas = todayRecords.filter(r => r.record_type === "entrada");
+  const todaySalidas = todayRecords.filter(r => r.record_type === "salida");
+  const todayEntrada = todayEntradas[0]; // most recent (desc order)
+  const todaySalida = todaySalidas[0];
+  const entryCountToday = todayEntradas.length;
+  const exitCountToday = todaySalidas.length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -474,7 +478,9 @@ const Dashboard = () => {
                             <Clock className="w-5 h-5 text-muted-foreground" />
                           )}
                           <div>
-                            <span className={todayEntrada ? "font-medium" : "text-muted-foreground"}>Entrada</span>
+                            <span className={todayEntrada ? "font-medium" : "text-muted-foreground"}>
+                              Entrada{entryCountToday > 1 ? ` x${entryCountToday}` : ""}
+                            </span>
                             {entryLate && <p className="text-xs text-warning">Llegó tarde</p>}
                             {entryOnTime && <p className="text-xs text-success">A tiempo</p>}
                           </div>
@@ -512,7 +518,9 @@ const Dashboard = () => {
                             <Clock className="w-5 h-5 text-muted-foreground" />
                           )}
                           <div>
-                            <span className={todaySalida ? "font-medium" : "text-muted-foreground"}>Salida</span>
+                            <span className={todaySalida ? "font-medium" : "text-muted-foreground"}>
+                              Salida{exitCountToday > 1 ? ` x${exitCountToday}` : ""}
+                            </span>
                             {exitEarly && <p className="text-xs text-warning">Salió temprano</p>}
                             {todaySalida && !exitEarly && <p className="text-xs text-success">Completo</p>}
                           </div>
@@ -622,6 +630,14 @@ const Dashboard = () => {
                     );
                   const isEntryLate = record.record_type === "entrada" && !isEntryOnTime;
 
+                  // Count how many entries this user has on this day
+                  const recordDate = new Date(record.recorded_at).toISOString().split("T")[0];
+                  const dayEntriesForUser = attendanceHistory.filter(
+                    r => r.record_type === record.record_type && 
+                         r.user_id === record.user_id &&
+                         new Date(r.recorded_at).toISOString().split("T")[0] === recordDate
+                  ).length;
+
                   return (
                     <div 
                       key={record.id} 
@@ -640,6 +656,9 @@ const Dashboard = () => {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="font-medium capitalize">{record.record_type}</p>
+                          {dayEntriesForUser > 1 && (
+                            <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full">x{dayEntriesForUser}</span>
+                          )}
                           {isEntryLate && (
                             <span className="text-xs bg-warning/20 text-warning px-2 py-0.5 rounded-full">Tarde</span>
                           )}

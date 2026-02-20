@@ -11,6 +11,7 @@ import ScanQR from "./pages/ScanQR";
 import AdminQR from "./pages/AdminQR";
 import Admin from "./pages/Admin";
 import AdminUsers from "./pages/AdminUsers";
+import AdminReports from "./pages/AdminReports";
 import Employee from "./pages/Employee";
 import History from "./pages/History";
 import Profile from "./pages/Profile";
@@ -49,6 +50,11 @@ const App = () => (
           <Route path="/admin/users" element={
             <ProtectedRoute requireAdmin>
               <AdminUsers />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/reports" element={
+            <ProtectedRoute requireAdmin>
+              <AdminReports />
             </ProtectedRoute>
           } />
           <Route path="/employee" element={

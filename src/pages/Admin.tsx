@@ -19,7 +19,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { ArrowLeft, QrCode, RefreshCw, Users, Clock, MapPin, Loader2 } from "lucide-react";
+import { ArrowLeft, QrCode, RefreshCw, Users, Clock, MapPin, Loader2, BarChart3 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -163,24 +163,27 @@ const Admin = () => {
       if (orgId) {
         setOrganizationId(orgId);
 
-        // Check for existing location linked to this organization
-        const { data: existingLocation } = await supabase
+        // Check for existing location linked to this organization (limit 1 to handle duplicates)
+        const { data: existingLocations } = await supabase
           .from("locations")
           .select("id")
           .eq("created_by", user.id)
           .eq("organization_id", orgId)
-          .maybeSingle();
+          .limit(1);
+
+        const existingLocation = existingLocations?.[0] ?? null;
 
         if (existingLocation) {
           setLocationId(existingLocation.id);
         } else {
-          // Update existing location without org or create new one
-          const { data: unlinkedLocation } = await supabase
+          const { data: unlinkedLocations } = await supabase
             .from("locations")
             .select("id")
             .eq("created_by", user.id)
             .is("organization_id", null)
-            .maybeSingle();
+            .limit(1);
+
+          const unlinkedLocation = unlinkedLocations?.[0] ?? null;
 
           if (unlinkedLocation) {
             await supabase
@@ -399,9 +402,17 @@ const Admin = () => {
               <p className="text-xs text-muted-foreground">Monitor en vivo de asistencia</p>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={fetchTodayAttendance} disabled={isLoadingData}>
-            <RefreshCw className={`w-4 h-4 ${isLoadingData ? "animate-spin" : ""}`} />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Link to="/admin/reports">
+              <Button variant="outline" size="sm">
+                <BarChart3 className="w-4 h-4 mr-2" />
+                Reportes
+              </Button>
+            </Link>
+            <Button variant="outline" size="sm" onClick={fetchTodayAttendance} disabled={isLoadingData}>
+              <RefreshCw className={`w-4 h-4 ${isLoadingData ? "animate-spin" : ""}`} />
+            </Button>
+          </div>
         </div>
       </header>
 

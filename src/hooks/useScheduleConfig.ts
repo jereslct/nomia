@@ -45,7 +45,7 @@ const formatTimeForDB = (hour: number, minute: number): string => {
 };
 
 export function useScheduleConfig() {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, loading: authLoading } = useAuth();
   const [config, setConfig] = useState<ScheduleConfig>(DEFAULT_CONFIG);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,8 +61,9 @@ export function useScheduleConfig() {
         .from("organizations")
         .select("id")
         .eq("owner_id", user.id)
-        .maybeSingle();
-      return data?.id || null;
+        .order("created_at", { ascending: true })
+        .limit(1);
+      return data?.[0]?.id || null;
     }
 
     // If employee, get their organization through membership
@@ -73,10 +74,11 @@ export function useScheduleConfig() {
       .eq("status", "accepted")
       .maybeSingle();
     return data?.organization_id || null;
-  }, [user, isAdmin]);
+  }, [user, isAdmin, authLoading]);
 
   // Load schedule config from database
   const loadConfig = useCallback(async () => {
+    if (authLoading) return;
     if (!user) {
       setLoading(false);
       return;
@@ -133,7 +135,7 @@ export function useScheduleConfig() {
     } finally {
       setLoading(false);
     }
-  }, [user, fetchOrganizationId]);
+  }, [user, authLoading, fetchOrganizationId]);
 
   // Save schedule config to database (admin only)
   const saveConfig = useCallback(async (newConfig: ScheduleConfig): Promise<boolean> => {

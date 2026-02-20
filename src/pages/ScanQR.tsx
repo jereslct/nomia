@@ -108,17 +108,19 @@ const ScanQR = () => {
         body: { qr_code: qrCode, force_reentry: forceReentry },
       });
 
-      if (error) {
-        setError("Error de conexión con el servidor.", `NETWORK_ERROR: ${error.message}`);
-        toast({ title: "Error", description: "No se pudo validar el código.", variant: "destructive" });
+      // Check for REENTRY in both data and error contexts
+      const responseData = data || (error as any)?.context;
+      
+      if (responseData?.code === "REENTRY_CONFIRMATION_NEEDED") {
+        setPendingQrCode(qrCode);
+        setReentryInfo({ entry_count: responseData.entry_count, exit_count: responseData.exit_count });
+        setReentryDialogOpen(true);
         return;
       }
 
-      // Check if re-entry confirmation is needed
-      if (data?.code === "REENTRY_CONFIRMATION_NEEDED") {
-        setPendingQrCode(qrCode);
-        setReentryInfo({ entry_count: data.entry_count, exit_count: data.exit_count });
-        setReentryDialogOpen(true);
+      if (error) {
+        setError("Error de conexión con el servidor.", `NETWORK_ERROR: ${error.message}`);
+        toast({ title: "Error", description: "No se pudo validar el código.", variant: "destructive" });
         return;
       }
 

@@ -37,6 +37,10 @@ interface AttendanceRecord {
   } | null;
   locations: {
     name: string;
+    organization_id: string | null;
+    organizations: {
+      name: string;
+    } | null;
   } | null;
 }
 
@@ -221,7 +225,11 @@ const Admin = () => {
           recorded_at,
           location_id,
           locations (
-            name
+            name,
+            organization_id,
+            organizations (
+              name
+            )
           )
         `)
         .gte("recorded_at", `${today}T00:00:00`)
@@ -297,7 +305,7 @@ const Admin = () => {
       }
 
       const profileName = firstEntry?.profiles?.full_name || `Usuario ${userId.slice(0, 8)}`;
-      const locationName = firstEntry?.locations?.name || "Oficina";
+      const locationName = firstEntry?.locations?.organizations?.name || firstEntry?.locations?.name || "Oficina";
 
       employeeStatuses.push({
         id: userId,

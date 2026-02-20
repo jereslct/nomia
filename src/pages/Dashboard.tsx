@@ -662,24 +662,96 @@ const Dashboard = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="text-center p-4 rounded-xl bg-muted/50">
-                  <p className="text-3xl font-bold text-primary">
-                    {monthlyStats.daysWorked}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {isAdmin ? "Registros de entrada" : "Días trabajados"}
-                  </p>
-                </div>
-                <div className="text-center p-4 rounded-xl bg-muted/50">
-                  <p className="text-3xl font-bold text-accent">
-                    {monthlyStats.totalHours > 0 || monthlyStats.totalMinutes > 0
-                      ? `${monthlyStats.totalHours}h ${monthlyStats.totalMinutes}m`
-                      : "—"}
-                  </p>
-                  <p className="text-sm text-muted-foreground">Horas totales</p>
-                </div>
-              </div>
+              {(() => {
+                const now = new Date();
+                const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+                const monthRecords = attendanceHistory.filter(
+                  r => new Date(r.recorded_at) >= monthStart
+                );
+
+                // Count unique days with entries (for current user or all if admin)
+                const userEntries = monthRecords.filter(r => r.record_type === "entrada");
+                const uniqueDays = new Set(
+                  userEntries.map(r => new Date(r.recorded_at).toISOString().split("T")[0])
+                ).size;
+
+                // Calculate total hours: pair entrada/salida per day
+                let totalMinutesWorked = 0;
+                let totalMinutesLate = 0;
+
+                // Group records by date
+                const byDate = new Map<string, typeof monthRecords>();
+                monthRecords.forEach(r => {
+                  const dateKey = new Date(r.recorded_at).toISOString().split("T")[0];
+                  if (!byDate.has(dateKey)) byDate.set(dateKey, []);
+                  byDate.get(dateKey)!.push(r);
+                });
+
+                byDate.forEach((dayRecs) => {
+                  const entradas = dayRecs
+                    .filter(r => r.record_type === "entrada")
+                    .sort((a, b) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime());
+                  const salidas = dayRecs
+                    .filter(r => r.record_type === "salida")
+                    .sort((a, b) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime());
+
+                  // Pair each entrada with the next salida
+                  const pairs = Math.min(entradas.length, salidas.length);
+                  for (let i = 0; i < pairs; i++) {
+                    const entryTime = new Date(entradas[i].recorded_at).getTime();
+                    const exitTime = new Date(salidas[i].recorded_at).getTime();
+                    if (exitTime > entryTime) {
+                      totalMinutesWorked += (exitTime - entryTime) / 60000;
+                    }
+                  }
+
+                  // Calculate late minutes for each entrada
+                  entradas.forEach(entrada => {
+                    const recordDate = new Date(entrada.recorded_at);
+                    const scheduledMinutes = scheduleConfig.entryHour * 60 + scheduleConfig.entryMinute;
+                    const actualMinutes = recordDate.getHours() * 60 + recordDate.getMinutes();
+                    const toleranceLimit = scheduledMinutes + scheduleConfig.entryToleranceMinutes;
+                    if (actualMinutes > toleranceLimit) {
+                      totalMinutesLate += actualMinutes - scheduledMinutes;
+                    }
+                  });
+                });
+
+                const totalHours = Math.floor(totalMinutesWorked / 60);
+                const totalMins = Math.round(totalMinutesWorked % 60);
+                const lateHours = Math.floor(totalMinutesLate / 60);
+                const lateMins = Math.round(totalMinutesLate % 60);
+
+                return (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
+                      <div className="flex items-center gap-3">
+                        <CheckCircle className="w-5 h-5 text-primary" />
+                        <span className="font-medium">Días trabajados</span>
+                      </div>
+                      <span className="font-mono text-lg font-semibold text-primary">{uniqueDays}</span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
+                      <div className="flex items-center gap-3">
+                        <Clock className="w-5 h-5 text-accent" />
+                        <span className="font-medium">Horas totales</span>
+                      </div>
+                      <span className="font-mono text-lg font-semibold text-accent">
+                        {totalHours > 0 || totalMins > 0 ? `${totalHours}h ${totalMins}m` : "—"}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
+                      <div className="flex items-center gap-3">
+                        <AlertCircle className={`w-5 h-5 ${totalMinutesLate > 0 ? "text-warning" : "text-success"}`} />
+                        <span className="font-medium">Horas perdidas</span>
+                      </div>
+                      <span className={`font-mono text-lg font-semibold ${totalMinutesLate > 0 ? "text-warning" : "text-success"}`}>
+                        {totalMinutesLate > 0 ? `${lateHours}h ${lateMins}m` : "0m"}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
         </div>

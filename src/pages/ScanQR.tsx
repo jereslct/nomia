@@ -104,37 +104,45 @@ const ScanQR = () => {
 
   const validateQrScan = async (qrCode: string, forceReentry: boolean = false) => {
     try {
-      const { data, error } = await supabase.functions.invoke("validate-qr-scan", {
+      const response = await supabase.functions.invoke("validate-qr-scan", {
         body: { qr_code: qrCode, force_reentry: forceReentry },
       });
 
-      // Check for REENTRY in both data and error contexts
-      const responseData = data || (error as any)?.context;
+      console.log("validate-qr-scan raw response:", JSON.stringify(response));
+
+      // Extract response data from wherever the SDK puts it
+      const responseData = response.data || (response.error as any)?.context || response.error;
       
-      if (responseData?.code === "REENTRY_CONFIRMATION_NEEDED") {
+      // Parse if string
+      const parsed = typeof responseData === "string" ? (() => { try { return JSON.parse(responseData); } catch { return null; } })() : responseData;
+
+      console.log("Parsed response:", JSON.stringify(parsed));
+
+      // Check for REENTRY confirmation needed FIRST
+      if (parsed?.code === "REENTRY_CONFIRMATION_NEEDED") {
         setPendingQrCode(qrCode);
-        setReentryInfo({ entry_count: responseData.entry_count, exit_count: responseData.exit_count });
+        setReentryInfo({ entry_count: parsed.entry_count, exit_count: parsed.exit_count });
         setReentryDialogOpen(true);
         return;
       }
 
-      if (error) {
-        setError("Error de conexión con el servidor.", `NETWORK_ERROR: ${error.message}`);
+      if (response.error && !parsed?.success) {
+        setError("Error de conexión con el servidor.", `NETWORK_ERROR: ${response.error.message || response.error}`);
         toast({ title: "Error", description: "No se pudo validar el código.", variant: "destructive" });
         return;
       }
 
-      if (!data?.success) {
-        setError(data?.error || "Código inválido o expirado.", data?.code || "VALIDATION_FAILED");
-        toast({ title: "Error", description: data?.error || "Validación fallida.", variant: "destructive" });
+      if (!parsed?.success) {
+        setError(parsed?.error || "Código inválido o expirado.", parsed?.code || "VALIDATION_FAILED");
+        toast({ title: "Error", description: parsed?.error || "Validación fallida.", variant: "destructive" });
         return;
       }
 
-      setRecordType(data.record_type);
+      setRecordType(parsed.record_type);
       setStatus("success");
       toast({
-        title: `¡${data.record_type === "entrada" ? "Entrada" : "Salida"} registrada!`,
-        description: data.message,
+        title: `¡${parsed.record_type === "entrada" ? "Entrada" : "Salida"} registrada!`,
+        description: parsed.message,
       });
 
       setTimeout(() => navigate("/dashboard"), 2000);

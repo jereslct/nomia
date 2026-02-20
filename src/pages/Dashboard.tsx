@@ -264,8 +264,8 @@ const Dashboard = () => {
               <Link to="/admin">
                 <Card className="glass-card hover-lift cursor-pointer group h-full">
                   <CardContent className="p-6 flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-secondary/50 flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <Settings className="w-7 h-7 text-secondary-foreground" />
+                    <div className="w-14 h-14 rounded-2xl bg-destructive/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <span className="w-4 h-4 rounded-full bg-destructive animate-pulse" />
                     </div>
                     <div className="flex-1">
                       <h3 className="font-semibold">Administración</h3>

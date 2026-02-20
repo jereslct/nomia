@@ -582,18 +582,87 @@ const Dashboard = () => {
               <CardTitle className="text-lg">Este Mes</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="text-center p-4 rounded-xl bg-muted/50">
-                  <p className="text-3xl font-bold text-primary">
-                    {Math.floor(attendanceHistory.filter(r => r.record_type === "entrada").length)}
-                  </p>
-                  <p className="text-sm text-muted-foreground">Días trabajados</p>
-                </div>
-                <div className="text-center p-4 rounded-xl bg-muted/50">
-                  <p className="text-3xl font-bold text-accent">—</p>
-                  <p className="text-sm text-muted-foreground">Horas totales</p>
-                </div>
-              </div>
+              {(() => {
+                const now = new Date();
+                const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+                const monthRecords = attendanceHistory.filter(
+                  r => new Date(r.recorded_at) >= monthStart
+                );
+
+                // Count unique days with entries (for current user or all if admin)
+                const userEntries = monthRecords.filter(r => r.record_type === "entrada");
+                const uniqueDays = new Set(
+                  userEntries.map(r => new Date(r.recorded_at).toISOString().split("T")[0])
+                ).size;
+
+                // Calculate total hours: pair entrada/salida per day
+                let totalMinutesWorked = 0;
+                let totalMinutesLate = 0;
+
+                // Group records by date
+                const byDate = new Map<string, typeof monthRecords>();
+                monthRecords.forEach(r => {
+                  const dateKey = new Date(r.recorded_at).toISOString().split("T")[0];
+                  if (!byDate.has(dateKey)) byDate.set(dateKey, []);
+                  byDate.get(dateKey)!.push(r);
+                });
+
+                byDate.forEach((dayRecs) => {
+                  const entradas = dayRecs
+                    .filter(r => r.record_type === "entrada")
+                    .sort((a, b) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime());
+                  const salidas = dayRecs
+                    .filter(r => r.record_type === "salida")
+                    .sort((a, b) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime());
+
+                  // Pair each entrada with the next salida
+                  const pairs = Math.min(entradas.length, salidas.length);
+                  for (let i = 0; i < pairs; i++) {
+                    const entryTime = new Date(entradas[i].recorded_at).getTime();
+                    const exitTime = new Date(salidas[i].recorded_at).getTime();
+                    if (exitTime > entryTime) {
+                      totalMinutesWorked += (exitTime - entryTime) / 60000;
+                    }
+                  }
+
+                  // Calculate late minutes for each entrada
+                  entradas.forEach(entrada => {
+                    const recordDate = new Date(entrada.recorded_at);
+                    const scheduledMinutes = scheduleConfig.entryHour * 60 + scheduleConfig.entryMinute;
+                    const actualMinutes = recordDate.getHours() * 60 + recordDate.getMinutes();
+                    const toleranceLimit = scheduledMinutes + scheduleConfig.entryToleranceMinutes;
+                    if (actualMinutes > toleranceLimit) {
+                      totalMinutesLate += actualMinutes - scheduledMinutes;
+                    }
+                  });
+                });
+
+                const totalHours = Math.floor(totalMinutesWorked / 60);
+                const totalMins = Math.round(totalMinutesWorked % 60);
+                const lateHours = Math.floor(totalMinutesLate / 60);
+                const lateMins = Math.round(totalMinutesLate % 60);
+
+                return (
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="text-center p-4 rounded-xl bg-muted/50">
+                      <p className="text-3xl font-bold text-primary">{uniqueDays}</p>
+                      <p className="text-sm text-muted-foreground">Días trabajados</p>
+                    </div>
+                    <div className="text-center p-4 rounded-xl bg-muted/50">
+                      <p className="text-2xl font-bold text-accent">
+                        {totalHours > 0 || totalMins > 0 ? `${totalHours}h ${totalMins}m` : "—"}
+                      </p>
+                      <p className="text-sm text-muted-foreground">Horas totales</p>
+                    </div>
+                    <div className="text-center p-4 rounded-xl bg-muted/50">
+                      <p className={`text-2xl font-bold ${totalMinutesLate > 0 ? "text-warning" : "text-success"}`}>
+                        {totalMinutesLate > 0 ? `${lateHours}h ${lateMins}m` : "0"}
+                      </p>
+                      <p className="text-sm text-muted-foreground">Horas perdidas</p>
+                    </div>
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
         </div>

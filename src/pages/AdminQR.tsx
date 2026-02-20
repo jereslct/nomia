@@ -267,14 +267,6 @@ const AdminQR = () => {
                   <span className="w-1.5 h-1.5 rounded-full bg-success mt-2" />
                   El código se regenera cada 30 segundos para máxima seguridad
                 </li>
-                <li className="flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-success mt-2" />
-                  Firmado digitalmente - imposible de falsificar o compartir
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-success mt-2" />
-                  Validación backend estricta rechaza códigos expirados
-                </li>
               </ul>
             </CardContent>
           </Card>

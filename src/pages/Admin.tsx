@@ -417,7 +417,7 @@ const Admin = () => {
                   <Users className="w-6 h-6 text-success" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Presentes</p>
+                  <p className="text-sm text-muted-foreground">En Horario</p>
                   <p className="text-2xl font-bold">{presentCount}</p>
                 </div>
               </div>

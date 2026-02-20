@@ -233,7 +233,7 @@ const Dashboard = () => {
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Quick Actions */}
-            <div className="grid sm:grid-cols-2 gap-4">
+            <div className="grid sm:grid-cols-3 gap-4">
               {isAdmin ? (
                 <>
                   <Link to="/admin/qr">
@@ -259,6 +259,20 @@ const Dashboard = () => {
                         <div className="flex-1">
                           <h3 className="font-semibold">Organizaciones</h3>
                           <p className="text-sm text-muted-foreground">Gestionar equipo</p>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                      </CardContent>
+                    </Card>
+                  </Link>
+                  <Link to="/admin">
+                    <Card className="glass-card hover-lift cursor-pointer group h-full">
+                      <CardContent className="p-6 flex items-center gap-4">
+                        <div className="w-14 h-14 rounded-2xl bg-secondary/50 flex items-center justify-center group-hover:scale-110 transition-transform">
+                          <Settings className="w-7 h-7 text-secondary-foreground" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-semibold">Administración</h3>
+                          <p className="text-sm text-muted-foreground">Monitor en vivo</p>
                         </div>
                         <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
                       </CardContent>

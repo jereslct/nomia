@@ -228,370 +228,363 @@ const Dashboard = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8 max-w-6xl">
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Quick Actions */}
-            <div className="grid sm:grid-cols-3 gap-4">
+      <main className="container mx-auto px-4 py-8 max-w-6xl space-y-6">
+        {/* Quick Actions - Full Width */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {isAdmin ? (
+            <>
+              <Link to="/admin/qr">
+                <Card className="glass-card hover-lift cursor-pointer group h-full">
+                  <CardContent className="p-6 flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <QrCode className="w-7 h-7 text-primary-foreground" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold">Generar QR</h3>
+                      <p className="text-sm text-muted-foreground">Mostrar código para escanear</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                  </CardContent>
+                </Card>
+              </Link>
+              <Link to="/admin/users">
+                <Card className="glass-card hover-lift cursor-pointer group h-full">
+                  <CardContent className="p-6 flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Users className="w-7 h-7 text-accent" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold">Organizaciones</h3>
+                      <p className="text-sm text-muted-foreground">Gestionar equipo</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                  </CardContent>
+                </Card>
+              </Link>
+              <Link to="/admin">
+                <Card className="glass-card hover-lift cursor-pointer group h-full">
+                  <CardContent className="p-6 flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-secondary/50 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Settings className="w-7 h-7 text-secondary-foreground" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold">Administración</h3>
+                      <p className="text-sm text-muted-foreground">Monitor en vivo</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                  </CardContent>
+                </Card>
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link to="/scan">
+                <Card className="glass-card hover-lift cursor-pointer group h-full">
+                  <CardContent className="p-6 flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center group-hover:scale-110 transition-transform animate-pulse-glow">
+                      <ScanLine className="w-7 h-7 text-primary-foreground" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold">Escanear QR</h3>
+                      <p className="text-sm text-muted-foreground">Marcar entrada o salida</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                  </CardContent>
+                </Card>
+              </Link>
+              <Link to="/history">
+                <Card className="glass-card hover-lift cursor-pointer group h-full">
+                  <CardContent className="p-6 flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <History className="w-7 h-7 text-accent" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold">Historial</h3>
+                      <p className="text-sm text-muted-foreground">Ver mis registros</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                  </CardContent>
+                </Card>
+              </Link>
+            </>
+          )}
+        </div>
+
+        {/* Info Cards Row */}
+        <div className={`grid gap-6 ${isAdmin ? 'lg:grid-cols-3' : 'lg:grid-cols-2'}`}>
+          {/* Schedule / Today Status */}
+          <Card className="glass-card">
+            <CardHeader>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <CardTitle className="text-lg">
+                    {isAdmin ? "Configuración de Horarios" : "Estado de Hoy"}
+                  </CardTitle>
+                  {isAdmin ? (
+                    <CardDescription className="text-xs">
+                      Tolerancia entrada: {scheduleConfig.entryToleranceMinutes} min | salida: {scheduleConfig.exitToleranceMinutes} min
+                    </CardDescription>
+                  ) : (
+                    <CardDescription className="text-xs">
+                      Horario: {scheduleFormatted.entry} - {scheduleFormatted.exit}
+                    </CardDescription>
+                  )}
+                </div>
+                {isAdmin && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2"
+                    onClick={() => setEditingSchedule((v) => !v)}
+                  >
+                    <Settings className="w-4 h-4 mr-2" />
+                    {editingSchedule ? "Cerrar" : "Editar"}
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
               {isAdmin ? (
                 <>
-                  <Link to="/admin/qr">
-                    <Card className="glass-card hover-lift cursor-pointer group h-full">
-                      <CardContent className="p-6 flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center group-hover:scale-110 transition-transform">
-                          <QrCode className="w-7 h-7 text-primary-foreground" />
+                  {editingSchedule ? (
+                    <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label htmlFor="schedule-entry">Entrada</Label>
+                          <Input
+                            id="schedule-entry"
+                            type="time"
+                            value={scheduleFormatted.entry}
+                            onChange={(e) => {
+                              const [h, m] = e.target.value.split(":").map(Number);
+                              setScheduleConfig({ entryHour: h ?? scheduleConfig.entryHour, entryMinute: m ?? scheduleConfig.entryMinute });
+                            }}
+                          />
                         </div>
-                        <div className="flex-1">
-                          <h3 className="font-semibold">Generar QR</h3>
-                          <p className="text-sm text-muted-foreground">Mostrar código para escanear</p>
+                        <div className="space-y-1">
+                          <Label htmlFor="schedule-exit">Salida</Label>
+                          <Input
+                            id="schedule-exit"
+                            type="time"
+                            value={scheduleFormatted.exit}
+                            onChange={(e) => {
+                              const [h, m] = e.target.value.split(":").map(Number);
+                              setScheduleConfig({ exitHour: h ?? scheduleConfig.exitHour, exitMinute: m ?? scheduleConfig.exitMinute });
+                            }}
+                          />
                         </div>
-                        <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
-                      </CardContent>
-                    </Card>
-                  </Link>
-                  <Link to="/admin/users">
-                    <Card className="glass-card hover-lift cursor-pointer group h-full">
-                      <CardContent className="p-6 flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                          <Users className="w-7 h-7 text-accent" />
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label htmlFor="schedule-entry-tolerance">Tolerancia entrada (min)</Label>
+                        <Input
+                          id="schedule-entry-tolerance"
+                          type="number"
+                          min={0}
+                          max={60}
+                          value={scheduleConfig.entryToleranceMinutes}
+                          onChange={(e) => {
+                            const n = Number(e.target.value);
+                            setScheduleConfig({ entryToleranceMinutes: Number.isFinite(n) ? n : scheduleConfig.entryToleranceMinutes });
+                          }}
+                        />
+                        <p className="text-xs text-muted-foreground">Puede llegar hasta {scheduleConfig.entryToleranceMinutes} min antes o después.</p>
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label htmlFor="schedule-exit-tolerance">Tolerancia salida (min)</Label>
+                        <Input
+                          id="schedule-exit-tolerance"
+                          type="number"
+                          min={0}
+                          max={120}
+                          value={scheduleConfig.exitToleranceMinutes}
+                          onChange={(e) => {
+                            const n = Number(e.target.value);
+                            setScheduleConfig({ exitToleranceMinutes: Number.isFinite(n) ? n : scheduleConfig.exitToleranceMinutes });
+                          }}
+                        />
+                        <p className="text-xs text-muted-foreground">Puede salir hasta {scheduleConfig.exitToleranceMinutes} min después.</p>
+                      </div>
+                      
+                      <Button 
+                        variant="hero" 
+                        className="w-full mt-3"
+                        onClick={async () => {
+                          const success = await saveScheduleConfig(scheduleConfig);
+                          if (success) {
+                            setEditingSchedule(false);
+                          }
+                        }}
+                      >
+                        Guardar Horario
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
+                        <div className="flex items-center gap-3">
+                          <Clock className="w-5 h-5 text-primary" />
+                          <span className="font-medium">Entrada</span>
                         </div>
-                        <div className="flex-1">
-                          <h3 className="font-semibold">Organizaciones</h3>
-                          <p className="text-sm text-muted-foreground">Gestionar equipo</p>
+                        <span className="font-mono text-lg font-semibold text-foreground">
+                          {scheduleFormatted.entry}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
+                        <div className="flex items-center gap-3">
+                          <Clock className="w-5 h-5 text-primary" />
+                          <span className="font-medium">Salida</span>
                         </div>
-                        <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
-                      </CardContent>
-                    </Card>
-                  </Link>
-                  <Link to="/admin">
-                    <Card className="glass-card hover-lift cursor-pointer group h-full">
-                      <CardContent className="p-6 flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-2xl bg-secondary/50 flex items-center justify-center group-hover:scale-110 transition-transform">
-                          <Settings className="w-7 h-7 text-secondary-foreground" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-semibold">Administración</h3>
-                          <p className="text-sm text-muted-foreground">Monitor en vivo</p>
-                        </div>
-                        <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
-                      </CardContent>
-                    </Card>
-                  </Link>
+                        <span className="font-mono text-lg font-semibold text-foreground">
+                          {scheduleFormatted.exit}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </>
               ) : (
                 <>
-                  <Link to="/scan">
-                    <Card className="glass-card hover-lift cursor-pointer group h-full">
-                      <CardContent className="p-6 flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center group-hover:scale-110 transition-transform animate-pulse-glow">
-                          <ScanLine className="w-7 h-7 text-primary-foreground" />
+                  {(() => {
+                    const entryOnTime =
+                      todayEntrada &&
+                      isOnTime(
+                        todayEntrada.recorded_at,
+                        scheduleConfig.entryHour,
+                        scheduleConfig.entryMinute,
+                        scheduleConfig.entryToleranceMinutes
+                      );
+                    const entryLate = todayEntrada && !entryOnTime;
+
+                    return (
+                      <div
+                        className={`flex items-center justify-between p-3 rounded-xl ${
+                          todayEntrada ? (entryLate ? "bg-warning/10" : "bg-success/10") : "bg-muted/50"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          {todayEntrada ? (
+                            entryLate ? (
+                              <AlertCircle className="w-5 h-5 text-warning" />
+                            ) : (
+                              <CheckCircle className="w-5 h-5 text-success" />
+                            )
+                          ) : (
+                            <Clock className="w-5 h-5 text-muted-foreground" />
+                          )}
+                          <div>
+                            <span className={todayEntrada ? "font-medium" : "text-muted-foreground"}>Entrada</span>
+                            {entryLate && <p className="text-xs text-warning">Llegó tarde</p>}
+                            {entryOnTime && <p className="text-xs text-success">A tiempo</p>}
+                          </div>
                         </div>
-                        <div className="flex-1">
-                          <h3 className="font-semibold">Escanear QR</h3>
-                          <p className="text-sm text-muted-foreground">Marcar entrada o salida</p>
+                        <span
+                          className={`font-mono ${
+                            todayEntrada ? (entryLate ? "text-warning" : "text-success") : "text-muted-foreground"
+                          }`}
+                        >
+                          {todayEntrada ? formatTime(todayEntrada.recorded_at) : "Pendiente"}
+                        </span>
+                      </div>
+                    );
+                  })()}
+
+                  {(() => {
+                    const exitEarly =
+                      todaySalida &&
+                      isEarlyExit(todaySalida.recorded_at, scheduleConfig.exitHour, scheduleConfig.exitMinute);
+
+                    return (
+                      <div
+                        className={`flex items-center justify-between p-3 rounded-xl ${
+                          todaySalida ? (exitEarly ? "bg-warning/10" : "bg-success/10") : "bg-muted/50"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          {todaySalida ? (
+                            exitEarly ? (
+                              <AlertCircle className="w-5 h-5 text-warning" />
+                            ) : (
+                              <CheckCircle className="w-5 h-5 text-success" />
+                            )
+                          ) : (
+                            <Clock className="w-5 h-5 text-muted-foreground" />
+                          )}
+                          <div>
+                            <span className={todaySalida ? "font-medium" : "text-muted-foreground"}>Salida</span>
+                            {exitEarly && <p className="text-xs text-warning">Salió temprano</p>}
+                            {todaySalida && !exitEarly && <p className="text-xs text-success">Completo</p>}
+                          </div>
                         </div>
-                        <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
-                      </CardContent>
-                    </Card>
-                  </Link>
-                  <Link to="/history">
-                    <Card className="glass-card hover-lift cursor-pointer group h-full">
-                      <CardContent className="p-6 flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                          <History className="w-7 h-7 text-accent" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-semibold">Historial</h3>
-                          <p className="text-sm text-muted-foreground">Ver mis registros</p>
-                        </div>
-                        <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
-                      </CardContent>
-                    </Card>
-                  </Link>
+                        <span
+                          className={`font-mono ${
+                            todaySalida ? (exitEarly ? "text-warning" : "text-success") : "text-muted-foreground"
+                          }`}
+                        >
+                          {todaySalida ? formatTime(todaySalida.recorded_at) : "Pendiente"}
+                        </span>
+                      </div>
+                    );
+                  })()}
                 </>
               )}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Today's Status / Schedule Config */}
+          {/* Admin QR Preview */}
+          {isAdmin && (
             <Card className="glass-card">
               <CardHeader>
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <CardTitle className="text-lg">
-                      {isAdmin ? "Configuración de Horarios" : "Estado de Hoy"}
-                    </CardTitle>
-                    {isAdmin ? (
-                      <CardDescription className="text-xs">
-                        Tolerancia entrada: {scheduleConfig.entryToleranceMinutes} min | salida: {scheduleConfig.exitToleranceMinutes} min
-                      </CardDescription>
-                    ) : (
-                      <CardDescription className="text-xs">
-                        Horario: {scheduleFormatted.entry} - {scheduleFormatted.exit}
-                      </CardDescription>
-                    )}
-                  </div>
-                  {isAdmin && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 px-2"
-                      onClick={() => setEditingSchedule((v) => !v)}
-                    >
-                      <Settings className="w-4 h-4 mr-2" />
-                      {editingSchedule ? "Cerrar" : "Editar"}
-                    </Button>
-                  )}
-                </div>
+                <CardTitle className="text-lg">QR Activo</CardTitle>
+                <CardDescription>Código actual para escanear</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {isAdmin ? (
-                  <>
-                    {editingSchedule ? (
-                      <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="space-y-1">
-                            <Label htmlFor="schedule-entry">Entrada</Label>
-                            <Input
-                              id="schedule-entry"
-                              type="time"
-                              value={scheduleFormatted.entry}
-                              onChange={(e) => {
-                                const [h, m] = e.target.value.split(":").map(Number);
-                                setScheduleConfig({ entryHour: h ?? scheduleConfig.entryHour, entryMinute: m ?? scheduleConfig.entryMinute });
-                              }}
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <Label htmlFor="schedule-exit">Salida</Label>
-                            <Input
-                              id="schedule-exit"
-                              type="time"
-                              value={scheduleFormatted.exit}
-                              onChange={(e) => {
-                                const [h, m] = e.target.value.split(":").map(Number);
-                                setScheduleConfig({ exitHour: h ?? scheduleConfig.exitHour, exitMinute: m ?? scheduleConfig.exitMinute });
-                              }}
-                            />
-                          </div>
-                        </div>
-
-                        <div className="space-y-1">
-                          <Label htmlFor="schedule-entry-tolerance">Tolerancia entrada (min)</Label>
-                          <Input
-                            id="schedule-entry-tolerance"
-                            type="number"
-                            min={0}
-                            max={60}
-                            value={scheduleConfig.entryToleranceMinutes}
-                            onChange={(e) => {
-                              const n = Number(e.target.value);
-                              setScheduleConfig({ entryToleranceMinutes: Number.isFinite(n) ? n : scheduleConfig.entryToleranceMinutes });
-                            }}
-                          />
-                          <p className="text-xs text-muted-foreground">Puede llegar hasta {scheduleConfig.entryToleranceMinutes} min antes o después.</p>
-                        </div>
-
-                        <div className="space-y-1">
-                          <Label htmlFor="schedule-exit-tolerance">Tolerancia salida (min)</Label>
-                          <Input
-                            id="schedule-exit-tolerance"
-                            type="number"
-                            min={0}
-                            max={120}
-                            value={scheduleConfig.exitToleranceMinutes}
-                            onChange={(e) => {
-                              const n = Number(e.target.value);
-                              setScheduleConfig({ exitToleranceMinutes: Number.isFinite(n) ? n : scheduleConfig.exitToleranceMinutes });
-                            }}
-                          />
-                          <p className="text-xs text-muted-foreground">Puede salir hasta {scheduleConfig.exitToleranceMinutes} min después.</p>
-                        </div>
-                        
-                        <Button 
-                          variant="hero" 
-                          className="w-full mt-3"
-                          onClick={async () => {
-                            const success = await saveScheduleConfig(scheduleConfig);
-                            if (success) {
-                              setEditingSchedule(false);
-                            }
-                          }}
-                        >
-                          Guardar Horario
-                        </Button>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
-                          <div className="flex items-center gap-3">
-                            <Clock className="w-5 h-5 text-primary" />
-                            <span className="font-medium">Entrada</span>
-                          </div>
-                          <span className="font-mono text-lg font-semibold text-foreground">
-                            {scheduleFormatted.entry}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
-                          <div className="flex items-center gap-3">
-                            <Clock className="w-5 h-5 text-primary" />
-                            <span className="font-medium">Salida</span>
-                          </div>
-                          <span className="font-mono text-lg font-semibold text-foreground">
-                            {scheduleFormatted.exit}
-                          </span>
-                        </div>
-                      </>
-                    )}
-                  </>
+              <CardContent className="flex flex-col items-center">
+                {activeQrCode ? (
+                  <div className="bg-card p-4 rounded-2xl shadow-inner">
+                    <QRCode
+                      value={activeQrCode}
+                      size={160}
+                      style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                    />
+                  </div>
                 ) : (
-                  <>
-
-                {(() => {
-                  const entryOnTime =
-                    todayEntrada &&
-                    isOnTime(
-                      todayEntrada.recorded_at,
-                      scheduleConfig.entryHour,
-                      scheduleConfig.entryMinute,
-                      scheduleConfig.entryToleranceMinutes
-                    );
-                  const entryLate = todayEntrada && !entryOnTime;
-
-                  return (
-                    <div
-                      className={`flex items-center justify-between p-3 rounded-xl ${
-                        todayEntrada ? (entryLate ? "bg-warning/10" : "bg-success/10") : "bg-muted/50"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        {todayEntrada ? (
-                          entryLate ? (
-                            <AlertCircle className="w-5 h-5 text-warning" />
-                          ) : (
-                            <CheckCircle className="w-5 h-5 text-success" />
-                          )
-                        ) : (
-                          <Clock className="w-5 h-5 text-muted-foreground" />
-                        )}
-                        <div>
-                          <span className={todayEntrada ? "font-medium" : "text-muted-foreground"}>Entrada</span>
-                          {entryLate && <p className="text-xs text-warning">Llegó tarde</p>}
-                          {entryOnTime && <p className="text-xs text-success">A tiempo</p>}
-                        </div>
-                      </div>
-                      <span
-                        className={`font-mono ${
-                          todayEntrada ? (entryLate ? "text-warning" : "text-success") : "text-muted-foreground"
-                        }`}
-                      >
-                        {todayEntrada ? formatTime(todayEntrada.recorded_at) : "Pendiente"}
-                      </span>
-                    </div>
-                  );
-                })()}
-
-                {(() => {
-                  const exitEarly =
-                    todaySalida &&
-                    isEarlyExit(todaySalida.recorded_at, scheduleConfig.exitHour, scheduleConfig.exitMinute);
-
-                  return (
-                    <div
-                      className={`flex items-center justify-between p-3 rounded-xl ${
-                        todaySalida ? (exitEarly ? "bg-warning/10" : "bg-success/10") : "bg-muted/50"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        {todaySalida ? (
-                          exitEarly ? (
-                            <AlertCircle className="w-5 h-5 text-warning" />
-                          ) : (
-                            <CheckCircle className="w-5 h-5 text-success" />
-                          )
-                        ) : (
-                          <Clock className="w-5 h-5 text-muted-foreground" />
-                        )}
-                        <div>
-                          <span className={todaySalida ? "font-medium" : "text-muted-foreground"}>Salida</span>
-                          {exitEarly && <p className="text-xs text-warning">Salió temprano</p>}
-                          {todaySalida && !exitEarly && <p className="text-xs text-success">Completo</p>}
-                        </div>
-                      </div>
-                      <span
-                        className={`font-mono ${
-                          todaySalida ? (exitEarly ? "text-warning" : "text-success") : "text-muted-foreground"
-                        }`}
-                      >
-                        {todaySalida ? formatTime(todaySalida.recorded_at) : "Pendiente"}
-                      </span>
-                    </div>
-                  );
-                })()}
-                  </>
+                  <div className="text-center py-8 text-muted-foreground">
+                    <QrCode className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p className="text-sm">No hay QR activo</p>
+                    <p className="text-xs">Genera uno desde Gestionar QR</p>
+                  </div>
                 )}
+                <Link to="/admin/qr" className="w-full mt-4">
+                  <Button variant="outline" size="sm" className="w-full">
+                    <Settings className="w-4 h-4 mr-2" />
+                    Gestionar QR
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
+          )}
 
-
-            {/* Admin QR Preview */}
-            {isAdmin && (
-              <Card className="glass-card">
-                <CardHeader>
-                  <CardTitle className="text-lg">QR Activo</CardTitle>
-                  <CardDescription>Código actual para escanear</CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col items-center">
-                  {activeQrCode ? (
-                    <div className="bg-card p-4 rounded-2xl shadow-inner">
-                      <QRCode
-                        value={activeQrCode}
-                        size={160}
-                        style={{ height: "auto", maxWidth: "100%", width: "100%" }}
-                      />
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <QrCode className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                      <p className="text-sm">No hay QR activo</p>
-                      <p className="text-xs">Genera uno desde Gestionar QR</p>
-                    </div>
-                  )}
-                  <Link to="/admin/qr" className="w-full mt-4">
-                    <Button variant="outline" size="sm" className="w-full">
-                      <Settings className="w-4 h-4 mr-2" />
-                      Gestionar QR
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Quick Stats */}
-            <Card className="glass-card">
-              <CardHeader>
-                <CardTitle className="text-lg">Este Mes</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center p-4 rounded-xl bg-muted/50">
-                    <p className="text-3xl font-bold text-primary">
-                      {Math.floor(attendanceHistory.filter(r => r.record_type === "entrada").length)}
-                    </p>
-                    <p className="text-sm text-muted-foreground">Días trabajados</p>
-                  </div>
-                  <div className="text-center p-4 rounded-xl bg-muted/50">
-                    <p className="text-3xl font-bold text-accent">—</p>
-                    <p className="text-sm text-muted-foreground">Horas totales</p>
-                  </div>
+          {/* Quick Stats */}
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="text-lg">Este Mes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center p-4 rounded-xl bg-muted/50">
+                  <p className="text-3xl font-bold text-primary">
+                    {Math.floor(attendanceHistory.filter(r => r.record_type === "entrada").length)}
+                  </p>
+                  <p className="text-sm text-muted-foreground">Días trabajados</p>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+                <div className="text-center p-4 rounded-xl bg-muted/50">
+                  <p className="text-3xl font-bold text-accent">—</p>
+                  <p className="text-sm text-muted-foreground">Horas totales</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Recent Activity - Full Width */}

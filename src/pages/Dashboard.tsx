@@ -643,22 +643,31 @@ const Dashboard = () => {
                 const lateMins = Math.round(totalMinutesLate % 60);
 
                 return (
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="text-center p-4 rounded-xl bg-muted/50">
-                      <p className="text-3xl font-bold text-primary">{uniqueDays}</p>
-                      <p className="text-sm text-muted-foreground">Días trabajados</p>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
+                      <div className="flex items-center gap-3">
+                        <CheckCircle className="w-5 h-5 text-primary" />
+                        <span className="font-medium">Días trabajados</span>
+                      </div>
+                      <span className="font-mono text-lg font-semibold text-primary">{uniqueDays}</span>
                     </div>
-                    <div className="text-center p-4 rounded-xl bg-muted/50">
-                      <p className="text-2xl font-bold text-accent">
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
+                      <div className="flex items-center gap-3">
+                        <Clock className="w-5 h-5 text-accent" />
+                        <span className="font-medium">Horas totales</span>
+                      </div>
+                      <span className="font-mono text-lg font-semibold text-accent">
                         {totalHours > 0 || totalMins > 0 ? `${totalHours}h ${totalMins}m` : "—"}
-                      </p>
-                      <p className="text-sm text-muted-foreground">Horas totales</p>
+                      </span>
                     </div>
-                    <div className="text-center p-4 rounded-xl bg-muted/50">
-                      <p className={`text-2xl font-bold ${totalMinutesLate > 0 ? "text-warning" : "text-success"}`}>
-                        {totalMinutesLate > 0 ? `${lateHours}h ${lateMins}m` : "0"}
-                      </p>
-                      <p className="text-sm text-muted-foreground">Horas perdidas</p>
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
+                      <div className="flex items-center gap-3">
+                        <AlertCircle className={`w-5 h-5 ${totalMinutesLate > 0 ? "text-warning" : "text-success"}`} />
+                        <span className="font-medium">Horas perdidas</span>
+                      </div>
+                      <span className={`font-mono text-lg font-semibold ${totalMinutesLate > 0 ? "text-warning" : "text-success"}`}>
+                        {totalMinutesLate > 0 ? `${lateHours}h ${lateMins}m` : "0m"}
+                      </span>
                     </div>
                   </div>
                 );

@@ -34,24 +34,39 @@ const AdminQR = () => {
     if (!user) return;
 
     try {
+      // Get user's organization
+      const { data: orgData } = await supabase
+        .rpc("get_user_organization_id", { _user_id: user.id });
+      const orgId = orgData || null;
+
       // Try to get existing location
       const { data: existingLocation } = await supabase
         .from("locations")
-        .select("id")
+        .select("id, organization_id")
         .eq("created_by", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (existingLocation) {
+        // If location has no org, update it
+        if (!existingLocation.organization_id && orgId) {
+          await supabase
+            .from("locations")
+            .update({ organization_id: orgId })
+            .eq("id", existingLocation.id);
+        }
         setLocationId(existingLocation.id);
         generateSecureQR(existingLocation.id);
       } else {
-        // Create default location for this admin
+        // Create default location with organization
         const { data: newLocation, error } = await supabase
           .from("locations")
           .insert({
             name: "Oficina Central",
             address: "Dirección principal",
             created_by: user.id,
+            organization_id: orgId,
           })
           .select("id")
           .single();

@@ -32,6 +32,9 @@ interface AttendanceRecord {
   location_id: string;
   locations?: {
     name: string;
+    organizations?: {
+      name: string;
+    } | null;
   };
   profiles?: {
     full_name: string;
@@ -93,7 +96,7 @@ const Dashboard = () => {
           record_type,
           recorded_at,
           location_id,
-          locations (name)
+          locations (name, organization_id, organizations (name))
         `
         )
         .order("recorded_at", { ascending: false })
@@ -664,7 +667,9 @@ const Dashboard = () => {
                           )}
                         </div>
                         <p className="text-sm text-muted-foreground truncate">
-                          {isAdmin && record.profiles?.full_name ? record.profiles.full_name : (record.locations?.name || "Ubicación no disponible")}
+                          {isAdmin && record.profiles?.full_name 
+                            ? record.profiles.full_name 
+                            : (record.locations?.organizations?.name || record.locations?.name || "Ubicación no disponible")}
                         </p>
                       </div>
                       <div className="text-right">

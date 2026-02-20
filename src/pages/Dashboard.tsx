@@ -312,79 +312,6 @@ const Dashboard = () => {
                 </>
               )}
             </div>
-
-            {/* Recent Activity */}
-            <Card className="glass-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-primary" />
-                  Actividad Reciente
-                </CardTitle>
-                <CardDescription>
-                  {isAdmin ? "Últimos registros de todos los empleados" : "Últimos registros de asistencia"}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {loadingRecords ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-                  </div>
-                ) : attendanceHistory.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Clock className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p>No hay registros de asistencia aún</p>
-                    <p className="text-sm mt-1">Escanea un código QR para comenzar</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {attendanceHistory.slice(0, 8).map((record) => {
-                      const isEntryOnTime =
-                        record.record_type === "entrada" &&
-                        isOnTime(
-                          record.recorded_at,
-                          scheduleConfig.entryHour,
-                          scheduleConfig.entryMinute,
-                          scheduleConfig.entryToleranceMinutes
-                        );
-                      const isEntryLate = record.record_type === "entrada" && !isEntryOnTime;
-
-                      return (
-                        <div 
-                          key={record.id} 
-                          className="flex items-center gap-4 p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
-                        >
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                            record.record_type === "entrada" 
-                              ? isEntryLate ? "bg-warning/10 text-warning" : "bg-success/10 text-success"
-                              : "bg-destructive/10 text-destructive"
-                          }`}>
-                            {record.record_type === "entrada" 
-                              ? isEntryLate ? <AlertCircle className="w-5 h-5" /> : <CheckCircle className="w-5 h-5" />
-                              : <XCircle className="w-5 h-5" />
-                            }
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <p className="font-medium capitalize">{record.record_type}</p>
-                              {isEntryLate && (
-                                <span className="text-xs bg-warning/20 text-warning px-2 py-0.5 rounded-full">Tarde</span>
-                              )}
-                            </div>
-                            <p className="text-sm text-muted-foreground truncate">
-                              {isAdmin && record.profiles?.full_name ? record.profiles.full_name : (record.locations?.name || "Ubicación no disponible")}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-medium font-mono">{formatTime(record.recorded_at)}</p>
-                            <p className="text-sm text-muted-foreground">{formatDate(record.recorded_at)}</p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
           </div>
 
           {/* Sidebar */}
@@ -666,6 +593,79 @@ const Dashboard = () => {
             </Card>
           </div>
         </div>
+
+        {/* Recent Activity - Full Width */}
+        <Card className="glass-card mt-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="w-5 h-5 text-primary" />
+              Actividad Reciente
+            </CardTitle>
+            <CardDescription>
+              {isAdmin ? "Últimos registros de todos los empleados" : "Últimos registros de asistencia"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loadingRecords ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : attendanceHistory.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Clock className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p>No hay registros de asistencia aún</p>
+                <p className="text-sm mt-1">Escanea un código QR para comenzar</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {attendanceHistory.slice(0, 8).map((record) => {
+                  const isEntryOnTime =
+                    record.record_type === "entrada" &&
+                    isOnTime(
+                      record.recorded_at,
+                      scheduleConfig.entryHour,
+                      scheduleConfig.entryMinute,
+                      scheduleConfig.entryToleranceMinutes
+                    );
+                  const isEntryLate = record.record_type === "entrada" && !isEntryOnTime;
+
+                  return (
+                    <div 
+                      key={record.id} 
+                      className="flex items-center gap-4 p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
+                    >
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                        record.record_type === "entrada" 
+                          ? isEntryLate ? "bg-warning/10 text-warning" : "bg-success/10 text-success"
+                          : "bg-destructive/10 text-destructive"
+                      }`}>
+                        {record.record_type === "entrada" 
+                          ? isEntryLate ? <AlertCircle className="w-5 h-5" /> : <CheckCircle className="w-5 h-5" />
+                          : <XCircle className="w-5 h-5" />
+                        }
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium capitalize">{record.record_type}</p>
+                          {isEntryLate && (
+                            <span className="text-xs bg-warning/20 text-warning px-2 py-0.5 rounded-full">Tarde</span>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground truncate">
+                          {isAdmin && record.profiles?.full_name ? record.profiles.full_name : (record.locations?.name || "Ubicación no disponible")}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium font-mono">{formatTime(record.recorded_at)}</p>
+                        <p className="text-sm text-muted-foreground">{formatDate(record.recorded_at)}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </main>
     </div>
   );

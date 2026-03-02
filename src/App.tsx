@@ -13,6 +13,7 @@ import Admin from "./pages/Admin";
 import AdminUsers from "./pages/AdminUsers";
 import AdminReports from "./pages/AdminReports";
 import AdminLocations from "./pages/AdminLocations";
+import AdminShifts from "./pages/AdminShifts";
 import Employee from "./pages/Employee";
 import History from "./pages/History";
 import Profile from "./pages/Profile";
@@ -61,6 +62,11 @@ const App = () => (
           <Route path="/admin/locations" element={
             <ProtectedRoute requireAdmin>
               <AdminLocations />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/shifts" element={
+            <ProtectedRoute requireAdmin>
+              <AdminShifts />
             </ProtectedRoute>
           } />
           <Route path="/employee" element={

@@ -147,7 +147,6 @@ const Admin = () => {
     if (!user) return;
 
     try {
-      // Get the first organization owned by this user
       const { data: existingOrgs } = await supabase
         .from("organizations")
         .select("id")
@@ -156,58 +155,22 @@ const Admin = () => {
         .limit(1);
 
       const orgId = existingOrgs?.[0]?.id;
-
-      // Don't auto-create organizations - admin should create them manually
       if (!orgId) return;
 
-      if (orgId) {
-        setOrganizationId(orgId);
+      setOrganizationId(orgId);
 
-        // Check for existing location linked to this organization (limit 1 to handle duplicates)
-        const { data: existingLocations } = await supabase
-          .from("locations")
-          .select("id")
-          .eq("created_by", user.id)
-          .eq("organization_id", orgId)
-          .limit(1);
+      const { data: existingLocations } = await supabase
+        .from("locations")
+        .select("id")
+        .eq("organization_id", orgId)
+        .eq("is_active", true)
+        .order("created_at", { ascending: true })
+        .limit(1);
 
-        const existingLocation = existingLocations?.[0] ?? null;
+      const existingLocation = existingLocations?.[0] ?? null;
 
-        if (existingLocation) {
-          setLocationId(existingLocation.id);
-        } else {
-          const { data: unlinkedLocations } = await supabase
-            .from("locations")
-            .select("id")
-            .eq("created_by", user.id)
-            .is("organization_id", null)
-            .limit(1);
-
-          const unlinkedLocation = unlinkedLocations?.[0] ?? null;
-
-          if (unlinkedLocation) {
-            await supabase
-              .from("locations")
-              .update({ organization_id: orgId })
-              .eq("id", unlinkedLocation.id);
-            setLocationId(unlinkedLocation.id);
-          } else {
-            const { data: newLocation } = await supabase
-              .from("locations")
-              .insert({
-                name: "Oficina Central",
-                address: "Dirección principal",
-                created_by: user.id,
-                organization_id: orgId,
-              })
-              .select("id")
-              .single();
-
-            if (newLocation) {
-              setLocationId(newLocation.id);
-            }
-          }
-        }
+      if (existingLocation) {
+        setLocationId(existingLocation.id);
       }
     } catch (error) {
       console.error("Error initializing location:", error);
@@ -308,7 +271,7 @@ const Admin = () => {
       }
 
       const profileName = firstEntry?.profiles?.full_name || `Usuario ${userId.slice(0, 8)}`;
-      const locationName = firstEntry?.locations?.organizations?.name || firstEntry?.locations?.name || "Oficina";
+      const locationName = firstEntry?.locations?.name || "Sin ubicación";
 
       employeeStatuses.push({
         id: userId,

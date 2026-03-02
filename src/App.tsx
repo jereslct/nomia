@@ -12,6 +12,7 @@ import AdminQR from "./pages/AdminQR";
 import Admin from "./pages/Admin";
 import AdminUsers from "./pages/AdminUsers";
 import AdminReports from "./pages/AdminReports";
+import AdminLocations from "./pages/AdminLocations";
 import Employee from "./pages/Employee";
 import History from "./pages/History";
 import Profile from "./pages/Profile";
@@ -54,7 +55,12 @@ const App = () => (
           } />
           <Route path="/admin/reports" element={
             <ProtectedRoute requireAdmin>
-              <AdminReports />
+            <AdminReports />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/locations" element={
+            <ProtectedRoute requireAdmin>
+              <AdminLocations />
             </ProtectedRoute>
           } />
           <Route path="/employee" element={

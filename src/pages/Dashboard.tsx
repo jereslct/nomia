@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   QrCode,
@@ -16,6 +17,9 @@ import {
   AlertCircle,
   BarChart3,
   MapPin,
+  Bell,
+  Mail,
+  X,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import QRCode from "react-qr-code";
@@ -23,7 +27,13 @@ import { isSameDay } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { useScheduleConfig } from "@/hooks/useScheduleConfig";
 import { useWorkShifts } from "@/hooks/useWorkShifts";
+import { usePendingInvitations } from "@/hooks/usePendingInvitations";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface AttendanceRecord {
   id: string;
@@ -62,6 +72,8 @@ const Dashboard = () => {
   const { user, profile, isAdmin, loading, signOut } = useAuth();
   const { config: scheduleConfig, formatted: scheduleFormatted } = useScheduleConfig();
   const { shifts, loading: shiftsLoading } = useWorkShifts();
+  const { pendingCount, pendingInvitations, loading: loadingInvitations } = usePendingInvitations(user?.id, isAdmin);
+  const [alertDismissed, setAlertDismissed] = useState(false);
 
   const [attendanceHistory, setAttendanceHistory] = useState<AttendanceRecord[]>([]);
   const [todayRecords, setTodayRecords] = useState<AttendanceRecord[]>([]);
@@ -276,7 +288,75 @@ const Dashboard = () => {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            {isAdmin && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="ghost" size="icon" className="relative">
+                    <Bell className="w-5 h-5" />
+                    {pendingCount > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
+                        {pendingCount > 99 ? "99+" : pendingCount}
+                      </span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-80 p-0">
+                  <div className="p-4 border-b border-border">
+                    <h4 className="font-semibold text-sm">Notificaciones</h4>
+                    <p className="text-xs text-muted-foreground">
+                      {pendingCount > 0
+                        ? `${pendingCount} invitación${pendingCount > 1 ? "es" : ""} pendiente${pendingCount > 1 ? "s" : ""}`
+                        : "No hay notificaciones"}
+                    </p>
+                  </div>
+                  <div className="max-h-64 overflow-y-auto">
+                    {loadingInvitations ? (
+                      <div className="flex items-center justify-center py-6">
+                        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : pendingInvitations.length === 0 ? (
+                      <div className="py-8 text-center text-muted-foreground">
+                        <Bell className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                        <p className="text-sm">Todo al día</p>
+                      </div>
+                    ) : (
+                      pendingInvitations.slice(0, 5).map((inv) => (
+                        <div
+                          key={inv.id}
+                          className="flex items-start gap-3 px-4 py-3 hover:bg-muted/50 transition-colors border-b border-border last:border-0"
+                        >
+                          <div className="w-8 h-8 rounded-full bg-warning/10 flex items-center justify-center shrink-0 mt-0.5">
+                            <Mail className="w-4 h-4 text-warning" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium truncate">
+                              {inv.invited_email}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {inv.organization_name} · {new Date(inv.created_at).toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}
+                            </p>
+                          </div>
+                          <Badge variant="outline" className="text-warning border-warning/30 shrink-0 text-[10px]">
+                            Pendiente
+                          </Badge>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  {pendingCount > 0 && (
+                    <div className="p-3 border-t border-border">
+                      <Link to="/admin/users" className="w-full">
+                        <Button variant="outline" size="sm" className="w-full text-xs">
+                          Ver todas las invitaciones
+                          <ChevronRight className="w-3 h-3 ml-1" />
+                        </Button>
+                      </Link>
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
+            )}
             <Link to="/profile" className="hidden sm:flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted/50 transition-colors group">
               <div className="text-right">
                 <p className="text-sm font-medium group-hover:text-primary transition-colors">{profile?.full_name || user.email}</p>
@@ -292,6 +372,41 @@ const Dashboard = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8 max-w-6xl space-y-6">
+        {/* Pending Invitations Alert */}
+        {isAdmin && pendingCount > 0 && !alertDismissed && (
+          <div className="flex items-center gap-3 p-4 rounded-xl bg-warning/10 border border-warning/20">
+            <div className="w-10 h-10 rounded-xl bg-warning/20 flex items-center justify-center shrink-0">
+              <Mail className="w-5 h-5 text-warning" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-sm">
+                {pendingCount === 1
+                  ? "Tenés 1 invitación pendiente"
+                  : `Tenés ${pendingCount} invitaciones pendientes`}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {pendingCount === 1
+                  ? "Un usuario aún no aceptó su invitación"
+                  : `${pendingCount} usuarios aún no aceptaron sus invitaciones`}
+              </p>
+            </div>
+            <Link to="/admin/users">
+              <Button variant="outline" size="sm" className="shrink-0 text-xs">
+                Gestionar
+                <ChevronRight className="w-3 h-3 ml-1" />
+              </Button>
+            </Link>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="shrink-0 h-8 w-8"
+              onClick={() => setAlertDismissed(true)}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
+
         {/* Quick Actions - Full Width */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {isAdmin ? (

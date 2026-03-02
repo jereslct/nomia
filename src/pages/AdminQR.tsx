@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, RefreshCw, Clock, Copy, Check, Loader2, Shield, MapPin } from "lucide-react";
+import { ArrowLeft, RefreshCw, Clock, Copy, Check, Loader2, Shield, MapPin, Timer, Maximize, Minimize } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -13,6 +13,12 @@ interface LocationOption {
   id: string;
   name: string;
 }
+
+const DURATION_OPTIONS = [
+  { value: 30, label: "30 segundos" },
+  { value: 60, label: "1 minuto" },
+  { value: 300, label: "5 minutos" },
+] as const;
 
 const AdminQR = () => {
   const { toast } = useToast();
@@ -25,6 +31,9 @@ const AdminQR = () => {
   const [locations, setLocations] = useState<LocationOption[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isLoadingLocations, setIsLoadingLocations] = useState(true);
+  const [durationSeconds, setDurationSeconds] = useState(30);
+  const [kioskMode, setKioskMode] = useState(false);
+  const kioskContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!loading && (!user || !isAdmin)) {
@@ -91,19 +100,19 @@ const AdminQR = () => {
   const handleLocationChange = (newLocationId: string) => {
     setLocationId(newLocationId);
     setQrValue("");
-    generateSecureQR(newLocationId);
+    generateSecureQR(newLocationId, durationSeconds);
   };
 
-  const generateSecureQR = async (locId?: string) => {
+  const generateSecureQR = useCallback(async (locId?: string, duration?: number) => {
     const targetLocationId = locId || locationId;
+    const targetDuration = duration ?? durationSeconds;
     if (!targetLocationId || !user) return;
 
     setIsGenerating(true);
 
     try {
-      // Call edge function to generate signed QR
       const { data, error } = await supabase.functions.invoke("generate-secure-qr", {
-        body: { location_id: targetLocationId },
+        body: { location_id: targetLocationId, duration_seconds: targetDuration },
       });
 
       if (error) {
@@ -116,12 +125,15 @@ const AdminQR = () => {
       }
 
       setQrValue(data.qr_code);
-      setTimeLeft(30);
+      setTimeLeft(data.expires_in_seconds ?? targetDuration);
 
-      toast({
-        title: "QR Generado",
-        description: "Código seguro con validez de 30 segundos.",
-      });
+      if (!kioskMode) {
+        const durationLabel = DURATION_OPTIONS.find(d => d.value === targetDuration)?.label ?? `${targetDuration}s`;
+        toast({
+          title: "QR Generado",
+          description: `Código seguro con validez de ${durationLabel}.`,
+        });
+      }
     } catch (error: any) {
       console.error("Error generating secure QR:", error);
       toast({
@@ -132,7 +144,7 @@ const AdminQR = () => {
     } finally {
       setIsGenerating(false);
     }
-  };
+  }, [locationId, durationSeconds, user, kioskMode, toast]);
 
   useEffect(() => {
     if (!qrValue) return;
@@ -141,14 +153,14 @@ const AdminQR = () => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           generateSecureQR();
-          return 30;
+          return durationSeconds;
         }
         return prev - 1;
       });
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [qrValue, locationId]);
+  }, [qrValue, locationId, durationSeconds, generateSecureQR]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -170,15 +182,103 @@ const AdminQR = () => {
   };
 
   const getTimeColor = () => {
-    if (timeLeft <= 10) return "text-destructive";
-    if (timeLeft <= 20) return "text-warning";
+    const ratio = timeLeft / durationSeconds;
+    if (ratio <= 0.33) return "text-destructive";
+    if (ratio <= 0.66) return "text-warning";
     return "text-success";
   };
+
+  const handleDurationChange = (value: string) => {
+    const newDuration = parseInt(value, 10);
+    setDurationSeconds(newDuration);
+    setQrValue("");
+    generateSecureQR(undefined, newDuration);
+  };
+
+  const toggleKioskMode = () => {
+    const entering = !kioskMode;
+    setKioskMode(entering);
+    if (entering) {
+      kioskContainerRef.current?.requestFullscreen?.().catch(() => {
+        // Fullscreen not supported or denied, still show kiosk UI
+      });
+    } else {
+      document.exitFullscreen?.().catch(() => {});
+    }
+  };
+
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      if (!document.fullscreenElement && kioskMode) {
+        setKioskMode(false);
+      }
+    };
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
+  }, [kioskMode]);
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (kioskMode) {
+    return (
+      <div
+        ref={kioskContainerRef}
+        className="fixed inset-0 z-[100] bg-background flex flex-col items-center justify-center select-none"
+      >
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
+          onClick={toggleKioskMode}
+        >
+          <Minimize className="w-6 h-6" />
+        </Button>
+
+        {locations.length > 0 && (
+          <div className="absolute top-4 left-4 flex items-center gap-2 text-muted-foreground">
+            <MapPin className="w-5 h-5" />
+            <span className="text-sm font-medium">
+              {locations.find(l => l.id === locationId)?.name}
+            </span>
+          </div>
+        )}
+
+        <div className="flex flex-col items-center gap-8">
+          <h1 className="text-2xl font-bold text-foreground">Escanea para registrar asistencia</h1>
+
+          {qrValue ? (
+            <div className="relative">
+              <div className="bg-card p-10 rounded-3xl shadow-2xl">
+                <QRCode
+                  value={qrValue}
+                  size={400}
+                  style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                  bgColor="hsl(var(--card))"
+                  fgColor="hsl(var(--foreground))"
+                />
+              </div>
+              <div className={`absolute -top-4 left-1/2 -translate-x-1/2 px-6 py-2 rounded-full bg-card shadow-lg border border-border flex items-center gap-2 ${getTimeColor()}`}>
+                <Clock className="w-5 h-5" />
+                <span className="font-mono font-bold text-xl">{formatTime(timeLeft)}</span>
+              </div>
+            </div>
+          ) : (
+            <div className="w-[400px] h-[400px] flex items-center justify-center">
+              <Loader2 className="w-12 h-12 animate-spin text-primary" />
+            </div>
+          )}
+
+          <div className="flex items-center gap-2 text-success">
+            <Shield className="w-5 h-5" />
+            <span className="text-sm font-medium">Auto-regeneración activa</span>
+          </div>
+        </div>
       </div>
     );
   }
@@ -230,6 +330,27 @@ const AdminQR = () => {
               <span className="text-sm">{locations[0].name}</span>
             </div>
           )}
+
+          {/* Duration Selector */}
+          <Card className="glass-card">
+            <CardContent className="pt-6 pb-4">
+              <div className="flex items-center gap-3">
+                <Timer className="w-5 h-5 text-muted-foreground" />
+                <Select value={String(durationSeconds)} onValueChange={handleDurationChange}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Duración del código" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DURATION_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={String(opt.value)}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Security Badge */}
           <div className="flex items-center justify-center gap-2 text-success">
@@ -306,6 +427,17 @@ const AdminQR = () => {
                   Regenerar
                 </Button>
               </div>
+
+              {/* Kiosk Mode Button */}
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={toggleKioskMode}
+                disabled={!qrValue}
+              >
+                <Maximize className="w-4 h-4" />
+                Modo Kiosko
+              </Button>
             </CardContent>
           </Card>
 
@@ -318,7 +450,11 @@ const AdminQR = () => {
               <ul className="text-sm text-muted-foreground space-y-2">
                 <li className="flex items-start gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-success mt-2" />
-                  El código se regenera cada 30 segundos para máxima seguridad
+                  El código se regenera automáticamente cada {DURATION_OPTIONS.find(d => d.value === durationSeconds)?.label}
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-success mt-2" />
+                  Usa el modo kiosko para pantallas de registro permanente
                 </li>
               </ul>
             </CardContent>

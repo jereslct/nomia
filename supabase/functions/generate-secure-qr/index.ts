@@ -88,7 +88,7 @@ Deno.serve(async (req) => {
     }
 
     // Parse request body
-    const { location_id } = await req.json();
+    const { location_id, duration_seconds } = await req.json();
     if (!location_id) {
       return new Response(
         JSON.stringify({ error: "location_id required" }),
@@ -96,8 +96,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Generate QR payload with 30-second expiration
-    const expiresAt = Date.now() + 30 * 1000; // 30 seconds from now
+    const ALLOWED_DURATIONS = [30, 60, 300];
+    const duration = ALLOWED_DURATIONS.includes(duration_seconds) ? duration_seconds : 30;
+
+    const expiresAt = Date.now() + duration * 1000;
     const nonce = crypto.randomUUID();
     const payload = `${nonce}|${location_id}|${expiresAt}`;
     
@@ -128,7 +130,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Generated secure QR for location ${location_id}, expires at ${new Date(expiresAt).toISOString()}`);
+    console.log(`Generated secure QR for location ${location_id}, duration ${duration}s, expires at ${new Date(expiresAt).toISOString()}`);
 
     return new Response(
       JSON.stringify({
@@ -136,7 +138,7 @@ Deno.serve(async (req) => {
         qr_code: qrData.code,
         qr_id: qrData.id,
         expires_at: qrData.expires_at,
-        expires_in_seconds: 30,
+        expires_in_seconds: duration,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

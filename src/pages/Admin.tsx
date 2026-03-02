@@ -18,10 +18,20 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { ArrowLeft, QrCode, RefreshCw, Users, Clock, MapPin, Loader2, BarChart3, UserX } from "lucide-react";
+import { ArrowLeft, QrCode, RefreshCw, Users, Clock, MapPin, Loader2, BarChart3, UserX, ClipboardPen, LogIn, LogOut } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useScheduleConfig } from "@/hooks/useScheduleConfig";
@@ -119,6 +129,11 @@ const chartConfig = {
   finalizado: { label: "Finalizado", color: "hsl(var(--secondary))" },
 };
 
+interface LocationOption {
+  id: string;
+  name: string;
+}
+
 const Admin = () => {
   const navigate = useNavigate();
   const { user, isAdmin, loading } = useAuth();
@@ -134,6 +149,16 @@ const Admin = () => {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("todos");
   const previousLateIdsRef = useRef<Set<string>>(new Set());
   const isInitialLoadRef = useRef(true);
+
+  // Manual registration state
+  const [manualDialogOpen, setManualDialogOpen] = useState(false);
+  const [manualUserId, setManualUserId] = useState("");
+  const [manualRecordType, setManualRecordType] = useState<"entrada" | "salida">("entrada");
+  const [manualDate, setManualDate] = useState("");
+  const [manualTime, setManualTime] = useState("");
+  const [manualLocationId, setManualLocationId] = useState("");
+  const [isSubmittingManual, setIsSubmittingManual] = useState(false);
+  const [locations, setLocations] = useState<LocationOption[]>([]);
 
   useEffect(() => {
     if (!loading && (!user || !isAdmin)) {
@@ -203,6 +228,79 @@ const Admin = () => {
       }
     } catch (error) {
       console.error("Error initializing location:", error);
+    }
+  };
+
+  const fetchLocations = async (orgId: string) => {
+    const { data } = await supabase
+      .from("locations")
+      .select("id, name")
+      .eq("organization_id", orgId)
+      .eq("is_active", true)
+      .order("created_at", { ascending: true });
+    setLocations(data || []);
+  };
+
+  useEffect(() => {
+    if (organizationId) {
+      fetchLocations(organizationId);
+    }
+  }, [organizationId]);
+
+  const openManualDialog = (employee?: EmployeeStatus) => {
+    const now = new Date();
+    setManualUserId(employee?.user_id || "");
+    setManualRecordType(
+      employee?.status === "presente" || employee?.status === "tarde" ? "salida" : "entrada"
+    );
+    setManualDate(now.toISOString().split("T")[0]);
+    setManualTime(
+      `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`
+    );
+    setManualLocationId(locationId || locations[0]?.id || "");
+    setManualDialogOpen(true);
+  };
+
+  const handleManualRecord = async () => {
+    if (!manualUserId || !manualLocationId || !manualDate || !manualTime) {
+      toast({
+        title: "Campos incompletos",
+        description: "Completa todos los campos para registrar la asistencia.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmittingManual(true);
+    try {
+      const recordedAt = new Date(`${manualDate}T${manualTime}:00`).toISOString();
+
+      const { error } = await supabase.from("attendance_records").insert({
+        user_id: manualUserId,
+        record_type: manualRecordType,
+        location_id: manualLocationId,
+        recorded_at: recordedAt,
+      });
+
+      if (error) throw error;
+
+      const emp = employees.find((e) => e.user_id === manualUserId);
+      toast({
+        title: "Registro creado",
+        description: `${manualRecordType === "entrada" ? "Entrada" : "Salida"} registrada para ${emp?.name || "el empleado"} a las ${manualTime}.`,
+      });
+
+      setManualDialogOpen(false);
+      fetchTodayAttendance();
+    } catch (error) {
+      console.error("Error creating manual record:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo crear el registro. Intenta de nuevo.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmittingManual(false);
     }
   };
 
@@ -492,10 +590,14 @@ const Admin = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => openManualDialog()}>
+              <ClipboardPen className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Registro Manual</span>
+            </Button>
             <Link to="/admin/reports">
               <Button variant="outline" size="sm">
                 <BarChart3 className="w-4 h-4 mr-2" />
-                Reportes
+                <span className="hidden sm:inline">Reportes</span>
               </Button>
             </Link>
             <Button variant="outline" size="sm" onClick={fetchTodayAttendance} disabled={isLoadingData}>
@@ -690,6 +792,7 @@ const Admin = () => {
                       <TableHead className="font-semibold">Hora Salida</TableHead>
                       <TableHead className="font-semibold">Estado</TableHead>
                       <TableHead className="font-semibold">Local</TableHead>
+                      <TableHead className="font-semibold text-right">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -719,6 +822,17 @@ const Admin = () => {
                             <span className="text-sm">{employee.location}</span>
                           </div>
                         </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            title="Registrar asistencia manualmente"
+                            onClick={() => openManualDialog(employee)}
+                          >
+                            <ClipboardPen className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -727,6 +841,120 @@ const Admin = () => {
             )}
           </CardContent>
         </Card>
+        {/* Manual Registration Dialog */}
+        <Dialog open={manualDialogOpen} onOpenChange={setManualDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <ClipboardPen className="w-5 h-5" />
+                Registro Manual de Asistencia
+              </DialogTitle>
+              <DialogDescription>
+                Registra manualmente la entrada o salida de un empleado. Útil para correcciones o excepciones.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="manual-employee">Empleado</Label>
+                <Select value={manualUserId} onValueChange={setManualUserId}>
+                  <SelectTrigger id="manual-employee">
+                    <SelectValue placeholder="Selecciona un empleado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {employees.map((emp) => (
+                      <SelectItem key={emp.user_id} value={emp.user_id}>
+                        {emp.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="manual-type">Tipo de registro</Label>
+                <Select value={manualRecordType} onValueChange={(v) => setManualRecordType(v as "entrada" | "salida")}>
+                  <SelectTrigger id="manual-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="entrada">
+                      <span className="flex items-center gap-2">
+                        <LogIn className="w-4 h-4 text-success" />
+                        Entrada
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="salida">
+                      <span className="flex items-center gap-2">
+                        <LogOut className="w-4 h-4 text-muted-foreground" />
+                        Salida
+                      </span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="manual-date">Fecha</Label>
+                  <Input
+                    id="manual-date"
+                    type="date"
+                    value={manualDate}
+                    onChange={(e) => setManualDate(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="manual-time">Hora</Label>
+                  <Input
+                    id="manual-time"
+                    type="time"
+                    value={manualTime}
+                    onChange={(e) => setManualTime(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {locations.length > 1 && (
+                <div className="space-y-2">
+                  <Label htmlFor="manual-location">Ubicación</Label>
+                  <Select value={manualLocationId} onValueChange={setManualLocationId}>
+                    <SelectTrigger id="manual-location">
+                      <SelectValue placeholder="Selecciona una ubicación" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {locations.map((loc) => (
+                        <SelectItem key={loc.id} value={loc.id}>
+                          {loc.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setManualDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleManualRecord}
+                disabled={isSubmittingManual || !manualUserId || !manualLocationId}
+              >
+                {isSubmittingManual ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Registrando...
+                  </>
+                ) : (
+                  <>
+                    <ClipboardPen className="w-4 h-4" />
+                    Registrar
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );

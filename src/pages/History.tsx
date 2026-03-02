@@ -1,10 +1,18 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Calendar, CheckCircle, XCircle, Clock, Download, Loader2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ArrowLeft, Calendar, CheckCircle, XCircle, Clock, ChevronDown, Download, FileSpreadsheet, FileText, Loader2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { exportToCSV, exportToExcel, buildTimestamp } from "@/lib/exportUtils";
+import { format } from "date-fns";
 
 interface AttendanceRecord {
   id: string;
@@ -104,6 +112,21 @@ const History = () => {
   const currentMonth = new Date().toLocaleDateString("es-ES", { month: "long", year: "numeric" });
   const daysWorked = new Set(Object.keys(groupedHistory)).size;
 
+  const exportColumns = [
+    { header: "Fecha", accessor: (r: AttendanceRecord) => format(new Date(r.recorded_at), "dd/MM/yyyy") },
+    { header: "Hora", accessor: (r: AttendanceRecord) => format(new Date(r.recorded_at), "HH:mm:ss") },
+    { header: "Tipo", accessor: (r: AttendanceRecord) => r.record_type === "entrada" ? "Entrada" : "Salida" },
+    { header: "Ubicación", accessor: (r: AttendanceRecord) => r.locations?.name || "—" },
+  ];
+
+  const handleExportCSV = () => {
+    exportToCSV(history, exportColumns, `mi_asistencia_${buildTimestamp()}.csv`);
+  };
+
+  const handleExportExcel = () => {
+    exportToExcel(history, exportColumns, `mi_asistencia_${buildTimestamp()}.xlsx`, "Asistencia");
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -128,10 +151,25 @@ const History = () => {
               <p className="text-xs text-muted-foreground">Tus registros de asistencia</p>
             </div>
           </div>
-          <Button variant="outline" size="sm">
-            <Download className="w-4 h-4 mr-2" />
-            Exportar
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" disabled={history.length === 0}>
+                <Download className="w-4 h-4 mr-2" />
+                Exportar
+                <ChevronDown className="w-3.5 h-3.5 ml-1.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleExportCSV}>
+                <FileText className="w-4 h-4 mr-2" />
+                Exportar CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportExcel}>
+                <FileSpreadsheet className="w-4 h-4 mr-2" />
+                Exportar Excel
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 

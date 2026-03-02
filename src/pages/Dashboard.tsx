@@ -17,6 +17,7 @@ import {
   Loader2,
   AlertCircle,
   BarChart3,
+  MapPin,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import QRCode from "react-qr-code";
@@ -293,7 +294,7 @@ const Dashboard = () => {
 
       <main className="container mx-auto px-4 py-8 max-w-6xl space-y-6">
         {/* Quick Actions - Full Width */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {isAdmin ? (
             <>
               <Link to="/admin/qr">
@@ -319,6 +320,20 @@ const Dashboard = () => {
                     <div className="flex-1">
                       <h3 className="font-semibold">Organizaciones</h3>
                       <p className="text-sm text-muted-foreground">Gestionar equipo</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                  </CardContent>
+                </Card>
+              </Link>
+              <Link to="/admin/locations">
+                <Card className="glass-card hover-lift cursor-pointer group h-full">
+                  <CardContent className="p-6 flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-success/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <MapPin className="w-7 h-7 text-success" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold">Ubicaciones</h3>
+                      <p className="text-sm text-muted-foreground">Gestionar sedes</p>
                     </div>
                     <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
                   </CardContent>

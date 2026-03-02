@@ -1,22 +1,30 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, RefreshCw, Clock, Copy, Check, Loader2, Shield } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowLeft, RefreshCw, Clock, Copy, Check, Loader2, Shield, MapPin } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import QRCode from "react-qr-code";
 
+interface LocationOption {
+  id: string;
+  name: string;
+}
+
 const AdminQR = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user, isAdmin, loading } = useAuth();
   const [qrValue, setQrValue] = useState("");
-  const [timeLeft, setTimeLeft] = useState(30); // 30 seconds now
+  const [timeLeft, setTimeLeft] = useState(30);
   const [copied, setCopied] = useState(false);
   const [locationId, setLocationId] = useState<string | null>(null);
+  const [locations, setLocations] = useState<LocationOption[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isLoadingLocations, setIsLoadingLocations] = useState(true);
 
   useEffect(() => {
     if (!loading && (!user || !isAdmin)) {
@@ -34,47 +42,39 @@ const AdminQR = () => {
     if (!user) return;
 
     try {
-      // Get user's organization
+      setIsLoadingLocations(true);
+
       const { data: orgData } = await supabase
         .rpc("get_user_organization_id", { _user_id: user.id });
       const orgId = orgData || null;
 
-      // Try to get existing location
-      const { data: existingLocation } = await supabase
+      if (!orgId) {
+        toast({
+          title: "Sin organización",
+          description: "Crea una organización primero desde Gestión de Usuarios.",
+          variant: "destructive",
+        });
+        setIsLoadingLocations(false);
+        return;
+      }
+
+      const { data: activeLocations } = await supabase
         .from("locations")
-        .select("id, organization_id")
-        .eq("created_by", user.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .select("id, name")
+        .eq("organization_id", orgId)
+        .eq("is_active", true)
+        .order("created_at", { ascending: true });
 
-      if (existingLocation) {
-        // If location has no org, update it
-        if (!existingLocation.organization_id && orgId) {
-          await supabase
-            .from("locations")
-            .update({ organization_id: orgId })
-            .eq("id", existingLocation.id);
-        }
-        setLocationId(existingLocation.id);
-        generateSecureQR(existingLocation.id);
+      if (activeLocations && activeLocations.length > 0) {
+        setLocations(activeLocations);
+        setLocationId(activeLocations[0].id);
+        generateSecureQR(activeLocations[0].id);
       } else {
-        // Create default location with organization
-        const { data: newLocation, error } = await supabase
-          .from("locations")
-          .insert({
-            name: "Oficina Central",
-            address: "Dirección principal",
-            created_by: user.id,
-            organization_id: orgId,
-          })
-          .select("id")
-          .single();
-
-        if (error) throw error;
-        
-        setLocationId(newLocation.id);
-        generateSecureQR(newLocation.id);
+        toast({
+          title: "Sin ubicaciones",
+          description: "Crea una ubicación primero desde Gestión de Ubicaciones.",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error("Error initializing location:", error);
@@ -83,7 +83,15 @@ const AdminQR = () => {
         description: "No se pudo inicializar la ubicación.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoadingLocations(false);
     }
+  };
+
+  const handleLocationChange = (newLocationId: string) => {
+    setLocationId(newLocationId);
+    setQrValue("");
+    generateSecureQR(newLocationId);
   };
 
   const generateSecureQR = async (locId?: string) => {
@@ -193,6 +201,36 @@ const AdminQR = () => {
 
       <main className="container mx-auto px-4 py-8 max-w-lg">
         <div className="space-y-6">
+          {/* Location Selector */}
+          {locations.length > 1 && (
+            <Card className="glass-card">
+              <CardContent className="pt-6 pb-4">
+                <div className="flex items-center gap-3">
+                  <MapPin className="w-5 h-5 text-muted-foreground" />
+                  <Select value={locationId || ""} onValueChange={handleLocationChange}>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Selecciona una ubicación" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {locations.map((loc) => (
+                        <SelectItem key={loc.id} value={loc.id}>
+                          {loc.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {locations.length === 1 && (
+            <div className="flex items-center justify-center gap-2 text-muted-foreground">
+              <MapPin className="w-4 h-4" />
+              <span className="text-sm">{locations[0].name}</span>
+            </div>
+          )}
+
           {/* Security Badge */}
           <div className="flex items-center justify-center gap-2 text-success">
             <Shield className="w-5 h-5" />

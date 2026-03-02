@@ -83,7 +83,7 @@ const Employee = () => {
       if (lastRecord && lastRecord.record_type === "entrada") {
         setCurrentStatus({
           isWorking: true,
-          location: (lastRecord.locations as any)?.name || "Oficina",
+          location: (lastRecord.locations as any)?.name || "Sin ubicación",
           entryTime: new Date(lastRecord.recorded_at).toLocaleTimeString("es", {
             hour: "2-digit",
             minute: "2-digit",

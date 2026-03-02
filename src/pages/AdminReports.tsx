@@ -30,14 +30,25 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   ArrowLeft,
   BarChart3,
   Building2,
   Calendar,
   Check,
+  ChevronDown,
   ChevronsUpDown,
   Clock,
   Download,
+  FileSpreadsheet,
+  FileText,
   Loader2,
   TrendingUp,
   Users,
@@ -50,6 +61,12 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from 
 import { useAuth } from "@/hooks/useAuth";
 import { useScheduleConfig } from "@/hooks/useScheduleConfig";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  exportToCSV,
+  exportToExcel,
+  exportMultiSheetExcel,
+  buildTimestamp,
+} from "@/lib/exportUtils";
 import {
   startOfWeek,
   endOfWeek,
@@ -67,6 +84,11 @@ interface AttendanceRecord {
   record_type: string;
   recorded_at: string;
   location_id: string;
+}
+
+interface LocationInfo {
+  id: string;
+  name: string;
 }
 
 interface ProfileInfo {
@@ -183,6 +205,7 @@ const AdminReports = () => {
 
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [profiles, setProfiles] = useState<Map<string, ProfileInfo>>(new Map());
+  const [locations, setLocations] = useState<Map<string, LocationInfo>>(new Map());
   const [organizations, setOrganizations] = useState<OrgInfo[]>([]);
   const [loadingOrgs, setLoadingOrgs] = useState(true);
   const [loadingData, setLoadingData] = useState(true);
@@ -264,16 +287,21 @@ const fetchRecords = async (orgIds: string[]) => {
 
       const { data: orgLocations } = await supabase
         .from("locations")
-        .select("id")
+        .select("id, name")
         .in("organization_id", orgIds);
 
       const locationIds = orgLocations?.map((l) => l.id) || [];
       if (locationIds.length === 0) {
         setRecords([]);
         setProfiles(new Map());
+        setLocations(new Map());
         setLoadingData(false);
         return;
       }
+
+      const locMap = new Map<string, LocationInfo>();
+      orgLocations?.forEach((l) => locMap.set(l.id, { id: l.id, name: l.name }));
+      setLocations(locMap);
 
       const { data, error } = await supabase
         .from("attendance_records")
@@ -439,25 +467,74 @@ const fetchRecords = async (orgIds: string[]) => {
     }));
   }, [records, profiles]);
 
-  const exportCSV = () => {
-    const headers = ["Empleado", "Días trabajados", "A tiempo", "Tarde", "% Puntualidad", "Horas totales"];
-    const rows = employeeReports.map((e) => [
-      e.name,
-      e.totalDays,
-      e.onTimeDays,
-      e.lateDays,
-      `${e.punctualityPct}%`,
-      `${e.totalHours}h ${e.totalMinutes}m`,
-    ]);
+  const summaryColumns = [
+    { header: "Empleado", accessor: (e: EmployeeReport) => e.name },
+    { header: "Días trabajados", accessor: (e: EmployeeReport) => e.totalDays },
+    { header: "A tiempo", accessor: (e: EmployeeReport) => e.onTimeDays },
+    { header: "Tarde", accessor: (e: EmployeeReport) => e.lateDays },
+    { header: "% Puntualidad", accessor: (e: EmployeeReport) => `${e.punctualityPct}%` },
+    { header: "Horas totales", accessor: (e: EmployeeReport) => `${e.totalHours}h ${e.totalMinutes}m` },
+  ];
 
-    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `reporte_asistencia_${format(new Date(), "yyyy-MM-dd")}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const detailColumns = [
+    { header: "Empleado", accessor: (r: AttendanceRecord) => profiles.get(r.user_id)?.full_name || r.user_id.slice(0, 8) },
+    { header: "Fecha", accessor: (r: AttendanceRecord) => format(new Date(r.recorded_at), "dd/MM/yyyy") },
+    { header: "Hora", accessor: (r: AttendanceRecord) => format(new Date(r.recorded_at), "HH:mm:ss") },
+    { header: "Tipo", accessor: (r: AttendanceRecord) => r.record_type === "entrada" ? "Entrada" : "Salida" },
+    { header: "Ubicación", accessor: (r: AttendanceRecord) => locations.get(r.location_id)?.name || "—" },
+    { header: "Puntualidad", accessor: (r: AttendanceRecord) => {
+      if (r.record_type !== "entrada") return "—";
+      return isOnTime(r.recorded_at) ? "A tiempo" : "Tarde";
+    }},
+  ];
+
+  const ts = buildTimestamp();
+  const periodSuffix = PERIOD_OPTIONS.find((o) => o.value === period)?.label.toLowerCase().replace(/ /g, "_") ?? period;
+
+  const handleExportSummaryCSV = () => {
+    exportToCSV(employeeReports, summaryColumns, `resumen_asistencia_${periodSuffix}_${ts}.csv`);
+  };
+
+  const handleExportSummaryExcel = () => {
+    exportToExcel(employeeReports, summaryColumns, `resumen_asistencia_${periodSuffix}_${ts}.xlsx`, "Resumen");
+  };
+
+  const handleExportDetailCSV = () => {
+    const sorted = [...filteredRecords].sort(
+      (a, b) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime()
+    );
+    exportToCSV(sorted, detailColumns, `detalle_asistencia_${periodSuffix}_${ts}.csv`);
+  };
+
+  const handleExportDetailExcel = () => {
+    const sorted = [...filteredRecords].sort(
+      (a, b) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime()
+    );
+    exportToExcel(sorted, detailColumns, `detalle_asistencia_${periodSuffix}_${ts}.xlsx`, "Detalle");
+  };
+
+  const handleExportCompleteExcel = () => {
+    const sortedRecords = [...filteredRecords].sort(
+      (a, b) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime()
+    );
+
+    const summaryHeaders = summaryColumns.map((c) => c.header);
+    const summaryRows = employeeReports.map((e) =>
+      summaryColumns.map((c) => c.accessor(e))
+    );
+
+    const detailHeaders = detailColumns.map((c) => c.header);
+    const detailRows = sortedRecords.map((r) =>
+      detailColumns.map((c) => c.accessor(r))
+    );
+
+    exportMultiSheetExcel(
+      [
+        { name: "Resumen", headers: summaryHeaders, rows: summaryRows },
+        { name: "Detalle registros", headers: detailHeaders, rows: detailRows },
+      ],
+      `reporte_completo_${periodSuffix}_${ts}.xlsx`,
+    );
   };
 
   if (authLoading || loadingOrgs) {
@@ -490,10 +567,41 @@ const fetchRecords = async (orgIds: string[]) => {
             <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loadingData}>
               <RefreshCw className={`w-4 h-4 ${loadingData ? "animate-spin" : ""}`} />
             </Button>
-            <Button variant="outline" size="sm" onClick={exportCSV} disabled={employeeReports.length === 0}>
-              <Download className="w-4 h-4 mr-2" />
-              CSV
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" disabled={filteredRecords.length === 0}>
+                  <Download className="w-4 h-4 mr-2" />
+                  Exportar
+                  <ChevronDown className="w-3.5 h-3.5 ml-1.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Resumen por empleado</DropdownMenuLabel>
+                <DropdownMenuItem onClick={handleExportSummaryCSV} disabled={employeeReports.length === 0}>
+                  <FileText className="w-4 h-4 mr-2" />
+                  Resumen CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportSummaryExcel} disabled={employeeReports.length === 0}>
+                  <FileSpreadsheet className="w-4 h-4 mr-2" />
+                  Resumen Excel
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Registros detallados</DropdownMenuLabel>
+                <DropdownMenuItem onClick={handleExportDetailCSV}>
+                  <FileText className="w-4 h-4 mr-2" />
+                  Detalle CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportDetailExcel}>
+                  <FileSpreadsheet className="w-4 h-4 mr-2" />
+                  Detalle Excel
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleExportCompleteExcel}>
+                  <FileSpreadsheet className="w-4 h-4 mr-2" />
+                  Reporte completo (Excel)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>

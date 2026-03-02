@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   QrCode,
   Clock,
@@ -24,6 +22,7 @@ import QRCode from "react-qr-code";
 import { isSameDay } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { useScheduleConfig } from "@/hooks/useScheduleConfig";
+import { useWorkShifts } from "@/hooks/useWorkShifts";
 import { supabase } from "@/integrations/supabase/client";
 
 interface AttendanceRecord {
@@ -61,13 +60,13 @@ const isEarlyExit = (recordedAt: string, scheduleHour: number, scheduleMinute: n
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, profile, isAdmin, loading, signOut } = useAuth();
-  const { config: scheduleConfig, setConfig: setScheduleConfig, saveConfig: saveScheduleConfig, formatted: scheduleFormatted, loading: scheduleLoading } = useScheduleConfig();
+  const { config: scheduleConfig, formatted: scheduleFormatted } = useScheduleConfig();
+  const { shifts, loading: shiftsLoading } = useWorkShifts();
 
   const [attendanceHistory, setAttendanceHistory] = useState<AttendanceRecord[]>([]);
   const [todayRecords, setTodayRecords] = useState<AttendanceRecord[]>([]);
   const [activeQrCode, setActiveQrCode] = useState<string | null>(null);
   const [loadingRecords, setLoadingRecords] = useState(true);
-  const [editingSchedule, setEditingSchedule] = useState(false);
   const [monthlyStats, setMonthlyStats] = useState<{ daysWorked: number; totalHours: number; totalMinutes: number }>({ daysWorked: 0, totalHours: 0, totalMinutes: 0 });
 
   useEffect(() => {
@@ -410,11 +409,13 @@ const Dashboard = () => {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <CardTitle className="text-lg">
-                    {isAdmin ? "Configuración de Horarios" : "Estado de Hoy"}
+                    {isAdmin ? "Turnos y Horarios" : "Estado de Hoy"}
                   </CardTitle>
                   {isAdmin ? (
                     <CardDescription className="text-xs">
-                      Tolerancia entrada: {scheduleConfig.entryToleranceMinutes} min | salida: {scheduleConfig.exitToleranceMinutes} min
+                      {shifts.length === 0
+                        ? "Sin turnos configurados"
+                        : `${shifts.length} turno${shifts.length > 1 ? "s" : ""} configurado${shifts.length > 1 ? "s" : ""}`}
                     </CardDescription>
                   ) : (
                     <CardDescription className="text-xs">
@@ -423,117 +424,66 @@ const Dashboard = () => {
                   )}
                 </div>
                 {isAdmin && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 px-2"
-                    onClick={() => setEditingSchedule((v) => !v)}
-                  >
-                    <Settings className="w-4 h-4 mr-2" />
-                    {editingSchedule ? "Cerrar" : "Editar"}
-                  </Button>
+                  <Link to="/admin/shifts">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-2"
+                    >
+                      <Settings className="w-4 h-4 mr-2" />
+                      Gestionar
+                    </Button>
+                  </Link>
                 )}
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {isAdmin ? (
                 <>
-                  {editingSchedule ? (
-                    <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <Label htmlFor="schedule-entry">Entrada</Label>
-                          <Input
-                            id="schedule-entry"
-                            type="time"
-                            value={scheduleFormatted.entry}
-                            onChange={(e) => {
-                              const [h, m] = e.target.value.split(":").map(Number);
-                              setScheduleConfig({ entryHour: h ?? scheduleConfig.entryHour, entryMinute: m ?? scheduleConfig.entryMinute });
-                            }}
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <Label htmlFor="schedule-exit">Salida</Label>
-                          <Input
-                            id="schedule-exit"
-                            type="time"
-                            value={scheduleFormatted.exit}
-                            onChange={(e) => {
-                              const [h, m] = e.target.value.split(":").map(Number);
-                              setScheduleConfig({ exitHour: h ?? scheduleConfig.exitHour, exitMinute: m ?? scheduleConfig.exitMinute });
-                            }}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <Label htmlFor="schedule-entry-tolerance">Tolerancia entrada (min)</Label>
-                        <Input
-                          id="schedule-entry-tolerance"
-                          type="number"
-                          min={0}
-                          max={60}
-                          value={scheduleConfig.entryToleranceMinutes}
-                          onChange={(e) => {
-                            const n = Number(e.target.value);
-                            setScheduleConfig({ entryToleranceMinutes: Number.isFinite(n) ? n : scheduleConfig.entryToleranceMinutes });
-                          }}
-                        />
-                        <p className="text-xs text-muted-foreground">Puede llegar hasta {scheduleConfig.entryToleranceMinutes} min antes o después.</p>
-                      </div>
-
-                      <div className="space-y-1">
-                        <Label htmlFor="schedule-exit-tolerance">Tolerancia salida (min)</Label>
-                        <Input
-                          id="schedule-exit-tolerance"
-                          type="number"
-                          min={0}
-                          max={120}
-                          value={scheduleConfig.exitToleranceMinutes}
-                          onChange={(e) => {
-                            const n = Number(e.target.value);
-                            setScheduleConfig({ exitToleranceMinutes: Number.isFinite(n) ? n : scheduleConfig.exitToleranceMinutes });
-                          }}
-                        />
-                        <p className="text-xs text-muted-foreground">Puede salir hasta {scheduleConfig.exitToleranceMinutes} min después.</p>
-                      </div>
-                      
-                      <Button 
-                        variant="hero" 
-                        className="w-full mt-3"
-                        onClick={async () => {
-                          const success = await saveScheduleConfig(scheduleConfig);
-                          if (success) {
-                            setEditingSchedule(false);
-                          }
-                        }}
-                      >
-                        Guardar Horario
-                      </Button>
+                  {shiftsLoading ? (
+                    <div className="flex items-center justify-center py-4">
+                      <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : shifts.length === 0 ? (
+                    <div className="text-center py-4">
+                      <Clock className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
+                      <p className="text-sm text-muted-foreground mb-3">
+                        No hay turnos configurados
+                      </p>
+                      <Link to="/admin/shifts">
+                        <Button variant="outline" size="sm">Crear Turno</Button>
+                      </Link>
                     </div>
                   ) : (
-                    <>
-                      <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
-                        <div className="flex items-center gap-3">
-                          <Clock className="w-5 h-5 text-primary" />
-                          <span className="font-medium">Entrada</span>
+                    <div className="space-y-3">
+                      {shifts.slice(0, 3).map(shift => (
+                        <div key={shift.id} className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <Clock className="w-5 h-5 text-primary shrink-0" />
+                            <div className="min-w-0">
+                              <span className="font-medium text-sm block truncate">{shift.name}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {(() => {
+                                  const dayNames = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+                                  return shift.active_days.map(d => dayNames[d]).join(", ");
+                                })()}
+                              </span>
+                            </div>
+                          </div>
+                          <span className="font-mono text-sm font-semibold text-foreground shrink-0 ml-2">
+                            {shift.start_time.slice(0, 5)} - {shift.end_time.slice(0, 5)}
+                          </span>
                         </div>
-                        <span className="font-mono text-lg font-semibold text-foreground">
-                          {scheduleFormatted.entry}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
-                        <div className="flex items-center gap-3">
-                          <Clock className="w-5 h-5 text-primary" />
-                          <span className="font-medium">Salida</span>
-                        </div>
-                        <span className="font-mono text-lg font-semibold text-foreground">
-                          {scheduleFormatted.exit}
-                        </span>
-                      </div>
-                    </>
+                      ))}
+                      {shifts.length > 3 && (
+                        <Link to="/admin/shifts" className="block">
+                          <p className="text-xs text-primary text-center hover:underline">
+                            +{shifts.length - 3} turno{shifts.length - 3 > 1 ? "s" : ""} más
+                          </p>
+                        </Link>
+                      )}
+                    </div>
                   )}
                 </>
               ) : (

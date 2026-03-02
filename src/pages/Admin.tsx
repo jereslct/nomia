@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -19,10 +19,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { ArrowLeft, QrCode, RefreshCw, Users, Clock, MapPin, Loader2, BarChart3 } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { ArrowLeft, QrCode, RefreshCw, Users, Clock, MapPin, Loader2, BarChart3, UserX } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useScheduleConfig } from "@/hooks/useScheduleConfig";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { PieChart, Pie, Cell } from "recharts";
 import QRCode from "react-qr-code";
 
 interface AttendanceRecord {
@@ -79,12 +84,16 @@ const getInitials = (name: string) => {
     .slice(0, 2);
 };
 
-const isLate = (entryTime: string): boolean => {
+const isLateForSchedule = (
+  entryTime: string,
+  entryHour: number,
+  entryMinute: number,
+  toleranceMinutes: number
+): boolean => {
   const entryDate = new Date(entryTime);
-  const hours = entryDate.getHours();
-  const minutes = entryDate.getMinutes();
-  // Late if after 9:00 AM
-  return hours > 9 || (hours === 9 && minutes > 0);
+  const totalEntryMinutes = entryDate.getHours() * 60 + entryDate.getMinutes();
+  const deadlineMinutes = entryHour * 60 + entryMinute + toleranceMinutes;
+  return totalEntryMinutes > deadlineMinutes;
 };
 
 const formatTime = (isoString: string): string => {
@@ -94,9 +103,27 @@ const formatTime = (isoString: string): string => {
   });
 };
 
+type StatusFilter = "todos" | "presente" | "tarde" | "ausente" | "finalizado";
+
+const STATUS_CHART_COLORS: Record<string, string> = {
+  presente: "hsl(var(--success))",
+  tarde: "hsl(var(--warning))",
+  ausente: "hsl(var(--muted-foreground))",
+  finalizado: "hsl(var(--secondary))",
+};
+
+const chartConfig = {
+  presente: { label: "En Horario", color: "hsl(var(--success))" },
+  tarde: { label: "Tarde", color: "hsl(var(--warning))" },
+  ausente: { label: "Ausente", color: "hsl(var(--muted-foreground))" },
+  finalizado: { label: "Finalizado", color: "hsl(var(--secondary))" },
+};
+
 const Admin = () => {
   const navigate = useNavigate();
   const { user, isAdmin, loading } = useAuth();
+  const { config: scheduleConfig, organizationId: scheduleOrgId } = useScheduleConfig();
+  const { toast } = useToast();
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
   const [qrValue, setQrValue] = useState("");
   const [timeLeft, setTimeLeft] = useState(300);
@@ -104,6 +131,9 @@ const Admin = () => {
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [locationId, setLocationId] = useState<string | null>(null);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("todos");
+  const previousLateIdsRef = useRef<Set<string>>(new Set());
+  const isInitialLoadRef = useRef(true);
 
   useEffect(() => {
     if (!loading && (!user || !isAdmin)) {
@@ -132,7 +162,6 @@ const Admin = () => {
           table: "attendance_records",
         },
         () => {
-          // Refetch when any change happens
           fetchTodayAttendance();
         }
       )
@@ -177,11 +206,40 @@ const Admin = () => {
     }
   };
 
+  const fetchOrgMembers = async (orgId: string): Promise<Map<string, { full_name: string; avatar_url: string | null }>> => {
+    const membersMap = new Map<string, { full_name: string; avatar_url: string | null }>();
+
+    const { data: members } = await supabase
+      .from("organization_members")
+      .select("user_id")
+      .eq("organization_id", orgId)
+      .eq("status", "accepted")
+      .not("user_id", "is", null);
+
+    if (!members) return membersMap;
+
+    const memberUserIds = members
+      .map((m) => m.user_id)
+      .filter((id): id is string => id !== null);
+
+    if (memberUserIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, avatar_url")
+        .in("user_id", memberUserIds);
+
+      profiles?.forEach((p) => {
+        membersMap.set(p.user_id, { full_name: p.full_name, avatar_url: p.avatar_url });
+      });
+    }
+
+    return membersMap;
+  };
+
   const fetchTodayAttendance = async () => {
     try {
       const today = new Date().toISOString().split("T")[0];
 
-      // Get all attendance records for today
       const { data: records, error } = await supabase
         .from("attendance_records")
         .select(`
@@ -207,11 +265,10 @@ const Admin = () => {
         return;
       }
 
-      // Fetch profiles separately
       const userIds = [...new Set(records?.map((r) => r.user_id) || [])];
-      
+
       let profilesMap = new Map<string, { full_name: string; avatar_url: string | null }>();
-      
+
       if (userIds.length > 0) {
         const { data: profiles } = await supabase
           .from("profiles")
@@ -223,13 +280,19 @@ const Admin = () => {
         });
       }
 
-      // Combine records with profiles
       const recordsWithProfiles = records?.map((r) => ({
         ...r,
         profiles: profilesMap.get(r.user_id) || null,
       })) || [];
 
-      processRecords(recordsWithProfiles as AttendanceRecord[]);
+      // Fetch all org members for absent calculation
+      const resolvedOrgId = organizationId || scheduleOrgId;
+      let allMembersMap = new Map<string, { full_name: string; avatar_url: string | null }>();
+      if (resolvedOrgId) {
+        allMembersMap = await fetchOrgMembers(resolvedOrgId);
+      }
+
+      processRecords(recordsWithProfiles as AttendanceRecord[], allMembersMap);
     } catch (error) {
       console.error("Error:", error);
     } finally {
@@ -237,8 +300,10 @@ const Admin = () => {
     }
   };
 
-  const processRecords = (records: AttendanceRecord[]) => {
-    // Group records by user
+  const processRecords = (
+    records: AttendanceRecord[],
+    allMembersMap: Map<string, { full_name: string; avatar_url: string | null }>
+  ) => {
     const userRecords = new Map<string, AttendanceRecord[]>();
 
     records.forEach((record) => {
@@ -247,11 +312,10 @@ const Admin = () => {
       userRecords.set(record.user_id, existing);
     });
 
-    // Process each user's records
     const employeeStatuses: EmployeeStatus[] = [];
+    const newLateIds = new Set<string>();
 
     userRecords.forEach((userRecs, userId) => {
-      // Sort by time
       userRecs.sort((a, b) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime());
 
       const firstEntry = userRecs.find((r) => r.record_type === "entrada");
@@ -263,27 +327,72 @@ const Admin = () => {
       if (firstEntry) {
         if (lastRecord.record_type === "salida") {
           status = "finalizado";
-        } else if (isLate(firstEntry.recorded_at)) {
+        } else if (
+          isLateForSchedule(
+            firstEntry.recorded_at,
+            scheduleConfig.entryHour,
+            scheduleConfig.entryMinute,
+            scheduleConfig.entryToleranceMinutes
+          )
+        ) {
           status = "tarde";
+          newLateIds.add(userId);
         } else {
           status = "presente";
         }
       }
 
-      const profileName = firstEntry?.profiles?.full_name || `Usuario ${userId.slice(0, 8)}`;
+      const profileName =
+        firstEntry?.profiles?.full_name ||
+        allMembersMap.get(userId)?.full_name ||
+        `Usuario ${userId.slice(0, 8)}`;
       const locationName = firstEntry?.locations?.name || "Sin ubicación";
 
       employeeStatuses.push({
         id: userId,
         user_id: userId,
         name: profileName,
-        avatar: firstEntry?.profiles?.avatar_url || null,
+        avatar: firstEntry?.profiles?.avatar_url || allMembersMap.get(userId)?.avatar_url || null,
         entryTime: firstEntry ? formatTime(firstEntry.recorded_at) : null,
         exitTime: lastExit ? formatTime(lastExit.recorded_at) : null,
         status,
         location: locationName,
       });
     });
+
+    // Add absent org members (those with no records today)
+    allMembersMap.forEach((profile, memberId) => {
+      if (!userRecords.has(memberId)) {
+        employeeStatuses.push({
+          id: memberId,
+          user_id: memberId,
+          name: profile.full_name,
+          avatar: profile.avatar_url,
+          entryTime: null,
+          exitTime: null,
+          status: "ausente",
+          location: "—",
+        });
+      }
+    });
+
+    // Late arrival notifications (skip first load)
+    if (!isInitialLoadRef.current) {
+      newLateIds.forEach((id) => {
+        if (!previousLateIdsRef.current.has(id)) {
+          const emp = employeeStatuses.find((e) => e.id === id);
+          if (emp) {
+            toast({
+              title: "Llegada tarde detectada",
+              description: `${emp.name} llegó tarde a las ${emp.entryTime}`,
+              variant: "destructive",
+            });
+          }
+        }
+      });
+    }
+    isInitialLoadRef.current = false;
+    previousLateIdsRef.current = newLateIds;
 
     setEmployees(employeeStatuses);
   };
@@ -348,6 +457,23 @@ const Admin = () => {
   const presentCount = employees.filter((e) => e.status === "presente").length;
   const lateCount = employees.filter((e) => e.status === "tarde").length;
   const finishedCount = employees.filter((e) => e.status === "finalizado").length;
+  const absentCount = employees.filter((e) => e.status === "ausente").length;
+  const totalCount = employees.length;
+
+  const filteredEmployees = useMemo(() => {
+    if (statusFilter === "todos") return employees;
+    return employees.filter((e) => e.status === statusFilter);
+  }, [employees, statusFilter]);
+
+  const pieData = useMemo(() => {
+    const data = [
+      { name: "En Horario", value: presentCount, key: "presente" },
+      { name: "Tarde", value: lateCount, key: "tarde" },
+      { name: "Ausente", value: absentCount, key: "ausente" },
+      { name: "Finalizado", value: finishedCount, key: "finalizado" },
+    ].filter((d) => d.value > 0);
+    return data;
+  }, [presentCount, lateCount, absentCount, finishedCount]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -381,8 +507,11 @@ const Admin = () => {
 
       <main className="container mx-auto px-4 py-8 space-y-8">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="glass-card">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card
+            className={`glass-card cursor-pointer transition-all ${statusFilter === "presente" ? "ring-2 ring-success" : ""}`}
+            onClick={() => setStatusFilter(statusFilter === "presente" ? "todos" : "presente")}
+          >
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-full bg-success/20 flex items-center justify-center">
@@ -395,7 +524,10 @@ const Admin = () => {
               </div>
             </CardContent>
           </Card>
-          <Card className="glass-card">
+          <Card
+            className={`glass-card cursor-pointer transition-all ${statusFilter === "tarde" ? "ring-2 ring-warning" : ""}`}
+            onClick={() => setStatusFilter(statusFilter === "tarde" ? "todos" : "tarde")}
+          >
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-full bg-warning/20 flex items-center justify-center">
@@ -408,7 +540,26 @@ const Admin = () => {
               </div>
             </CardContent>
           </Card>
-          <Card className="glass-card">
+          <Card
+            className={`glass-card cursor-pointer transition-all ${statusFilter === "ausente" ? "ring-2 ring-destructive" : ""}`}
+            onClick={() => setStatusFilter(statusFilter === "ausente" ? "todos" : "ausente")}
+          >
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-destructive/20 flex items-center justify-center">
+                  <UserX className="w-6 h-6 text-destructive" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Ausentes</p>
+                  <p className="text-2xl font-bold">{absentCount}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card
+            className={`glass-card cursor-pointer transition-all ${statusFilter === "finalizado" ? "ring-2 ring-secondary" : ""}`}
+            onClick={() => setStatusFilter(statusFilter === "finalizado" ? "todos" : "finalizado")}
+          >
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
@@ -423,27 +574,111 @@ const Admin = () => {
           </Card>
         </div>
 
+        {/* Attendance Chart */}
+        {totalCount > 0 && (
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <BarChart3 className="w-5 h-5" />
+                Distribución de Asistencia Hoy
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col md:flex-row items-center gap-6">
+                <ChartContainer config={chartConfig} className="h-[200px] w-full max-w-[250px]">
+                  <PieChart>
+                    <Pie
+                      data={pieData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={80}
+                      paddingAngle={3}
+                      dataKey="value"
+                      nameKey="name"
+                    >
+                      {pieData.map((entry) => (
+                        <Cell key={entry.key} fill={STATUS_CHART_COLORS[entry.key]} />
+                      ))}
+                    </Pie>
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                  </PieChart>
+                </ChartContainer>
+                <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-success" />
+                    <span className="text-muted-foreground">En Horario:</span>
+                    <span className="font-semibold">{presentCount}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-warning" />
+                    <span className="text-muted-foreground">Tarde:</span>
+                    <span className="font-semibold">{lateCount}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-destructive" />
+                    <span className="text-muted-foreground">Ausentes:</span>
+                    <span className="font-semibold">{absentCount}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-secondary" />
+                    <span className="text-muted-foreground">Finalizados:</span>
+                    <span className="font-semibold">{finishedCount}</span>
+                  </div>
+                  <div className="col-span-2 pt-2 border-t">
+                    <span className="text-muted-foreground">Total empleados:</span>
+                    <span className="font-bold ml-2">{totalCount}</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Live Status Table */}
         <Card className="glass-card">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              Monitor en Vivo
-              <span className="ml-2 w-2 h-2 rounded-full bg-success animate-pulse" />
-            </CardTitle>
-            <CardDescription>Estado actual de asistencia de empleados (actualización en tiempo real)</CardDescription>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  Monitor en Vivo
+                  <span className="ml-2 w-2 h-2 rounded-full bg-success animate-pulse" />
+                </CardTitle>
+                <CardDescription>Estado actual de asistencia de empleados (actualización en tiempo real)</CardDescription>
+              </div>
+              <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
+                <TabsList>
+                  <TabsTrigger value="todos">Todos ({totalCount})</TabsTrigger>
+                  <TabsTrigger value="presente">En Horario ({presentCount})</TabsTrigger>
+                  <TabsTrigger value="tarde">Tarde ({lateCount})</TabsTrigger>
+                  <TabsTrigger value="ausente">Ausentes ({absentCount})</TabsTrigger>
+                  <TabsTrigger value="finalizado">Fin ({finishedCount})</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
           </CardHeader>
           <CardContent>
             {isLoadingData ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
               </div>
-            ) : employees.length === 0 ? (
+            ) : filteredEmployees.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>No hay registros de asistencia hoy</p>
-                <p className="text-sm">Los empleados aparecerán aquí cuando escaneen el código QR</p>
+                {statusFilter !== "todos" ? (
+                  <>
+                    <p>No hay empleados con estado &quot;{statusFilter}&quot;</p>
+                    <Button variant="link" className="mt-2" onClick={() => setStatusFilter("todos")}>
+                      Ver todos los empleados
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <p>No hay registros de asistencia hoy</p>
+                    <p className="text-sm">Los empleados aparecerán aquí cuando escaneen el código QR</p>
+                  </>
+                )}
               </div>
             ) : (
               <div className="rounded-lg border border-border overflow-hidden">
@@ -458,7 +693,7 @@ const Admin = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {employees.map((employee) => (
+                    {filteredEmployees.map((employee) => (
                       <TableRow key={employee.id} className="hover:bg-muted/30">
                         <TableCell>
                           <div className="flex items-center gap-3">

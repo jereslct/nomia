@@ -1,210 +1,447 @@
 import { Button } from "@/components/ui/button";
-import { QrCode, Clock, Users, Shield, ArrowRight, CheckCircle } from "lucide-react";
+import { 
+  QrCode, Clock, Users, Receipt, Calculator, TrendingUp, 
+  ArrowRight, ExternalLink, Sparkles, ChevronDown 
+} from "lucide-react";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
+
+const projects = [
+  {
+    id: 1,
+    name: "Nomia",
+    subtitle: "Control de Asistencia",
+    description: "Ingreso y egreso de empleados a través de QR. Gestión de horarios, turnos, reportes en tiempo real y más.",
+    icon: QrCode,
+    status: "live" as const,
+    url: "https://beam-in-out.lovable.app",
+    internalUrl: "/auth",
+    features: ["Escaneo QR", "Turnos y horarios", "Reportes", "Multi-ubicación"],
+    phase: "Fase 1",
+    gradient: "from-blue-600 to-cyan-500",
+    bgGlow: "bg-blue-500/20",
+  },
+  {
+    id: 2,
+    name: "Proyecto 2",
+    subtitle: "En Desarrollo",
+    description: "Segundo proyecto en desarrollo. Nuevas funcionalidades para potenciar tu negocio.",
+    icon: Sparkles,
+    status: "live" as const,
+    url: "https://lovable.dev/projects/f6361105-6c1b-4e3c-855e-a2ae73bd8fef",
+    features: ["En desarrollo", "Próximamente más info"],
+    phase: "Activo",
+    gradient: "from-violet-600 to-purple-500",
+    bgGlow: "bg-violet-500/20",
+  },
+  {
+    id: 3,
+    name: "AFIP Connect",
+    subtitle: "Contabilidad & ARCA",
+    description: "Conexión directa con AFIP. Contabilidad básica, factura A, compras sin boleta, resumen de IVA vendedor.",
+    icon: Calculator,
+    status: "coming_soon" as const,
+    features: ["Conexión AFIP", "Contabilidad básica", "Facturas A/B", "Resumen IVA"],
+    phase: "Fase 2",
+    gradient: "from-emerald-600 to-teal-500",
+    bgGlow: "bg-emerald-500/20",
+  },
+  {
+    id: 4,
+    name: "Factura Pro",
+    subtitle: "Facturación & Stock",
+    description: "Sistema completo de facturación, movimientos de mercadería, stock, venta por catálogo y local físico. Reportes de vendedores.",
+    icon: Receipt,
+    status: "coming_soon" as const,
+    features: ["Facturación", "Control de stock", "Catálogo online", "Reportes de ventas"],
+    phase: "Fase 2",
+    gradient: "from-amber-600 to-orange-500",
+    bgGlow: "bg-amber-500/20",
+  },
+  {
+    id: 5,
+    name: "Rentabilidad 360",
+    subtitle: "Control de Gastos",
+    description: "Control integral de gastos por unidad de negocio. Sueldos, alquileres, servicios, rentabilidad y punto de equilibrio.",
+    icon: TrendingUp,
+    status: "coming_soon" as const,
+    features: ["Gastos por local", "Sueldos", "Rentabilidad", "Punto de equilibrio"],
+    phase: "Fase 3",
+    gradient: "from-rose-600 to-pink-500",
+    bgGlow: "bg-rose-500/20",
+  },
+];
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 30 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.1, duration: 0.6, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
+  }),
+};
 
 const Index = () => {
   return (
-    <div className="min-h-screen gradient-hero">
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
-              <QrCode className="w-5 h-5 text-primary-foreground" />
+    <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
+      {/* Nav */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/60 backdrop-blur-2xl border-b border-border/30">
+        <div className="container mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center">
+              <span className="text-white font-black text-sm">S</span>
             </div>
-            <span className="font-bold text-xl">Nomia</span>
+            <span className="font-bold text-lg tracking-tight">Suite</span>
           </div>
           <div className="flex items-center gap-3">
             <Link to="/auth">
-              <Button variant="ghost">Iniciar Sesión</Button>
+              <Button variant="ghost" size="sm">Iniciar Sesión</Button>
             </Link>
             <Link to="/auth?mode=signup">
-              <Button variant="hero" size="sm">
-                Registrarse
+              <Button size="sm" className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white border-0 hover:opacity-90">
+                Comenzar
               </Button>
             </Link>
           </div>
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4">
-        <div className="container mx-auto max-w-6xl">
-          <div className="text-center space-y-6 animate-fade-in">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium">
-              <Clock className="w-4 h-4" />
-              Control de Asistencia Inteligente
-            </div>
-            
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight">
-              Marca tu asistencia
-              <br />
-              <span className="text-gradient">con un simple escaneo</span>
-            </h1>
-            
-            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-              Sistema moderno de control de asistencia basado en códigos QR. 
-              Rápido, seguro y fácil de usar para empresas de cualquier tamaño.
-            </p>
+      {/* Hero */}
+      <section className="relative pt-32 pb-24 px-6">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-20 left-1/4 w-96 h-96 bg-blue-500/8 rounded-full blur-3xl" />
+          <div className="absolute top-40 right-1/4 w-80 h-80 bg-cyan-500/8 rounded-full blur-3xl" />
+        </div>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+        <div className="container mx-auto max-w-5xl relative">
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            className="text-center space-y-8"
+          >
+            <motion.div variants={fadeUp} custom={0} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium">
+              <Sparkles className="w-4 h-4" />
+              Ecosistema de Gestión para Tiendas
+            </motion.div>
+
+            <motion.h1 variants={fadeUp} custom={1} className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter leading-[0.9]">
+              Todas tus
+              <br />
+              <span className="bg-gradient-to-r from-blue-600 via-cyan-500 to-violet-600 bg-clip-text text-transparent">
+                herramientas
+              </span>
+              <br />
+              en un solo lugar
+            </motion.h1>
+
+            <motion.p variants={fadeUp} custom={2} className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+              Desde el control de asistencia hasta la rentabilidad de tu negocio. 
+              Un ecosistema completo que crece con vos.
+            </motion.p>
+
+            <motion.div variants={fadeUp} custom={3} className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
               <Link to="/auth?mode=signup">
-                <Button variant="hero" size="xl" className="group">
-                  Comenzar Gratis
+                <Button size="xl" className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white border-0 hover:opacity-90 shadow-lg shadow-blue-500/25 group">
+                  Explorar Productos
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>
-              <Link to="/auth">
-                <Button variant="hero-outline" size="xl">
-                  Ver Demo
-                </Button>
-              </Link>
-            </div>
-          </div>
+            </motion.div>
 
-          {/* Hero Visual */}
-          <div className="mt-16 relative">
-            <div className="absolute inset-0 gradient-primary opacity-10 blur-3xl rounded-full" />
-            <div className="relative glass-card rounded-3xl p-8 md:p-12 hover-lift">
-              <div className="grid md:grid-cols-2 gap-8 items-center">
-                {/* QR Code Demo */}
-                <div className="flex flex-col items-center space-y-4">
-                  <div className="w-48 h-48 md:w-64 md:h-64 bg-card rounded-2xl shadow-xl flex items-center justify-center p-4 animate-pulse-glow">
-                    <div className="w-full h-full bg-foreground/5 rounded-xl flex items-center justify-center">
-                      <QrCode className="w-24 h-24 md:w-32 md:h-32 text-primary" />
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground">Código QR de ejemplo</p>
-                </div>
-
-                {/* Features List */}
-                <div className="space-y-6">
-                  <h3 className="text-2xl font-semibold">¿Cómo funciona?</h3>
-                  <div className="space-y-4">
-                    {[
-                      "El administrador genera un código QR único",
-                      "El empleado escanea con su celular",
-                      "Se registra entrada o salida automáticamente",
-                      "Accede a reportes en tiempo real",
-                    ].map((step, index) => (
-                      <div key={index} className="flex items-start gap-3 animate-fade-in" style={{ animationDelay: `${index * 100}ms` }}>
-                        <div className="w-6 h-6 rounded-full gradient-primary flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <span className="text-xs font-bold text-primary-foreground">{index + 1}</span>
-                        </div>
-                        <p className="text-muted-foreground">{step}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+            <motion.div variants={fadeUp} custom={4} className="pt-8 flex justify-center">
+              <ChevronDown className="w-6 h-6 text-muted-foreground animate-bounce" />
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-20 px-4">
+      {/* Products */}
+      <section className="py-20 px-6" id="productos">
         <div className="container mx-auto max-w-6xl">
-          <div className="text-center space-y-4 mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold">
-              Todo lo que necesitas
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center space-y-4 mb-16"
+          >
+            <p className="text-sm font-semibold text-primary uppercase tracking-widest">Productos</p>
+            <h2 className="text-3xl md:text-5xl font-black tracking-tight">
+              El ecosistema completo
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              Funcionalidades diseñadas para simplificar la gestión de asistencia
+              Cada herramienta resuelve una necesidad clave de tu negocio y se integra con las demás.
             </p>
-          </div>
+          </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              {
-                icon: QrCode,
-                title: "Códigos QR Dinámicos",
-                description: "Genera códigos únicos por ubicación con expiración automática para mayor seguridad.",
-              },
-              {
-                icon: Clock,
-                title: "Registro en Tiempo Real",
-                description: "Visualiza las entradas y salidas de tu equipo al instante desde cualquier dispositivo.",
-              },
-              {
-                icon: Users,
-                title: "Gestión de Equipos",
-                description: "Administra empleados, turnos y permisos de forma sencilla e intuitiva.",
-              },
-              {
-                icon: Shield,
-                title: "Seguridad Avanzada",
-                description: "Verificación de ubicación y prevención de registros duplicados.",
-              },
-              {
-                icon: CheckCircle,
-                title: "Reportes Detallados",
-                description: "Exporta informes de asistencia, horas trabajadas y más.",
-              },
-              {
-                icon: ArrowRight,
-                title: "Fácil Integración",
-                description: "Conecta con tu sistema de nómina y otras herramientas.",
-              },
-            ].map((feature, index) => (
-              <div
-                key={index}
-                className="glass-card rounded-2xl p-6 hover-lift group"
-                style={{ animationDelay: `${index * 100}ms` }}
+          {/* Featured Project - Nomia */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7 }}
+            className="mb-8"
+          >
+            <ProjectCardLarge project={projects[0]} />
+          </motion.div>
+
+          {/* Grid of other projects */}
+          <div className="grid md:grid-cols-2 gap-6">
+            {projects.slice(1).map((project, i) => (
+              <motion.div
+                key={project.id}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1, duration: 0.6 }}
               >
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <feature.icon className="w-6 h-6 text-primary" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
-                <p className="text-muted-foreground text-sm">{feature.description}</p>
-              </div>
+                <ProjectCard project={project} />
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 px-4">
+      {/* Roadmap / Phases */}
+      <section className="py-20 px-6">
         <div className="container mx-auto max-w-4xl">
-          <div className="gradient-primary rounded-3xl p-8 md:p-12 text-center text-primary-foreground relative overflow-hidden">
-            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMtOS45NDEgMC0xOCA4LjA1OS0xOCAxOHM4LjA1OSAxOCAxOCAxOCAxOC04LjA1OSAxOC0xOC04LjA1OS0xOC0xOC0xOHptMCAzMmMtNy43MzIgMC0xNC02LjI2OC0xNC0xNHM2LjI2OC0xNCAxNC0xNCAxNCA2LjI2OCAxNCAxNC02LjI2OCAxNC0xNCAxNHoiIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iLjA1Ii8+PC9nPjwvc3ZnPg==')] opacity-30" />
-            <div className="relative space-y-6">
-              <h2 className="text-3xl md:text-4xl font-bold">
-                Comienza a controlar tu asistencia hoy
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center space-y-4 mb-16"
+          >
+            <p className="text-sm font-semibold text-primary uppercase tracking-widest">Roadmap</p>
+            <h2 className="text-3xl md:text-5xl font-black tracking-tight">
+              Fases del proyecto
+            </h2>
+          </motion.div>
+
+          <div className="relative">
+            {/* Timeline line */}
+            <div className="absolute left-6 md:left-1/2 top-0 bottom-0 w-px bg-border" />
+
+            {[
+              {
+                phase: "Fase 1",
+                title: "Control de Asistencia",
+                description: "Ingreso/egreso QR, horarios, legajo, vacaciones, evaluación de desempeño, reportes de faltas.",
+                status: "Completado",
+                statusColor: "bg-emerald-500",
+              },
+              {
+                phase: "Fase 2",
+                title: "Facturación & AFIP",
+                description: "Conexión AFIP, facturación A/B, stock, catálogo, reportes de ventas por vendedor, alertas de faltantes.",
+                status: "Próximamente",
+                statusColor: "bg-amber-500",
+              },
+              {
+                phase: "Fase 3",
+                title: "Control Comercial",
+                description: "Gastos por unidad de negocio, sueldos, rentabilidad, porcentajes de venta, punto de equilibrio.",
+                status: "Planificado",
+                statusColor: "bg-muted-foreground",
+              },
+            ].map((phase, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, x: i % 2 === 0 ? -30 : 30 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.15, duration: 0.6 }}
+                className={`relative flex items-start gap-6 mb-12 ${
+                  i % 2 === 0 ? "md:flex-row" : "md:flex-row-reverse"
+                }`}
+              >
+                {/* Dot */}
+                <div className="absolute left-6 md:left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-primary ring-4 ring-background z-10" />
+
+                <div className={`ml-16 md:ml-0 md:w-1/2 ${i % 2 === 0 ? "md:pr-12 md:text-right" : "md:pl-12"}`}>
+                  <div className={`glass-card rounded-2xl p-6 hover-lift`}>
+                    <div className={`inline-flex items-center gap-2 mb-3`}>
+                      <div className={`w-2 h-2 rounded-full ${phase.statusColor}`} />
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        {phase.phase} · {phase.status}
+                      </span>
+                    </div>
+                    <h3 className="text-xl font-bold mb-2">{phase.title}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{phase.description}</p>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="py-20 px-6">
+        <div className="container mx-auto max-w-4xl">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            className="relative rounded-3xl overflow-hidden p-10 md:p-16 text-center"
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-cyan-500 to-violet-600" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(255,255,255,0.1),transparent)]" />
+
+            <div className="relative space-y-6 text-white">
+              <h2 className="text-3xl md:text-5xl font-black tracking-tight">
+                Empezá a gestionar tu negocio hoy
               </h2>
-              <p className="text-primary-foreground/80 max-w-xl mx-auto">
-                Únete a cientos de empresas que ya simplifican su gestión de tiempo con Nomia.
+              <p className="text-white/80 max-w-xl mx-auto text-lg">
+                Nomia ya está disponible. Registrate gratis y probá el control de asistencia por QR.
               </p>
               <Link to="/auth?mode=signup">
                 <Button 
-                  size="xl" 
-                  className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 shadow-xl"
+                  size="xl"
+                  className="bg-white text-blue-700 hover:bg-white/90 shadow-xl shadow-black/20 font-bold mt-4"
                 >
                   Crear Cuenta Gratis
                   <ArrowRight className="w-5 h-5" />
                 </Button>
               </Link>
             </div>
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="py-8 px-4 border-t border-border">
+      <footer className="py-10 px-6 border-t border-border/50">
         <div className="container mx-auto max-w-6xl flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
-              <QrCode className="w-4 h-4 text-primary-foreground" />
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center">
+              <span className="text-white font-black text-xs">S</span>
             </div>
-            <span className="font-semibold">Nomia</span>
+            <span className="font-bold">Suite</span>
           </div>
           <p className="text-sm text-muted-foreground">
-            © 2026 Nomia. Todos los derechos reservados.
+            © 2026 · Todos los derechos reservados.
           </p>
         </div>
       </footer>
     </div>
   );
 };
+
+/* ──────────── Project Cards ──────────── */
+
+type Project = typeof projects[number];
+
+const StatusBadge = ({ status }: { status: "live" | "coming_soon" }) => (
+  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
+    status === "live" 
+      ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" 
+      : "bg-muted text-muted-foreground"
+  }`}>
+    {status === "live" && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
+    {status === "live" ? "Disponible" : "Próximamente"}
+  </span>
+);
+
+const ProjectCardLarge = ({ project }: { project: Project }) => (
+  <div className="group relative glass-card rounded-3xl overflow-hidden hover-lift">
+    <div className={`absolute inset-0 ${project.bgGlow} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+    <div className="relative p-8 md:p-12">
+      <div className="flex flex-col md:flex-row gap-8 items-start">
+        <div className="flex-1 space-y-5">
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className={`text-xs font-bold uppercase tracking-widest bg-gradient-to-r ${project.gradient} bg-clip-text text-transparent`}>
+              {project.phase}
+            </span>
+            <StatusBadge status={project.status} />
+          </div>
+
+          <div>
+            <h3 className="text-3xl md:text-4xl font-black tracking-tight mb-2">{project.name}</h3>
+            <p className="text-lg text-muted-foreground">{project.subtitle}</p>
+          </div>
+
+          <p className="text-muted-foreground leading-relaxed max-w-lg">{project.description}</p>
+
+          <div className="flex flex-wrap gap-2">
+            {project.features.map((f) => (
+              <span key={f} className="px-3 py-1 rounded-full bg-secondary text-secondary-foreground text-xs font-medium">
+                {f}
+              </span>
+            ))}
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            {project.internalUrl && (
+              <Link to={project.internalUrl}>
+                <Button className={`bg-gradient-to-r ${project.gradient} text-white border-0 hover:opacity-90`}>
+                  Abrir App
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </Link>
+            )}
+            {project.url && (
+              <a href={project.url} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline">
+                  <ExternalLink className="w-4 h-4" />
+                  Ver Sitio
+                </Button>
+              </a>
+            )}
+          </div>
+        </div>
+
+        {/* Visual element */}
+        <div className="hidden md:flex items-center justify-center w-64 h-64 flex-shrink-0">
+          <div className={`w-full h-full rounded-3xl bg-gradient-to-br ${project.gradient} opacity-10 absolute`} />
+          <div className="relative flex items-center justify-center w-full h-full">
+            <project.icon className={`w-28 h-28 bg-gradient-to-br ${project.gradient} bg-clip-text`} style={{ color: 'hsl(var(--primary))' }} strokeWidth={1} />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+const ProjectCard = ({ project }: { project: Project }) => (
+  <div className="group relative glass-card rounded-2xl overflow-hidden hover-lift h-full">
+    <div className={`absolute inset-0 ${project.bgGlow} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+    <div className="relative p-7 space-y-5 h-full flex flex-col">
+      <div className="flex items-center justify-between">
+        <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${project.gradient} flex items-center justify-center`}>
+          <project.icon className="w-6 h-6 text-white" />
+        </div>
+        <StatusBadge status={project.status} />
+      </div>
+
+      <div className="flex-1">
+        <div className="flex items-center gap-2 mb-1">
+          <span className={`text-[10px] font-bold uppercase tracking-widest bg-gradient-to-r ${project.gradient} bg-clip-text text-transparent`}>
+            {project.phase}
+          </span>
+        </div>
+        <h3 className="text-xl font-bold tracking-tight mb-1">{project.name}</h3>
+        <p className="text-sm text-muted-foreground mb-3">{project.subtitle}</p>
+        <p className="text-sm text-muted-foreground leading-relaxed">{project.description}</p>
+      </div>
+
+      <div className="flex flex-wrap gap-1.5">
+        {project.features.map((f) => (
+          <span key={f} className="px-2.5 py-0.5 rounded-full bg-secondary text-secondary-foreground text-[11px] font-medium">
+            {f}
+          </span>
+        ))}
+      </div>
+
+      {project.status === "live" && project.url && (
+        <a href={project.url} target="_blank" rel="noopener noreferrer" className="inline-flex">
+          <Button variant="outline" size="sm" className="group/btn">
+            <ExternalLink className="w-3.5 h-3.5" />
+            Ver Proyecto
+            <ArrowRight className="w-3.5 h-3.5 group-hover/btn:translate-x-0.5 transition-transform" />
+          </Button>
+        </a>
+      )}
+    </div>
+  </div>
+);
 
 export default Index;

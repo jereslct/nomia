@@ -97,7 +97,7 @@ const Index = () => {
 
   // Auto-advance carousel
   useEffect(() => {
-    const timer = setInterval(() => paginate(1), 6000);
+    const timer = setInterval(() => paginate(1), 12000);
     return () => clearInterval(timer);
   }, [paginate]);
 

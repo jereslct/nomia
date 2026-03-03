@@ -1,273 +1,508 @@
 import { Button } from "@/components/ui/button";
-import { 
-  QrCode, Clock, Users, Receipt, Calculator, TrendingUp, 
-  ArrowRight, ExternalLink, Sparkles, ChevronDown 
+import {
+  QrCode, Calculator, Receipt, TrendingUp,
+  ArrowRight, ExternalLink, Sparkles, ChevronLeft, ChevronRight, ArrowUpRight
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
+import { useState, useRef, useEffect, useCallback } from "react";
+
+/* ═══════════════════ DATA ═══════════════════ */
 
 const projects = [
   {
     id: 1,
     name: "Nomia",
     subtitle: "Control de Asistencia",
-    description: "Ingreso y egreso de empleados a través de QR. Gestión de horarios, turnos, reportes en tiempo real y más.",
+    description: "Ingreso y egreso de empleados a través de QR. Gestión de horarios, turnos, reportes en tiempo real y multi-ubicación.",
     icon: QrCode,
     status: "live" as const,
     url: "https://beam-in-out.lovable.app",
     internalUrl: "/auth",
-    features: ["Escaneo QR", "Turnos y horarios", "Reportes", "Multi-ubicación"],
+    tags: ["QR Scan", "Turnos", "Reportes", "Multi-sede"],
     phase: "Fase 1",
-    gradient: "from-blue-600 to-cyan-500",
-    bgGlow: "bg-blue-500/20",
+    color: "#3b82f6",
+    accentGradient: "from-blue-500 via-cyan-400 to-blue-600",
+    mockupGradient: "from-blue-600/20 via-cyan-500/10 to-transparent",
   },
   {
     id: 2,
     name: "Proyecto 2",
     subtitle: "En Desarrollo",
-    description: "Segundo proyecto en desarrollo. Nuevas funcionalidades para potenciar tu negocio.",
+    description: "Segundo proyecto activo, nuevas funcionalidades para potenciar tu negocio.",
     icon: Sparkles,
     status: "live" as const,
     url: "https://lovable.dev/projects/f6361105-6c1b-4e3c-855e-a2ae73bd8fef",
-    features: ["En desarrollo", "Próximamente más info"],
+    tags: ["En desarrollo"],
     phase: "Activo",
-    gradient: "from-violet-600 to-purple-500",
-    bgGlow: "bg-violet-500/20",
+    color: "#8b5cf6",
+    accentGradient: "from-violet-500 via-purple-400 to-violet-600",
+    mockupGradient: "from-violet-600/20 via-purple-500/10 to-transparent",
   },
   {
     id: 3,
     name: "AFIP Connect",
     subtitle: "Contabilidad & ARCA",
-    description: "Conexión directa con AFIP. Contabilidad básica, factura A, compras sin boleta, resumen de IVA vendedor.",
+    description: "Conexión directa con AFIP. Contabilidad básica, facturas A/B, compras, resumen de IVA.",
     icon: Calculator,
     status: "coming_soon" as const,
-    features: ["Conexión AFIP", "Contabilidad básica", "Facturas A/B", "Resumen IVA"],
+    tags: ["AFIP", "Contabilidad", "IVA", "Facturas"],
     phase: "Fase 2",
-    gradient: "from-emerald-600 to-teal-500",
-    bgGlow: "bg-emerald-500/20",
+    color: "#10b981",
+    accentGradient: "from-emerald-500 via-teal-400 to-emerald-600",
+    mockupGradient: "from-emerald-600/20 via-teal-500/10 to-transparent",
   },
   {
     id: 4,
     name: "Factura Pro",
     subtitle: "Facturación & Stock",
-    description: "Sistema completo de facturación, movimientos de mercadería, stock, venta por catálogo y local físico. Reportes de vendedores.",
+    description: "Facturación completa, stock, catálogo online, venta por local físico, reportes de vendedores.",
     icon: Receipt,
     status: "coming_soon" as const,
-    features: ["Facturación", "Control de stock", "Catálogo online", "Reportes de ventas"],
+    tags: ["Facturación", "Stock", "Catálogo", "Ventas"],
     phase: "Fase 2",
-    gradient: "from-amber-600 to-orange-500",
-    bgGlow: "bg-amber-500/20",
+    color: "#f59e0b",
+    accentGradient: "from-amber-500 via-orange-400 to-amber-600",
+    mockupGradient: "from-amber-600/20 via-orange-500/10 to-transparent",
   },
   {
     id: 5,
     name: "Rentabilidad 360",
     subtitle: "Control de Gastos",
-    description: "Control integral de gastos por unidad de negocio. Sueldos, alquileres, servicios, rentabilidad y punto de equilibrio.",
+    description: "Control integral por unidad de negocio. Sueldos, servicios, rentabilidad y punto de equilibrio.",
     icon: TrendingUp,
     status: "coming_soon" as const,
-    features: ["Gastos por local", "Sueldos", "Rentabilidad", "Punto de equilibrio"],
+    tags: ["Gastos", "Sueldos", "Rentabilidad", "Equilibrio"],
     phase: "Fase 3",
-    gradient: "from-rose-600 to-pink-500",
-    bgGlow: "bg-rose-500/20",
+    color: "#ef4444",
+    accentGradient: "from-rose-500 via-pink-400 to-rose-600",
+    mockupGradient: "from-rose-600/20 via-pink-500/10 to-transparent",
   },
 ];
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 30 },
-  visible: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: { delay: i * 0.1, duration: 0.6, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
-  }),
-};
+/* ═══════════════════ COMPONENT ═══════════════════ */
 
 const Index = () => {
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [direction, setDirection] = useState(0);
+  const heroRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
+  const heroY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
+
+  const paginate = useCallback((dir: number) => {
+    setDirection(dir);
+    setCurrentSlide((prev) => (prev + dir + projects.length) % projects.length);
+  }, []);
+
+  // Auto-advance carousel
+  useEffect(() => {
+    const timer = setInterval(() => paginate(1), 6000);
+    return () => clearInterval(timer);
+  }, [paginate]);
+
+  const current = projects[currentSlide];
+
+  const slideVariants = {
+    enter: (d: number) => ({ x: d > 0 ? "100%" : "-100%", opacity: 0, scale: 0.9 }),
+    center: { x: 0, opacity: 1, scale: 1 },
+    exit: (d: number) => ({ x: d > 0 ? "-100%" : "100%", opacity: 0, scale: 0.9 }),
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
-      {/* Nav */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/60 backdrop-blur-2xl border-b border-border/30">
+      {/* ─── Navbar ─── */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/50 backdrop-blur-2xl border-b border-border/20">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center">
-              <span className="text-white font-black text-sm">S</span>
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/20">
+              <span className="text-primary-foreground font-black text-sm">S</span>
             </div>
-            <span className="font-bold text-lg tracking-tight">Suite</span>
+            <span className="font-black text-lg tracking-tight">Suite</span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <Link to="/auth">
-              <Button variant="ghost" size="sm">Iniciar Sesión</Button>
+              <Button variant="ghost" size="sm">Ingresar</Button>
             </Link>
             <Link to="/auth?mode=signup">
-              <Button size="sm" className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white border-0 hover:opacity-90">
-                Comenzar
-              </Button>
+              <Button variant="hero" size="sm">Comenzar</Button>
             </Link>
           </div>
         </div>
       </nav>
 
-      {/* Hero */}
-      <section className="relative pt-32 pb-24 px-6">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-20 left-1/4 w-96 h-96 bg-blue-500/8 rounded-full blur-3xl" />
-          <div className="absolute top-40 right-1/4 w-80 h-80 bg-cyan-500/8 rounded-full blur-3xl" />
-        </div>
+      {/* ─── Hero Full-Screen ─── */}
+      <section ref={heroRef} className="relative h-screen flex items-center justify-center overflow-hidden">
+        {/* Animated background */}
+        <motion.div style={{ y: heroY, opacity: heroOpacity }} className="absolute inset-0">
+          <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-background" />
+          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[800px] rounded-full bg-primary/5 blur-[120px]" />
+          <div className="absolute bottom-1/4 left-1/4 w-[400px] h-[400px] rounded-full bg-accent/5 blur-[100px]" />
+        </motion.div>
 
-        <div className="container mx-auto max-w-5xl relative">
+        <div className="relative z-10 container mx-auto px-6 text-center space-y-8">
           <motion.div
-            initial="hidden"
-            animate="visible"
-            className="text-center space-y-8"
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            className="space-y-6"
           >
-            <motion.div variants={fadeUp} custom={0} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium">
-              <Sparkles className="w-4 h-4" />
+            <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-border/50 bg-card/50 backdrop-blur-sm text-sm font-medium text-muted-foreground">
+              <Sparkles className="w-4 h-4 text-primary" />
               Ecosistema de Gestión para Tiendas
-            </motion.div>
+            </div>
 
-            <motion.h1 variants={fadeUp} custom={1} className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter leading-[0.9]">
-              Todas tus
-              <br />
-              <span className="bg-gradient-to-r from-blue-600 via-cyan-500 to-violet-600 bg-clip-text text-transparent">
-                herramientas
-              </span>
-              <br />
-              en un solo lugar
-            </motion.h1>
+            <h1 className="text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter leading-[0.85]">
+              <span className="block">Gestión</span>
+              <span className="block text-gradient">sin límites</span>
+            </h1>
 
-            <motion.p variants={fadeUp} custom={2} className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Desde el control de asistencia hasta la rentabilidad de tu negocio. 
-              Un ecosistema completo que crece con vos.
-            </motion.p>
+            <p className="text-lg md:text-xl text-muted-foreground max-w-lg mx-auto leading-relaxed">
+              Todo lo que necesitás para administrar tu negocio,
+              desde la asistencia hasta la rentabilidad.
+            </p>
+          </motion.div>
 
-            <motion.div variants={fadeUp} custom={3} className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
-              <Link to="/auth?mode=signup">
-                <Button size="xl" className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white border-0 hover:opacity-90 shadow-lg shadow-blue-500/25 group">
-                  Explorar Productos
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </Button>
-              </Link>
-            </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4, duration: 0.6 }}
+            className="flex items-center justify-center gap-4"
+          >
+            <a href="#gallery">
+              <Button variant="hero" size="xl" className="group">
+                Ver Proyectos
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </a>
+          </motion.div>
 
-            <motion.div variants={fadeUp} custom={4} className="pt-8 flex justify-center">
-              <ChevronDown className="w-6 h-6 text-muted-foreground animate-bounce" />
-            </motion.div>
+          {/* Scroll indicator */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.2 }}
+            className="absolute bottom-10 left-1/2 -translate-x-1/2"
+          >
+            <div className="w-6 h-10 rounded-full border-2 border-muted-foreground/30 flex justify-center pt-2">
+              <motion.div
+                animate={{ y: [0, 12, 0] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+                className="w-1.5 h-1.5 rounded-full bg-primary"
+              />
+            </div>
           </motion.div>
         </div>
       </section>
 
-      {/* Products */}
-      <section className="py-20 px-6" id="productos">
+      {/* ─── Visual Gallery / Carousel ─── */}
+      <section id="gallery" className="relative py-24 px-6">
+        <div className="container mx-auto max-w-7xl">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-16 space-y-3"
+          >
+            <p className="text-sm font-bold text-primary uppercase tracking-[0.2em]">Portafolio</p>
+            <h2 className="text-4xl md:text-6xl font-black tracking-tight">Nuestros Productos</h2>
+          </motion.div>
+
+          {/* Carousel */}
+          <div className="relative">
+            {/* Main slide */}
+            <div className="relative h-[500px] md:h-[600px] rounded-3xl overflow-hidden bg-card border border-border/50">
+              <AnimatePresence custom={direction} mode="wait">
+                <motion.div
+                  key={currentSlide}
+                  custom={direction}
+                  variants={slideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] }}
+                  className="absolute inset-0 flex flex-col md:flex-row"
+                >
+                  {/* Left: Visual */}
+                  <div className="relative w-full md:w-1/2 h-1/2 md:h-full flex items-center justify-center overflow-hidden">
+                    <div className={`absolute inset-0 bg-gradient-to-br ${current.mockupGradient}`} />
+
+                    {/* Decorative circles */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+                        className="absolute w-[300px] h-[300px] md:w-[400px] md:h-[400px] rounded-full border border-border/20"
+                      />
+                      <motion.div
+                        animate={{ rotate: -360 }}
+                        transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
+                        className="absolute w-[200px] h-[200px] md:w-[280px] md:h-[280px] rounded-full border border-border/10"
+                      />
+                    </div>
+
+                    {/* Icon */}
+                    <motion.div
+                      initial={{ scale: 0.5, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ delay: 0.2, duration: 0.5 }}
+                      className="relative z-10"
+                    >
+                      <div
+                        className={`w-32 h-32 md:w-44 md:h-44 rounded-3xl bg-gradient-to-br ${current.accentGradient} flex items-center justify-center shadow-2xl`}
+                        style={{ boxShadow: `0 25px 60px -15px ${current.color}40` }}
+                      >
+                        <current.icon className="w-16 h-16 md:w-24 md:h-24 text-white" strokeWidth={1.5} />
+                      </div>
+                    </motion.div>
+                  </div>
+
+                  {/* Right: Info */}
+                  <div className="w-full md:w-1/2 h-1/2 md:h-full flex flex-col justify-center p-8 md:p-14">
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.15, duration: 0.5 }}
+                      className="space-y-5"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span
+                          className="text-xs font-black uppercase tracking-[0.15em] px-3 py-1 rounded-full"
+                          style={{ background: `${current.color}15`, color: current.color }}
+                        >
+                          {current.phase}
+                        </span>
+                        <StatusBadge status={current.status} />
+                      </div>
+
+                      <div>
+                        <h3 className="text-3xl md:text-5xl font-black tracking-tight">{current.name}</h3>
+                        <p className="text-lg text-muted-foreground mt-1">{current.subtitle}</p>
+                      </div>
+
+                      <p className="text-muted-foreground leading-relaxed text-base md:text-lg max-w-md">
+                        {current.description}
+                      </p>
+
+                      <div className="flex flex-wrap gap-2">
+                        {current.tags.map((t) => (
+                          <span key={t} className="px-3 py-1 rounded-full bg-secondary text-secondary-foreground text-xs font-medium">
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+
+                      {current.status === "live" && (
+                        <div className="flex gap-3 pt-3">
+                          {current.internalUrl && (
+                            <Link to={current.internalUrl}>
+                              <Button variant="hero" size="lg" className="group">
+                                Abrir App
+                                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                              </Button>
+                            </Link>
+                          )}
+                          {current.url && (
+                            <a href={current.url} target="_blank" rel="noopener noreferrer">
+                              <Button variant="outline" size="lg">
+                                <ExternalLink className="w-4 h-4" />
+                                Ver Sitio
+                              </Button>
+                            </a>
+                          )}
+                        </div>
+                      )}
+                    </motion.div>
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+
+              {/* Nav arrows */}
+              <button
+                onClick={() => paginate(-1)}
+                className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-background/80 backdrop-blur-sm border border-border/50 flex items-center justify-center hover:bg-background transition-colors shadow-lg"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => paginate(1)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-background/80 backdrop-blur-sm border border-border/50 flex items-center justify-center hover:bg-background transition-colors shadow-lg"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Thumbnails */}
+            <div className="flex items-center justify-center gap-3 mt-8">
+              {projects.map((p, i) => (
+                <button
+                  key={p.id}
+                  onClick={() => { setDirection(i > currentSlide ? 1 : -1); setCurrentSlide(i); }}
+                  className={`group relative flex items-center gap-2 px-4 py-2.5 rounded-2xl border transition-all duration-300 ${
+                    i === currentSlide
+                      ? "border-primary bg-primary/10 shadow-md shadow-primary/10"
+                      : "border-border/50 bg-card/50 hover:border-border hover:bg-card"
+                  }`}
+                >
+                  <div
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
+                      i === currentSlide ? "scale-110" : "opacity-60 group-hover:opacity-100"
+                    }`}
+                    style={{ background: i === currentSlide ? `${p.color}20` : undefined }}
+                  >
+                    <p.icon className="w-4 h-4" style={{ color: p.color }} />
+                  </div>
+                  <span className={`text-xs font-semibold hidden md:block transition-colors ${
+                    i === currentSlide ? "text-foreground" : "text-muted-foreground"
+                  }`}>
+                    {p.name}
+                  </span>
+                  {/* Progress bar for active */}
+                  {i === currentSlide && (
+                    <motion.div
+                      className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-primary"
+                      initial={{ scaleX: 0, originX: 0 }}
+                      animate={{ scaleX: 1 }}
+                      transition={{ duration: 6, ease: "linear" }}
+                      key={`progress-${currentSlide}`}
+                    />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Bento Grid ─── */}
+      <section className="py-24 px-6">
         <div className="container mx-auto max-w-6xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="text-center space-y-4 mb-16"
+            className="text-center mb-16 space-y-3"
           >
-            <p className="text-sm font-semibold text-primary uppercase tracking-widest">Productos</p>
-            <h2 className="text-3xl md:text-5xl font-black tracking-tight">
-              El ecosistema completo
-            </h2>
-            <p className="text-muted-foreground max-w-xl mx-auto">
-              Cada herramienta resuelve una necesidad clave de tu negocio y se integra con las demás.
+            <p className="text-sm font-bold text-primary uppercase tracking-[0.2em]">Ecosistema</p>
+            <h2 className="text-4xl md:text-6xl font-black tracking-tight">Todos los módulos</h2>
+            <p className="text-muted-foreground max-w-lg mx-auto">
+              Cada pieza se conecta con las demás para darte una visión completa de tu negocio.
             </p>
           </motion.div>
 
-          {/* Featured Project - Nomia */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.7 }}
-            className="mb-8"
-          >
-            <ProjectCardLarge project={projects[0]} />
-          </motion.div>
+          {/* Bento layout */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 auto-rows-[280px]">
+            {projects.map((p, i) => {
+              // Bento sizes: first = large, rest alternate
+              const span = i === 0 ? "md:col-span-7" : i === 1 ? "md:col-span-5" : i === 2 ? "md:col-span-4" : i === 3 ? "md:col-span-4" : "md:col-span-4";
 
-          {/* Grid of other projects */}
-          <div className="grid md:grid-cols-2 gap-6">
-            {projects.slice(1).map((project, i) => (
-              <motion.div
-                key={project.id}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1, duration: 0.6 }}
-              >
-                <ProjectCard project={project} />
-              </motion.div>
-            ))}
+              return (
+                <motion.div
+                  key={p.id}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.08, duration: 0.5 }}
+                  className={`${span} group relative rounded-3xl overflow-hidden border border-border/50 bg-card hover:border-border transition-all duration-500 cursor-pointer`}
+                  onClick={() => {
+                    if (p.url && p.status === "live") window.open(p.url, "_blank");
+                  }}
+                >
+                  {/* Gradient bg */}
+                  <div className={`absolute inset-0 bg-gradient-to-br ${p.mockupGradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+
+                  {/* Content */}
+                  <div className="relative h-full p-7 flex flex-col justify-between z-10">
+                    <div className="flex items-start justify-between">
+                      <div
+                        className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${p.accentGradient} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-500`}
+                        style={{ boxShadow: `0 10px 30px -10px ${p.color}30` }}
+                      >
+                        <p.icon className="w-7 h-7 text-white" strokeWidth={1.5} />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <StatusBadge status={p.status} />
+                        {p.status === "live" && (
+                          <ArrowUpRight className="w-5 h-5 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+                        {p.phase}
+                      </span>
+                      <h3 className="text-2xl font-black tracking-tight">{p.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">{p.description}</p>
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {p.tags.slice(0, 3).map((t) => (
+                          <span key={t} className="px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground text-[10px] font-semibold">
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      {/* Roadmap / Phases */}
-      <section className="py-20 px-6">
-        <div className="container mx-auto max-w-4xl">
+      {/* ─── Roadmap Visual ─── */}
+      <section className="py-24 px-6 bg-card/50">
+        <div className="container mx-auto max-w-5xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center space-y-4 mb-16"
+            className="text-center mb-16 space-y-3"
           >
-            <p className="text-sm font-semibold text-primary uppercase tracking-widest">Roadmap</p>
-            <h2 className="text-3xl md:text-5xl font-black tracking-tight">
-              Fases del proyecto
-            </h2>
+            <p className="text-sm font-bold text-primary uppercase tracking-[0.2em]">Roadmap</p>
+            <h2 className="text-4xl md:text-6xl font-black tracking-tight">El camino</h2>
           </motion.div>
 
-          <div className="relative">
-            {/* Timeline line */}
-            <div className="absolute left-6 md:left-1/2 top-0 bottom-0 w-px bg-border" />
-
+          <div className="space-y-6">
             {[
-              {
-                phase: "Fase 1",
-                title: "Control de Asistencia",
-                description: "Ingreso/egreso QR, horarios, legajo, vacaciones, evaluación de desempeño, reportes de faltas.",
-                status: "Completado",
-                statusColor: "bg-emerald-500",
-              },
-              {
-                phase: "Fase 2",
-                title: "Facturación & AFIP",
-                description: "Conexión AFIP, facturación A/B, stock, catálogo, reportes de ventas por vendedor, alertas de faltantes.",
-                status: "Próximamente",
-                statusColor: "bg-amber-500",
-              },
-              {
-                phase: "Fase 3",
-                title: "Control Comercial",
-                description: "Gastos por unidad de negocio, sueldos, rentabilidad, porcentajes de venta, punto de equilibrio.",
-                status: "Planificado",
-                statusColor: "bg-muted-foreground",
-              },
+              { phase: "Fase 1", title: "Control de Asistencia", desc: "QR, horarios, legajo, vacaciones, evaluación, reportes de faltas.", status: "live", color: "#3b82f6" },
+              { phase: "Fase 2", title: "Facturación & AFIP", desc: "Conexión AFIP, facturación, stock, catálogo, reportes de ventas, alertas de faltantes.", status: "building", color: "#f59e0b" },
+              { phase: "Fase 3", title: "Control Comercial", desc: "Gastos por unidad de negocio, sueldos, rentabilidad, punto de equilibrio.", status: "planned", color: "#ef4444" },
             ].map((phase, i) => (
               <motion.div
                 key={i}
-                initial={{ opacity: 0, x: i % 2 === 0 ? -30 : 30 }}
+                initial={{ opacity: 0, x: -30 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: i * 0.15, duration: 0.6 }}
-                className={`relative flex items-start gap-6 mb-12 ${
-                  i % 2 === 0 ? "md:flex-row" : "md:flex-row-reverse"
-                }`}
+                transition={{ delay: i * 0.1, duration: 0.5 }}
+                className="relative flex gap-6 items-start"
               >
-                {/* Dot */}
-                <div className="absolute left-6 md:left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-primary ring-4 ring-background z-10" />
+                {/* Timeline */}
+                <div className="flex flex-col items-center flex-shrink-0">
+                  <div
+                    className="w-4 h-4 rounded-full ring-4 ring-background z-10"
+                    style={{ background: phase.color }}
+                  />
+                  {i < 2 && <div className="w-px h-full bg-border mt-2" />}
+                </div>
 
-                <div className={`ml-16 md:ml-0 md:w-1/2 ${i % 2 === 0 ? "md:pr-12 md:text-right" : "md:pl-12"}`}>
-                  <div className={`glass-card rounded-2xl p-6 hover-lift`}>
-                    <div className={`inline-flex items-center gap-2 mb-3`}>
-                      <div className={`w-2 h-2 rounded-full ${phase.statusColor}`} />
-                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                        {phase.phase} · {phase.status}
-                      </span>
-                    </div>
-                    <h3 className="text-xl font-bold mb-2">{phase.title}</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{phase.description}</p>
+                {/* Card */}
+                <div className="glass-card rounded-2xl p-6 flex-1 hover-lift mb-2">
+                  <div className="flex items-center gap-3 mb-3">
+                    <span
+                      className="text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full"
+                      style={{ background: `${phase.color}15`, color: phase.color }}
+                    >
+                      {phase.phase}
+                    </span>
+                    <span className={`text-xs font-semibold ${
+                      phase.status === "live" ? "text-emerald-500" : phase.status === "building" ? "text-amber-500" : "text-muted-foreground"
+                    }`}>
+                      {phase.status === "live" ? "● Completado" : phase.status === "building" ? "◐ En progreso" : "○ Planificado"}
+                    </span>
                   </div>
+                  <h3 className="text-xl font-bold mb-1">{phase.title}</h3>
+                  <p className="text-sm text-muted-foreground">{phase.desc}</p>
                 </div>
               </motion.div>
             ))}
@@ -275,29 +510,30 @@ const Index = () => {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-20 px-6">
+      {/* ─── CTA ─── */}
+      <section className="py-24 px-6">
         <div className="container mx-auto max-w-4xl">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            className="relative rounded-3xl overflow-hidden p-10 md:p-16 text-center"
+            className="relative rounded-[2rem] overflow-hidden"
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-cyan-500 to-violet-600" />
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(255,255,255,0.1),transparent)]" />
+            <div className="absolute inset-0 gradient-primary" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.15),transparent_70%)]" />
 
-            <div className="relative space-y-6 text-white">
-              <h2 className="text-3xl md:text-5xl font-black tracking-tight">
-                Empezá a gestionar tu negocio hoy
+            <div className="relative p-12 md:p-20 text-center space-y-8">
+              <h2 className="text-4xl md:text-6xl font-black tracking-tight text-primary-foreground leading-tight">
+                Empezá a gestionar
+                <br />tu negocio hoy
               </h2>
-              <p className="text-white/80 max-w-xl mx-auto text-lg">
+              <p className="text-primary-foreground/70 max-w-lg mx-auto text-lg">
                 Nomia ya está disponible. Registrate gratis y probá el control de asistencia por QR.
               </p>
               <Link to="/auth?mode=signup">
-                <Button 
+                <Button
                   size="xl"
-                  className="bg-white text-blue-700 hover:bg-white/90 shadow-xl shadow-black/20 font-bold mt-4"
+                  className="bg-background text-foreground hover:bg-background/90 shadow-2xl font-bold mt-2"
                 >
                   Crear Cuenta Gratis
                   <ArrowRight className="w-5 h-5" />
@@ -308,140 +544,33 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-10 px-6 border-t border-border/50">
+      {/* ─── Footer ─── */}
+      <footer className="py-10 px-6 border-t border-border/30">
         <div className="container mx-auto max-w-6xl flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center">
-              <span className="text-white font-black text-xs">S</span>
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+              <span className="text-primary-foreground font-black text-xs">S</span>
             </div>
             <span className="font-bold">Suite</span>
           </div>
-          <p className="text-sm text-muted-foreground">
-            © 2026 · Todos los derechos reservados.
-          </p>
+          <p className="text-sm text-muted-foreground">© 2026 · Todos los derechos reservados.</p>
         </div>
       </footer>
     </div>
   );
 };
 
-/* ──────────── Project Cards ──────────── */
-
-type Project = typeof projects[number];
+/* ═══════════════════ SUB-COMPONENTS ═══════════════════ */
 
 const StatusBadge = ({ status }: { status: "live" | "coming_soon" }) => (
-  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
-    status === "live" 
-      ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" 
-      : "bg-muted text-muted-foreground"
+  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${
+    status === "live"
+      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+      : "bg-secondary text-muted-foreground"
   }`}>
     {status === "live" && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
     {status === "live" ? "Disponible" : "Próximamente"}
   </span>
-);
-
-const ProjectCardLarge = ({ project }: { project: Project }) => (
-  <div className="group relative glass-card rounded-3xl overflow-hidden hover-lift">
-    <div className={`absolute inset-0 ${project.bgGlow} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
-    <div className="relative p-8 md:p-12">
-      <div className="flex flex-col md:flex-row gap-8 items-start">
-        <div className="flex-1 space-y-5">
-          <div className="flex items-center gap-3 flex-wrap">
-            <span className={`text-xs font-bold uppercase tracking-widest bg-gradient-to-r ${project.gradient} bg-clip-text text-transparent`}>
-              {project.phase}
-            </span>
-            <StatusBadge status={project.status} />
-          </div>
-
-          <div>
-            <h3 className="text-3xl md:text-4xl font-black tracking-tight mb-2">{project.name}</h3>
-            <p className="text-lg text-muted-foreground">{project.subtitle}</p>
-          </div>
-
-          <p className="text-muted-foreground leading-relaxed max-w-lg">{project.description}</p>
-
-          <div className="flex flex-wrap gap-2">
-            {project.features.map((f) => (
-              <span key={f} className="px-3 py-1 rounded-full bg-secondary text-secondary-foreground text-xs font-medium">
-                {f}
-              </span>
-            ))}
-          </div>
-
-          <div className="flex gap-3 pt-2">
-            {project.internalUrl && (
-              <Link to={project.internalUrl}>
-                <Button className={`bg-gradient-to-r ${project.gradient} text-white border-0 hover:opacity-90`}>
-                  Abrir App
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
-              </Link>
-            )}
-            {project.url && (
-              <a href={project.url} target="_blank" rel="noopener noreferrer">
-                <Button variant="outline">
-                  <ExternalLink className="w-4 h-4" />
-                  Ver Sitio
-                </Button>
-              </a>
-            )}
-          </div>
-        </div>
-
-        {/* Visual element */}
-        <div className="hidden md:flex items-center justify-center w-64 h-64 flex-shrink-0">
-          <div className={`w-full h-full rounded-3xl bg-gradient-to-br ${project.gradient} opacity-10 absolute`} />
-          <div className="relative flex items-center justify-center w-full h-full">
-            <project.icon className={`w-28 h-28 bg-gradient-to-br ${project.gradient} bg-clip-text`} style={{ color: 'hsl(var(--primary))' }} strokeWidth={1} />
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
-const ProjectCard = ({ project }: { project: Project }) => (
-  <div className="group relative glass-card rounded-2xl overflow-hidden hover-lift h-full">
-    <div className={`absolute inset-0 ${project.bgGlow} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
-    <div className="relative p-7 space-y-5 h-full flex flex-col">
-      <div className="flex items-center justify-between">
-        <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${project.gradient} flex items-center justify-center`}>
-          <project.icon className="w-6 h-6 text-white" />
-        </div>
-        <StatusBadge status={project.status} />
-      </div>
-
-      <div className="flex-1">
-        <div className="flex items-center gap-2 mb-1">
-          <span className={`text-[10px] font-bold uppercase tracking-widest bg-gradient-to-r ${project.gradient} bg-clip-text text-transparent`}>
-            {project.phase}
-          </span>
-        </div>
-        <h3 className="text-xl font-bold tracking-tight mb-1">{project.name}</h3>
-        <p className="text-sm text-muted-foreground mb-3">{project.subtitle}</p>
-        <p className="text-sm text-muted-foreground leading-relaxed">{project.description}</p>
-      </div>
-
-      <div className="flex flex-wrap gap-1.5">
-        {project.features.map((f) => (
-          <span key={f} className="px-2.5 py-0.5 rounded-full bg-secondary text-secondary-foreground text-[11px] font-medium">
-            {f}
-          </span>
-        ))}
-      </div>
-
-      {project.status === "live" && project.url && (
-        <a href={project.url} target="_blank" rel="noopener noreferrer" className="inline-flex">
-          <Button variant="outline" size="sm" className="group/btn">
-            <ExternalLink className="w-3.5 h-3.5" />
-            Ver Proyecto
-            <ArrowRight className="w-3.5 h-3.5 group-hover/btn:translate-x-0.5 transition-transform" />
-          </Button>
-        </a>
-      )}
-    </div>
-  </div>
 );
 
 export default Index;

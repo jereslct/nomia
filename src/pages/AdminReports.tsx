@@ -46,6 +46,8 @@ import {
   Calendar,
   Check,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ChevronsUpDown,
   Clock,
   Download,
@@ -211,6 +213,8 @@ const AdminReports = () => {
   const [tableSortKey, setTableSortKey] = useState<keyof EmployeeReport | "">("lateDays");
   const [tableSortAsc, setTableSortAsc] = useState(false);
   const [punctualityFilter, setPunctualityFilter] = useState<"all" | "high" | "medium" | "low">("all");
+  const [tableCurrentPage, setTableCurrentPage] = useState(1);
+  const TABLE_PAGE_SIZE = 10;
 
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [profiles, setProfiles] = useState<Map<string, ProfileInfo>>(new Map());
@@ -539,6 +543,17 @@ const fetchRecords = async (orgIds: string[]) => {
       return isOnTime(r.recorded_at) ? "A tiempo" : "Tarde";
     }},
   ];
+
+  const tableTotalPages = Math.max(1, Math.ceil(sortedEmployeeReports.length / TABLE_PAGE_SIZE));
+  const paginatedReports = useMemo(
+    () => sortedEmployeeReports.slice((tableCurrentPage - 1) * TABLE_PAGE_SIZE, tableCurrentPage * TABLE_PAGE_SIZE),
+    [sortedEmployeeReports, tableCurrentPage]
+  );
+
+  // Reset page when filters change
+  useEffect(() => {
+    setTableCurrentPage(1);
+  }, [tableSearch, punctualityFilter, tableSortKey, tableSortAsc]);
 
   const ts = buildTimestamp();
   const periodSuffix = PERIOD_OPTIONS.find((o) => o.value === period)?.label.toLowerCase().replace(/ /g, "_") ?? period;
@@ -965,6 +980,7 @@ const fetchRecords = async (orgIds: string[]) => {
                     <p>{employeeReports.length === 0 ? "No hay registros para el período seleccionado" : "Sin resultados para los filtros aplicados"}</p>
                   </div>
                 ) : (
+                  <div className="space-y-4">
                   <div className="rounded-lg border border-border overflow-hidden">
                     <Table>
                       <TableHeader>
@@ -1008,7 +1024,7 @@ const fetchRecords = async (orgIds: string[]) => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {sortedEmployeeReports.map((emp) => (
+                        {paginatedReports.map((emp) => (
                           <TableRow key={emp.userId} className="hover:bg-muted/30">
                             <TableCell className="font-medium">{emp.name}</TableCell>
                             <TableCell className="text-center">{emp.totalDays}</TableCell>
@@ -1042,6 +1058,35 @@ const fetchRecords = async (orgIds: string[]) => {
                         ))}
                       </TableBody>
                     </Table>
+                  </div>
+                  {tableTotalPages > 1 && (
+                    <div className="flex items-center justify-between pt-4">
+                      <p className="text-sm text-muted-foreground">
+                        {`Mostrando ${(tableCurrentPage - 1) * TABLE_PAGE_SIZE + 1}-${Math.min(tableCurrentPage * TABLE_PAGE_SIZE, sortedEmployeeReports.length)} de ${sortedEmployeeReports.length}`}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setTableCurrentPage((p) => Math.max(1, p - 1))}
+                          disabled={tableCurrentPage === 1}
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </Button>
+                        <span className="text-sm font-medium px-2">
+                          {`${tableCurrentPage} / ${tableTotalPages}`}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setTableCurrentPage((p) => Math.min(tableTotalPages, p + 1))}
+                          disabled={tableCurrentPage === tableTotalPages}
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                   </div>
                 )}
               </CardContent>

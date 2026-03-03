@@ -37,8 +37,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import {
   ArrowLeft,
+  ArrowUpDown,
   BarChart3,
   Building2,
   Calendar,
@@ -50,6 +52,7 @@ import {
   FileSpreadsheet,
   FileText,
   Loader2,
+  Search,
   TrendingUp,
   Users,
   AlertTriangle,
@@ -202,6 +205,12 @@ const AdminReports = () => {
   const [period, setPeriod] = useState<PeriodType>("this_month");
   const [orgFilter, setOrgFilter] = useState<string>("all");
   const [employeeFilter, setEmployeeFilter] = useState<string>("all");
+
+  // Employee table filters & sorting
+  const [tableSearch, setTableSearch] = useState("");
+  const [tableSortKey, setTableSortKey] = useState<keyof EmployeeReport | "">("lateDays");
+  const [tableSortAsc, setTableSortAsc] = useState(false);
+  const [punctualityFilter, setPunctualityFilter] = useState<"all" | "high" | "medium" | "low">("all");
 
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [profiles, setProfiles] = useState<Map<string, ProfileInfo>>(new Map());
@@ -466,6 +475,49 @@ const fetchRecords = async (orgIds: string[]) => {
       name: profiles.get(id)?.full_name || `Usuario ${id.slice(0, 8)}`,
     }));
   }, [records, profiles]);
+
+  const toggleSort = (key: keyof EmployeeReport) => {
+    if (tableSortKey === key) {
+      setTableSortAsc(!tableSortAsc);
+    } else {
+      setTableSortKey(key);
+      setTableSortAsc(key === "name"); // name defaults ascending, numbers descending
+    }
+  };
+
+  const sortedEmployeeReports = useMemo(() => {
+    let filtered = employeeReports;
+
+    // Search filter
+    if (tableSearch.trim()) {
+      const q = tableSearch.toLowerCase();
+      filtered = filtered.filter((e) => e.name.toLowerCase().includes(q));
+    }
+
+    // Punctuality filter
+    if (punctualityFilter !== "all") {
+      filtered = filtered.filter((e) => {
+        if (punctualityFilter === "high") return e.punctualityPct >= 80;
+        if (punctualityFilter === "medium") return e.punctualityPct >= 50 && e.punctualityPct < 80;
+        if (punctualityFilter === "low") return e.punctualityPct < 50;
+        return true;
+      });
+    }
+
+    // Sort
+    if (tableSortKey) {
+      filtered = [...filtered].sort((a, b) => {
+        const aVal = a[tableSortKey];
+        const bVal = b[tableSortKey];
+        if (typeof aVal === "string" && typeof bVal === "string") {
+          return tableSortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        }
+        return tableSortAsc ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number);
+      });
+    }
+
+    return filtered;
+  }, [employeeReports, tableSearch, punctualityFilter, tableSortKey, tableSortAsc]);
 
   const summaryColumns = [
     { header: "Empleado", accessor: (e: EmployeeReport) => e.name },
@@ -862,30 +914,101 @@ const fetchRecords = async (orgIds: string[]) => {
                   Reporte por empleado
                 </CardTitle>
                 <CardDescription>
-                  Ordenado por cantidad de tardanzas (mayor a menor)
+                  {sortedEmployeeReports.length} empleado(s) — Click en columnas para ordenar
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                {employeeReports.length === 0 ? (
+              <CardContent className="space-y-4">
+                {/* Table Filters */}
+                <div className="flex flex-wrap gap-3 items-end">
+                  <div className="relative flex-1 min-w-[200px]">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar empleado..."
+                      value={tableSearch}
+                      onChange={(e) => setTableSearch(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+                  <div className="min-w-[160px]">
+                    <Select value={punctualityFilter} onValueChange={(v) => setPunctualityFilter(v as typeof punctualityFilter)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Puntualidad" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas</SelectItem>
+                        <SelectItem value="high">
+                          <span className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-success" />
+                            Alta (≥80%)
+                          </span>
+                        </SelectItem>
+                        <SelectItem value="medium">
+                          <span className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-warning" />
+                            Media (50-79%)
+                          </span>
+                        </SelectItem>
+                        <SelectItem value="low">
+                          <span className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-destructive" />
+                            Baja (&lt;50%)
+                          </span>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {sortedEmployeeReports.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
                     <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p>No hay registros para el período seleccionado</p>
+                    <p>{employeeReports.length === 0 ? "No hay registros para el período seleccionado" : "Sin resultados para los filtros aplicados"}</p>
                   </div>
                 ) : (
                   <div className="rounded-lg border border-border overflow-hidden">
                     <Table>
                       <TableHeader>
                         <TableRow className="bg-muted/50">
-                          <TableHead className="font-semibold">Empleado</TableHead>
-                          <TableHead className="font-semibold text-center">Días</TableHead>
-                          <TableHead className="font-semibold text-center">A tiempo</TableHead>
-                          <TableHead className="font-semibold text-center">Tarde</TableHead>
-                          <TableHead className="font-semibold text-center">Puntualidad</TableHead>
-                          <TableHead className="font-semibold text-right">Horas</TableHead>
+                          <TableHead className="font-semibold cursor-pointer hover:text-primary transition-colors" onClick={() => toggleSort("name")}>
+                            <span className="flex items-center gap-1">
+                              Empleado
+                              <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
+                            </span>
+                          </TableHead>
+                          <TableHead className="font-semibold text-center cursor-pointer hover:text-primary transition-colors" onClick={() => toggleSort("totalDays")}>
+                            <span className="flex items-center gap-1 justify-center">
+                              Días
+                              <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
+                            </span>
+                          </TableHead>
+                          <TableHead className="font-semibold text-center cursor-pointer hover:text-primary transition-colors" onClick={() => toggleSort("onTimeDays")}>
+                            <span className="flex items-center gap-1 justify-center">
+                              A tiempo
+                              <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
+                            </span>
+                          </TableHead>
+                          <TableHead className="font-semibold text-center cursor-pointer hover:text-primary transition-colors" onClick={() => toggleSort("lateDays")}>
+                            <span className="flex items-center gap-1 justify-center">
+                              Tarde
+                              <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
+                            </span>
+                          </TableHead>
+                          <TableHead className="font-semibold text-center cursor-pointer hover:text-primary transition-colors" onClick={() => toggleSort("punctualityPct")}>
+                            <span className="flex items-center gap-1 justify-center">
+                              Puntualidad
+                              <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
+                            </span>
+                          </TableHead>
+                          <TableHead className="font-semibold text-right cursor-pointer hover:text-primary transition-colors" onClick={() => toggleSort("totalHours")}>
+                            <span className="flex items-center gap-1 justify-end">
+                              Horas
+                              <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
+                            </span>
+                          </TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {employeeReports.map((emp) => (
+                        {sortedEmployeeReports.map((emp) => (
                           <TableRow key={emp.userId} className="hover:bg-muted/30">
                             <TableCell className="font-medium">{emp.name}</TableCell>
                             <TableCell className="text-center">{emp.totalDays}</TableCell>

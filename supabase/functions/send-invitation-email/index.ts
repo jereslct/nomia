@@ -159,7 +159,7 @@ const handler = async (req: Request): Promise<Response> => {
     const safeAppUrl = encodeURI(app_url);
 
     const emailResponse = await resend.emails.send({
-      from: "BeamInOut <onboarding@resend.dev>",
+      from: "Nomia <onboarding@resend.dev>",
       to: [to_email],
       subject: `Te han invitado a unirte a ${safeOrgName}`,
       html: `
@@ -191,11 +191,11 @@ const handler = async (req: Request): Promise<Response> => {
                         Hola,
                       </p>
                       <p style="margin: 0 0 24px; font-size: 16px; line-height: 24px; color: #3f3f46;">
-                        <strong>${safeInviterName}</strong> te ha invitado a unirte a la organización <strong>"${safeOrgName}"</strong> en BeamInOut.
+                        <strong>${safeInviterName}</strong> te ha invitado a unirte a la organización <strong>"${safeOrgName}"</strong> en Nomia.
                       </p>
                       
                       <p style="margin: 0 0 24px; font-size: 16px; line-height: 24px; color: #3f3f46;">
-                        BeamInOut es una plataforma de control de asistencia donde podrás registrar tu entrada y salida de forma fácil y rápida.
+                        Nomia es una plataforma de control de asistencia donde podrás registrar tu entrada y salida de forma fácil y rápida.
                       </p>
                       
                       <!-- CTA Button -->

@@ -114,8 +114,7 @@ const Dashboard = () => {
           locations (name, organization_id, organizations (name))
         `
         )
-        .order("recorded_at", { ascending: false })
-        .limit(20);
+        .order("recorded_at", { ascending: false });
 
       // If not admin, filter by user_id
       if (!isAdmin) {

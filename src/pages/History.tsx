@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -7,12 +7,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ArrowLeft, Calendar, CheckCircle, XCircle, Clock, ChevronDown, Download, FileSpreadsheet, FileText, Loader2 } from "lucide-react";
+import { ArrowLeft, Calendar, CheckCircle, XCircle, Clock, ChevronDown, ChevronLeft, ChevronRight, Download, FileSpreadsheet, FileText, Loader2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { exportToCSV, exportToExcel, buildTimestamp } from "@/lib/exportUtils";
-import { format } from "date-fns";
+import { format, startOfMonth, endOfMonth, addMonths, subMonths } from "date-fns";
+import { es } from "date-fns/locale";
 
 interface AttendanceRecord {
   id: string;
@@ -24,40 +25,53 @@ interface AttendanceRecord {
   };
 }
 
+const PAGE_SIZE = 20;
+
 const History = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const [history, setHistory] = useState<AttendanceRecord[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
+  const [selectedMonth, setSelectedMonth] = useState(new Date());
+  const [totalCount, setTotalCount] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
-    if (!loading && !user) {
-      navigate("/auth");
-    }
+    if (!loading && !user) navigate("/auth");
   }, [user, loading, navigate]);
 
   useEffect(() => {
     if (user) {
-      fetchHistory();
+      setCurrentPage(1);
+      fetchHistory(1);
     }
-  }, [user]);
+  }, [user, selectedMonth]);
 
-  const fetchHistory = async () => {
+  const fetchHistory = async (page: number) => {
     if (!user) return;
-
+    setLoadingHistory(true);
     try {
+      const monthStart = startOfMonth(selectedMonth);
+      const monthEnd = endOfMonth(selectedMonth);
+      const offset = (page - 1) * PAGE_SIZE;
+
+      const { count } = await supabase
+        .from("attendance_records")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .gte("recorded_at", monthStart.toISOString())
+        .lte("recorded_at", monthEnd.toISOString());
+
+      setTotalCount(count || 0);
+
       const { data, error } = await supabase
         .from("attendance_records")
-        .select(`
-          id,
-          record_type,
-          recorded_at,
-          location_id,
-          locations (name)
-        `)
+        .select(`id, record_type, recorded_at, location_id, locations (name)`)
         .eq("user_id", user.id)
+        .gte("recorded_at", monthStart.toISOString())
+        .lte("recorded_at", monthEnd.toISOString())
         .order("recorded_at", { ascending: false })
-        .limit(50);
+        .range(offset, offset + PAGE_SIZE - 1);
 
       if (error) throw error;
       setHistory((data || []) as AttendanceRecord[]);
@@ -68,49 +82,55 @@ const History = () => {
     }
   };
 
-  // Group by date
-  const groupedHistory = history.reduce((acc, record) => {
-    const date = record.recorded_at.split("T")[0];
-    if (!acc[date]) {
-      acc[date] = [];
-    }
-    acc[date].push(record);
-    return acc;
-  }, {} as Record<string, AttendanceRecord[]>);
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    fetchHistory(page);
+  };
+
+  const groupedHistory = useMemo(() => {
+    return history.reduce((acc, record) => {
+      const date = record.recorded_at.split("T")[0];
+      if (!acc[date]) acc[date] = [];
+      acc[date].push(record);
+      return acc;
+    }, {} as Record<string, AttendanceRecord[]>);
+  }, [history]);
 
   const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString("es-ES", { 
-      weekday: "long", 
-      day: "numeric", 
-      month: "long" 
-    });
+    const date = new Date(dateStr + "T12:00:00");
+    return format(date, "EEEE, d 'de' MMMM", { locale: es });
   };
 
   const formatTime = (dateStr: string) => {
-    return new Date(dateStr).toLocaleTimeString("es-ES", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return new Date(dateStr).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
   };
 
   const calculateHours = (records: AttendanceRecord[]) => {
-    const entrada = records.find(r => r.record_type === "entrada");
-    const salida = records.find(r => r.record_type === "salida");
-    
-    if (entrada && salida) {
-      const entradaTime = new Date(entrada.recorded_at).getTime();
-      const salidaTime = new Date(salida.recorded_at).getTime();
-      const totalMinutes = Math.floor((salidaTime - entradaTime) / (1000 * 60));
-      const hours = Math.floor(totalMinutes / 60);
-      const minutes = totalMinutes % 60;
-      return `${hours}h ${minutes}m`;
+    const sorted = [...records].sort(
+      (a, b) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime()
+    );
+
+    const entradas = sorted.filter((r) => r.record_type === "entrada");
+    const salidas = sorted.filter((r) => r.record_type === "salida");
+    const pairs = Math.min(entradas.length, salidas.length);
+
+    if (pairs === 0) return "—";
+
+    let totalMinutes = 0;
+    for (let i = 0; i < pairs; i++) {
+      const diff = new Date(salidas[i].recorded_at).getTime() - new Date(entradas[i].recorded_at).getTime();
+      if (diff > 0) totalMinutes += diff / (1000 * 60);
     }
-    return "—";
+
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = Math.round(totalMinutes % 60);
+    return `${hours}h ${minutes}m`;
   };
 
-  const currentMonth = new Date().toLocaleDateString("es-ES", { month: "long", year: "numeric" });
+  const monthLabel = format(selectedMonth, "MMMM yyyy", { locale: es });
   const daysWorked = new Set(Object.keys(groupedHistory)).size;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const canGoNext = selectedMonth < startOfMonth(new Date());
 
   const exportColumns = [
     { header: "Fecha", accessor: (r: AttendanceRecord) => format(new Date(r.recorded_at), "dd/MM/yyyy") },
@@ -120,11 +140,11 @@ const History = () => {
   ];
 
   const handleExportCSV = () => {
-    exportToCSV(history, exportColumns, `mi_asistencia_${buildTimestamp()}.csv`);
+    exportToCSV(history, exportColumns, `mi_asistencia_${format(selectedMonth, "yyyy-MM")}_${buildTimestamp()}.csv`);
   };
 
   const handleExportExcel = () => {
-    exportToExcel(history, exportColumns, `mi_asistencia_${buildTimestamp()}.xlsx`, "Asistencia");
+    exportToExcel(history, exportColumns, `mi_asistencia_${format(selectedMonth, "yyyy-MM")}_${buildTimestamp()}.xlsx`, "Asistencia");
   };
 
   if (loading) {
@@ -137,12 +157,11 @@ const History = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link to="/dashboard">
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" aria-label="Volver">
                 <ArrowLeft className="w-5 h-5" />
               </Button>
             </Link>
@@ -178,15 +197,27 @@ const History = () => {
         <Card className="glass-card mb-6">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
+              <Button variant="ghost" size="icon" onClick={() => setSelectedMonth((m) => subMonths(m, 1))} aria-label="Mes anterior">
+                <ChevronLeft className="w-5 h-5" />
+              </Button>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                   <Calendar className="w-5 h-5 text-primary" />
                 </div>
-                <div>
-                  <p className="font-semibold capitalize">{currentMonth}</p>
-                  <p className="text-sm text-muted-foreground">{daysWorked} días con registro</p>
+                <div className="text-center">
+                  <p className="font-semibold capitalize">{monthLabel}</p>
+                  <p className="text-sm text-muted-foreground">{daysWorked} días con registro · {totalCount} registros</p>
                 </div>
               </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSelectedMonth((m) => addMonths(m, 1))}
+                disabled={!canGoNext}
+                aria-label="Mes siguiente"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -200,7 +231,7 @@ const History = () => {
           <Card className="glass-card">
             <CardContent className="py-12 text-center">
               <Clock className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
-              <p className="text-muted-foreground">No hay registros de asistencia aún</p>
+              <p className="text-muted-foreground">No hay registros en este mes</p>
               <p className="text-sm text-muted-foreground mt-1">Escanea un código QR para comenzar</p>
             </CardContent>
           </Card>
@@ -222,17 +253,17 @@ const History = () => {
                 <CardContent className="pt-3">
                   <div className="space-y-2">
                     {records.map((record) => (
-                      <div 
-                        key={record.id} 
+                      <div
+                        key={record.id}
                         className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors"
                       >
                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                          record.record_type === "entrada" 
-                            ? "bg-success/10 text-success" 
+                          record.record_type === "entrada"
+                            ? "bg-success/10 text-success"
                             : "bg-destructive/10 text-destructive"
                         }`}>
-                          {record.record_type === "entrada" 
-                            ? <CheckCircle className="w-4 h-4" /> 
+                          {record.record_type === "entrada"
+                            ? <CheckCircle className="w-4 h-4" />
                             : <XCircle className="w-4 h-4" />
                           }
                         </div>
@@ -249,6 +280,23 @@ const History = () => {
                 </CardContent>
               </Card>
             ))}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between pt-2">
+                <p className="text-sm text-muted-foreground">
+                  Página {currentPage} de {totalPages}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" disabled={currentPage <= 1} onClick={() => handlePageChange(currentPage - 1)} aria-label="Página anterior">
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <Button variant="outline" size="sm" disabled={currentPage >= totalPages} onClick={() => handlePageChange(currentPage + 1)} aria-label="Página siguiente">
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </main>

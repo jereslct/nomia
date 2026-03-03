@@ -580,7 +580,7 @@ const Admin = () => {
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link to="/dashboard">
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" aria-label="Volver">
                 <ArrowLeft className="w-5 h-5" />
               </Button>
             </Link>
@@ -827,6 +827,7 @@ const Admin = () => {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8"
+                            aria-label="Registrar asistencia manualmente"
                             title="Registrar asistencia manualmente"
                             onClick={() => openManualDialog(employee)}
                           >

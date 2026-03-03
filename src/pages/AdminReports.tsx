@@ -554,7 +554,7 @@ const fetchRecords = async (orgIds: string[]) => {
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link to="/dashboard">
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" aria-label="Volver">
                 <ArrowLeft className="w-5 h-5" />
               </Button>
             </Link>
@@ -564,7 +564,7 @@ const fetchRecords = async (orgIds: string[]) => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loadingData}>
+            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loadingData} aria-label="Actualizar datos">
               <RefreshCw className={`w-4 h-4 ${loadingData ? "animate-spin" : ""}`} />
             </Button>
             <DropdownMenu>

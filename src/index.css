@@ -167,4 +167,18 @@
     @apply absolute inset-0 border-4 border-primary rounded-2xl;
     box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
   }
+
+  .skip-to-content {
+    @apply fixed -top-12 left-4 z-[9999] bg-primary text-primary-foreground px-4 py-2 rounded-b-lg font-medium transition-all duration-200;
+  }
+
+  .skip-to-content:focus {
+    @apply top-0;
+  }
+}
+
+@layer base {
+  *:focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
+  }
 }

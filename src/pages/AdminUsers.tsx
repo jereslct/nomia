@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -22,7 +22,15 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { ArrowLeft, UserPlus, Users, Mail, Loader2, Check, Clock, X, Building2, Plus, ChevronRight, Trash2, Phone } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ArrowLeft, UserPlus, Users, Mail, Loader2, Check, Clock, X, Building2, Plus, ChevronRight, Trash2, Phone, Search, ChevronLeft, Filter, Upload, MoreHorizontal, RefreshCw } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -109,6 +117,20 @@ const AdminUsers = () => {
   const [isInviting, setIsInviting] = useState(false);
   const [emailError, setEmailError] = useState("");
   const [showAllEmployees, setShowAllEmployees] = useState(false);
+
+  // Search, filter & pagination
+  const [searchQuery, setSearchQuery] = useState("");
+  const [invitationFilter, setInvitationFilter] = useState<"all" | "accepted" | "pending" | "rejected">("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10;
+
+  // Bulk operations
+  const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(new Set());
+  const [bulkInviteDialogOpen, setBulkInviteDialogOpen] = useState(false);
+  const [bulkCsvText, setBulkCsvText] = useState("");
+  const [isBulkInviting, setIsBulkInviting] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [isBulkReinviting, setIsBulkReinviting] = useState(false);
 
   useEffect(() => {
     if (!loading && (!user || !isAdmin)) {
@@ -631,6 +653,118 @@ const AdminUsers = () => {
     }
   };
 
+  const toggleMemberSelection = (id: string) => {
+    setSelectedMemberIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = (membersList: OrganizationMember[]) => {
+    if (selectedMemberIds.size === membersList.length) {
+      setSelectedMemberIds(new Set());
+    } else {
+      setSelectedMemberIds(new Set(membersList.map((m) => m.id)));
+    }
+  };
+
+  const handleBulkInviteCSV = async () => {
+    if (!selectedOrg || !user) return;
+    const lines = bulkCsvText.split(/[\n,;]+/).map((l) => l.trim().toLowerCase()).filter(Boolean);
+    const validEmails = lines.filter((line) => {
+      try { emailSchema.parse(line); return true; } catch { return false; }
+    });
+    if (validEmails.length === 0) {
+      toast({ title: "Error", description: "No se encontraron correos válidos.", variant: "destructive" });
+      return;
+    }
+    setIsBulkInviting(true);
+    let successCount = 0;
+    let skipCount = 0;
+    for (const email of validEmails) {
+      const { data: existing } = await supabase
+        .from("organization_members")
+        .select("id")
+        .eq("organization_id", selectedOrg.id)
+        .eq("invited_email", email)
+        .maybeSingle();
+      if (existing) { skipCount++; continue; }
+      const { data: existingProfile } = await supabase
+        .from("profiles")
+        .select("user_id")
+        .eq("email", email)
+        .maybeSingle();
+      const { error } = await supabase.from("organization_members").insert({
+        organization_id: selectedOrg.id,
+        invited_email: email,
+        invited_by: user.id,
+        user_id: existingProfile?.user_id || null,
+        status: existingProfile ? "accepted" : "pending",
+        accepted_at: existingProfile ? new Date().toISOString() : null,
+      });
+      if (!error) {
+        successCount++;
+        if (!existingProfile) {
+          try {
+            await supabase.functions.invoke("send-invitation-email", {
+              body: { to_email: email, organization_name: selectedOrg.name, inviter_name: profile?.full_name || user.email || "Un administrador", app_url: window.location.origin },
+            });
+          } catch { /* non-critical */ }
+        }
+      }
+    }
+    toast({ title: "Invitación masiva completada", description: `${successCount} invitados, ${skipCount} omitidos (ya existían).` });
+    setBulkCsvText("");
+    setBulkInviteDialogOpen(false);
+    setIsBulkInviting(false);
+    fetchMembers(selectedOrg.id);
+    fetchOrganizations();
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedMemberIds.size === 0) return;
+    if (!confirm(`¿Eliminar ${selectedMemberIds.size} miembro(s)? Esta acción no se puede deshacer.`)) return;
+    setIsBulkDeleting(true);
+    const ids = Array.from(selectedMemberIds);
+    const { error } = await supabase.from("organization_members").delete().in("id", ids);
+    if (error) {
+      toast({ title: "Error", description: "No se pudieron eliminar algunos miembros.", variant: "destructive" });
+    } else {
+      toast({ title: "Miembros eliminados", description: `${ids.length} miembro(s) eliminados correctamente.` });
+      setMembers((prev) => prev.filter((m) => !selectedMemberIds.has(m.id)));
+      setAllMembers((prev) => prev.filter((m) => !selectedMemberIds.has(m.id)));
+      setSelectedMemberIds(new Set());
+      fetchOrganizations();
+    }
+    setIsBulkDeleting(false);
+  };
+
+  const handleBulkReinvite = async () => {
+    const pendingSelected = (showAllEmployees ? allMembers : members).filter(
+      (m) => selectedMemberIds.has(m.id) && m.status === "pending"
+    );
+    if (pendingSelected.length === 0) {
+      toast({ title: "Sin pendientes", description: "Selecciona miembros con estado pendiente para reenviar.", variant: "destructive" });
+      return;
+    }
+    setIsBulkReinviting(true);
+    let sent = 0;
+    for (const member of pendingSelected) {
+      const orgName = member.organization_name || selectedOrg?.name || "";
+      try {
+        await supabase.functions.invoke("send-invitation-email", {
+          body: { to_email: member.invited_email, organization_name: orgName, inviter_name: profile?.full_name || user?.email || "Un administrador", app_url: window.location.origin },
+        });
+        sent++;
+      } catch { /* non-critical */ }
+    }
+    toast({ title: "Reenvío completado", description: `${sent} invitación(es) reenviadas.` });
+    setIsBulkReinviting(false);
+    setSelectedMemberIds(new Set());
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -638,6 +772,31 @@ const AdminUsers = () => {
       </div>
     );
   }
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, invitationFilter, selectedOrg, showAllEmployees]);
+
+  const filterMembers = (list: OrganizationMember[]) => {
+    let filtered = list;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (m) =>
+          m.invited_email.toLowerCase().includes(q) ||
+          (m.profile?.full_name || "").toLowerCase().includes(q) ||
+          (m.profile?.phone_number || "").includes(q)
+      );
+    }
+    if (invitationFilter !== "all") {
+      filtered = filtered.filter((m) => m.status === invitationFilter);
+    }
+    return filtered;
+  };
+
+  const filteredMembers = useMemo(() => filterMembers(showAllEmployees ? allMembers : members), [members, allMembers, searchQuery, invitationFilter, showAllEmployees]);
+  const totalPages = Math.max(1, Math.ceil(filteredMembers.length / PAGE_SIZE));
+  const paginatedMembers = useMemo(() => filteredMembers.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE), [filteredMembers, currentPage]);
 
   const activeMembers = members.filter((m) => m.status === "accepted").length;
   const pendingMembers = members.filter((m) => m.status === "pending").length;
@@ -649,7 +808,7 @@ const AdminUsers = () => {
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link to="/dashboard">
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" aria-label="Volver">
                 <ArrowLeft className="w-5 h-5" />
               </Button>
             </Link>
@@ -822,6 +981,7 @@ const AdminUsers = () => {
                         }}
                         className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                         title="Eliminar organización"
+                        aria-label="Eliminar organización"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -834,6 +994,53 @@ const AdminUsers = () => {
           </CardContent>
         </Card>
 
+        {/* Search & Filter Bar */}
+        {(showAllEmployees || selectedOrg) && (
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nombre, email o teléfono..."
+                className="pl-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                aria-label="Buscar empleados"
+              />
+            </div>
+            <Select value={invitationFilter} onValueChange={(v) => setInvitationFilter(v as typeof invitationFilter)}>
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <Filter className="w-4 h-4 mr-2" />
+                <SelectValue placeholder="Filtrar por estado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="accepted">Aceptados</SelectItem>
+                <SelectItem value="pending">Pendientes</SelectItem>
+                <SelectItem value="rejected">Rechazados</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {/* Bulk Actions Bar */}
+        {selectedMemberIds.size > 0 && (
+          <div className="flex items-center gap-3 p-3 bg-primary/5 rounded-lg border border-primary/20">
+            <span className="text-sm font-medium">{selectedMemberIds.size} seleccionado(s)</span>
+            <div className="flex-1" />
+            <Button variant="outline" size="sm" onClick={handleBulkReinvite} disabled={isBulkReinviting}>
+              {isBulkReinviting ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+              Reenviar invitaciones
+            </Button>
+            <Button variant="destructive" size="sm" onClick={handleBulkDelete} disabled={isBulkDeleting}>
+              {isBulkDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+              Eliminar
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setSelectedMemberIds(new Set())} aria-label="Cerrar">
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
+
         {/* All Employees Section */}
         {showAllEmployees && (
           <Card className="glass-card">
@@ -843,7 +1050,7 @@ const AdminUsers = () => {
                 Todos los Empleados
               </CardTitle>
               <CardDescription>
-                Empleados de todas tus organizaciones ({allMembers.length} total)
+                Empleados de todas tus organizaciones ({filteredMembers.length} de {allMembers.length} total)
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -856,11 +1063,25 @@ const AdminUsers = () => {
                   <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p>No hay empleados en ninguna organización</p>
                 </div>
+              ) : paginatedMembers.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Search className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>No se encontraron resultados</p>
+                  <p className="text-sm">Intenta con otros términos de búsqueda</p>
+                </div>
               ) : (
+                <>
                 <div className="rounded-lg border border-border overflow-hidden">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/50">
+                        <TableHead className="w-10">
+                          <Checkbox
+                            checked={paginatedMembers.length > 0 && paginatedMembers.every((m) => selectedMemberIds.has(m.id))}
+                            onCheckedChange={() => toggleSelectAll(paginatedMembers)}
+                            aria-label="Seleccionar todos"
+                          />
+                        </TableHead>
                         <TableHead className="font-semibold">Empleado</TableHead>
                         <TableHead className="font-semibold">Email</TableHead>
                         <TableHead className="font-semibold">Teléfono</TableHead>
@@ -871,8 +1092,15 @@ const AdminUsers = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {allMembers.map((member) => (
-                        <TableRow key={member.id} className="hover:bg-muted/30">
+                      {paginatedMembers.map((member) => (
+                        <TableRow key={member.id} className={`hover:bg-muted/30 ${selectedMemberIds.has(member.id) ? "bg-primary/5" : ""}`}>
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedMemberIds.has(member.id)}
+                              onCheckedChange={() => toggleMemberSelection(member.id)}
+                              aria-label={`Seleccionar ${member.invited_email}`}
+                            />
+                          </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-3">
                               <Avatar className="w-9 h-9">
@@ -912,6 +1140,23 @@ const AdminUsers = () => {
                     </TableBody>
                   </Table>
                 </div>
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between mt-4">
+                    <p className="text-sm text-muted-foreground">
+                      Mostrando {(currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, filteredMembers.length)} de {filteredMembers.length}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" disabled={currentPage <= 1} onClick={() => setCurrentPage((p) => p - 1)} aria-label="Página anterior">
+                        <ChevronLeft className="w-4 h-4" />
+                      </Button>
+                      <span className="text-sm font-medium">{currentPage} / {totalPages}</span>
+                      <Button variant="outline" size="sm" disabled={currentPage >= totalPages} onClick={() => setCurrentPage((p) => p + 1)} aria-label="Página siguiente">
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                </>
               )}
             </CardContent>
           </Card>
@@ -960,6 +1205,42 @@ const AdminUsers = () => {
                   </CardTitle>
                   <CardDescription>Lista de empleados e invitaciones</CardDescription>
                 </div>
+                <div className="flex items-center gap-2">
+                <Dialog open={bulkInviteDialogOpen} onOpenChange={setBulkInviteDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Upload className="w-4 h-4" />
+                      Invitación masiva
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Invitación Masiva</DialogTitle>
+                      <DialogDescription>
+                        Pega una lista de correos electrónicos separados por comas, punto y coma, o líneas nuevas.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <Label htmlFor="bulkEmails">Correos electrónicos</Label>
+                      <textarea
+                        id="bulkEmails"
+                        className="w-full h-32 p-3 rounded-md border border-input bg-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                        placeholder={"empleado1@email.com\nempleado2@email.com\nempleado3@email.com"}
+                        value={bulkCsvText}
+                        onChange={(e) => setBulkCsvText(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        {bulkCsvText.split(/[\n,;]+/).filter((l) => l.trim()).length} correo(s) detectados
+                      </p>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setBulkInviteDialogOpen(false)}>Cancelar</Button>
+                      <Button onClick={handleBulkInviteCSV} disabled={isBulkInviting || !bulkCsvText.trim()}>
+                        {isBulkInviting ? <><Loader2 className="w-4 h-4 animate-spin" /> Enviando...</> : <><Upload className="w-4 h-4" /> Invitar a todos</>}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
                 <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
                   <DialogTrigger asChild>
                     <Button variant="hero" size="sm">
@@ -1014,6 +1295,7 @@ const AdminUsers = () => {
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
+                </div>
               </CardHeader>
               <CardContent>
                 {isLoadingMembers ? (
@@ -1034,11 +1316,25 @@ const AdminUsers = () => {
                       Invitar Empleado
                     </Button>
                   </div>
+                ) : paginatedMembers.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Search className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>No se encontraron resultados</p>
+                    <p className="text-sm">Intenta con otros términos de búsqueda</p>
+                  </div>
                 ) : (
+                  <>
                   <div className="rounded-lg border border-border overflow-hidden">
                     <Table>
                       <TableHeader>
                         <TableRow className="bg-muted/50">
+                          <TableHead className="w-10">
+                            <Checkbox
+                              checked={paginatedMembers.length > 0 && paginatedMembers.every((m) => selectedMemberIds.has(m.id))}
+                              onCheckedChange={() => toggleSelectAll(paginatedMembers)}
+                              aria-label="Seleccionar todos"
+                            />
+                          </TableHead>
                           <TableHead className="font-semibold">Empleado</TableHead>
                           <TableHead className="font-semibold">Email</TableHead>
                           <TableHead className="font-semibold">Teléfono</TableHead>
@@ -1049,8 +1345,15 @@ const AdminUsers = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {members.map((member) => (
-                          <TableRow key={member.id} className="hover:bg-muted/30">
+                        {paginatedMembers.map((member) => (
+                          <TableRow key={member.id} className={`hover:bg-muted/30 ${selectedMemberIds.has(member.id) ? "bg-primary/5" : ""}`}>
+                            <TableCell>
+                              <Checkbox
+                                checked={selectedMemberIds.has(member.id)}
+                                onCheckedChange={() => toggleMemberSelection(member.id)}
+                                aria-label={`Seleccionar ${member.invited_email}`}
+                              />
+                            </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-3">
                                 <Avatar className="w-9 h-9">
@@ -1088,6 +1391,7 @@ const AdminUsers = () => {
                                 size="icon"
                                 className="text-destructive hover:text-destructive hover:bg-destructive/10"
                                 onClick={() => handleRemoveMember(member.id)}
+                                aria-label="Eliminar miembro"
                               >
                                 <X className="w-4 h-4" />
                               </Button>
@@ -1097,6 +1401,23 @@ const AdminUsers = () => {
                       </TableBody>
                     </Table>
                   </div>
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-between mt-4">
+                      <p className="text-sm text-muted-foreground">
+                        Mostrando {(currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, filteredMembers.length)} de {filteredMembers.length}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <Button variant="outline" size="sm" disabled={currentPage <= 1} onClick={() => setCurrentPage((p) => p - 1)}>
+                          <ChevronLeft className="w-4 h-4" />
+                        </Button>
+                        <span className="text-sm font-medium">{currentPage} / {totalPages}</span>
+                        <Button variant="outline" size="sm" disabled={currentPage >= totalPages} onClick={() => setCurrentPage((p) => p + 1)}>
+                          <ChevronRight className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  </>
                 )}
               </CardContent>
             </Card>

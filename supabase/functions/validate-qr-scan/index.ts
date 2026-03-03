@@ -1,9 +1,25 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+const allowedOrigin = Deno.env.get("ALLOWED_ORIGIN") || "*";
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": allowedOrigin,
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_MAX = 15;
+const RATE_LIMIT_WINDOW_MS = 60_000;
+
+function checkRateLimit(userId: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(userId);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(userId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return true;
+  }
+  entry.count++;
+  return entry.count <= RATE_LIMIT_MAX;
+}
 
 async function verifySignature(payload: string, signature: string, secret: string): Promise<boolean> {
   const encoder = new TextEncoder();
@@ -35,17 +51,17 @@ Deno.serve(async (req) => {
     if (!supabaseUrl || !supabaseServiceKey) {
       console.error("Missing environment variables");
       return new Response(
-        JSON.stringify({ error: "Server configuration error", code: "CONFIG_ERROR" }),
+        JSON.stringify({ error: "Error de configuración del servidor", code: "CONFIG_ERROR" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const qrSigningSecret = supabaseServiceKey.slice(0, 32);
+    const qrSigningSecret = Deno.env.get("QR_SIGNING_SECRET") || supabaseServiceKey.slice(0, 32);
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: "No authorization header", code: "AUTH_MISSING" }),
+        JSON.stringify({ error: "Falta encabezado de autorización", code: "AUTH_MISSING" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -58,15 +74,22 @@ Deno.serve(async (req) => {
     if (userError || !user) {
       console.error("Auth error:", userError?.message);
       return new Response(
-        JSON.stringify({ error: "Unauthorized", code: "AUTH_FAILED" }),
+        JSON.stringify({ error: "No autorizado", code: "AUTH_FAILED" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!checkRateLimit(user.id)) {
+      return new Response(
+        JSON.stringify({ error: "Demasiadas solicitudes. Esperá un momento.", code: "RATE_LIMITED" }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const { qr_code, force_reentry } = await req.json();
     if (!qr_code) {
       return new Response(
-        JSON.stringify({ error: "qr_code required", code: "QR_MISSING" }),
+        JSON.stringify({ error: "Se requiere el código QR", code: "QR_MISSING" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -126,6 +149,39 @@ Deno.serve(async (req) => {
         JSON.stringify({ error: "Código QR no encontrado o ya fue usado.", code: "QR_NOT_FOUND" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // Validate user belongs to the organization of this location
+    const { data: locationData } = await supabaseAdmin
+      .from("locations")
+      .select("organization_id")
+      .eq("id", qrData.location_id)
+      .maybeSingle();
+
+    if (locationData?.organization_id) {
+      const { data: membership } = await supabaseAdmin
+        .from("organization_members")
+        .select("id")
+        .eq("organization_id", locationData.organization_id)
+        .eq("user_id", user.id)
+        .eq("status", "accepted")
+        .maybeSingle();
+
+      // Also check if user is the org owner
+      const { data: orgOwner } = await supabaseAdmin
+        .from("organizations")
+        .select("id")
+        .eq("id", locationData.organization_id)
+        .eq("owner_id", user.id)
+        .maybeSingle();
+
+      if (!membership && !orgOwner) {
+        console.warn(`User ${user.id} not in org for location ${qrData.location_id}`);
+        return new Response(
+          JSON.stringify({ error: "No pertenecés a esta organización.", code: "USER_NOT_IN_ORG" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     // Check existing records for today

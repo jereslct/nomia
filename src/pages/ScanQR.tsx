@@ -1,194 +1,26 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { ArrowLeft, Camera, CheckCircle, XCircle, Loader2, Copy, Check, Shield } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
-import { Html5Qrcode } from "html5-qrcode";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
-
-type ScanStatus = "idle" | "scanning" | "success" | "error";
+import { useQrScanner } from "@/hooks/useQrScanner";
 
 const ScanQR = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
   const { user, loading } = useAuth();
-  const [status, setStatus] = useState<ScanStatus>("idle");
-  const [recordType, setRecordType] = useState<"entrada" | "salida" | null>(null);
-  const scannerRef = useRef<Html5Qrcode | null>(null);
-  const [isInitializing, setIsInitializing] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string>("");
-  const [errorCode, setErrorCode] = useState<string>("");
-  const [copied, setCopied] = useState(false);
-  const [reentryDialogOpen, setReentryDialogOpen] = useState(false);
-  const [pendingQrCode, setPendingQrCode] = useState<string | null>(null);
-  const [reentryInfo, setReentryInfo] = useState<{ entry_count: number; exit_count: number } | null>(null);
+
+  const scanner = useQrScanner({
+    elementId: "qr-reader",
+    onSuccess: () => {
+      setTimeout(() => navigate("/dashboard"), 3000);
+    },
+  });
 
   useEffect(() => {
-    if (!loading && !user) {
-      navigate("/auth");
-    }
+    if (!loading && !user) navigate("/auth");
   }, [user, loading, navigate]);
-
-  const requestCameraPermission = async (): Promise<boolean> => {
-    try {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        toast({ title: "Cámara no disponible", description: "Tu navegador no soporta acceso a la cámara.", variant: "destructive" });
-        return false;
-      }
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-      stream.getTracks().forEach((track) => track.stop());
-      return true;
-    } catch (err: any) {
-      toast({ title: "Error de cámara", description: "No se pudo acceder a la cámara.", variant: "destructive" });
-      return false;
-    }
-  };
-
-  const startScanning = async () => {
-    if (scannerRef.current || isInitializing) return;
-    setIsInitializing(true);
-    
-    const hasPermission = await requestCameraPermission();
-    if (!hasPermission) {
-      setIsInitializing(false);
-      setStatus("error");
-      return;
-    }
-
-    setStatus("scanning");
-
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      const html5QrCode = new Html5Qrcode("qr-reader", { verbose: false });
-      scannerRef.current = html5QrCode;
-
-      await html5QrCode.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
-        (decodedText) => handleScanSuccess(decodedText),
-        () => {}
-      );
-    } catch (err) {
-      setStatus("error");
-      toast({ title: "Error de escáner", description: "No se pudo iniciar el escáner.", variant: "destructive" });
-    } finally {
-      setIsInitializing(false);
-    }
-  };
-
-  const stopScanning = async () => {
-    if (scannerRef.current) {
-      try {
-        await scannerRef.current.stop();
-        scannerRef.current = null;
-      } catch (err) {}
-    }
-  };
-
-  const setError = (message: string, code: string) => {
-    setErrorMessage(message);
-    setErrorCode(code);
-    setStatus("error");
-  };
-
-  const copyErrorToClipboard = async () => {
-    try {
-      await navigator.clipboard.writeText(`Error: ${errorMessage}\nCódigo: ${errorCode}`);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {}
-  };
-
-  const validateQrScan = async (qrCode: string, forceReentry: boolean = false) => {
-    try {
-      const response = await supabase.functions.invoke("validate-qr-scan", {
-        body: { qr_code: qrCode, force_reentry: forceReentry },
-      });
-
-      console.log("validate-qr-scan raw response:", JSON.stringify(response));
-
-      // Extract response data from wherever the SDK puts it
-      const responseData = response.data || (response.error as any)?.context || response.error;
-      
-      // Parse if string
-      const parsed = typeof responseData === "string" ? (() => { try { return JSON.parse(responseData); } catch { return null; } })() : responseData;
-
-      console.log("Parsed response:", JSON.stringify(parsed));
-
-      // Check for REENTRY confirmation needed FIRST
-      if (parsed?.code === "REENTRY_CONFIRMATION_NEEDED") {
-        setPendingQrCode(qrCode);
-        setReentryInfo({ entry_count: parsed.entry_count, exit_count: parsed.exit_count });
-        setReentryDialogOpen(true);
-        return;
-      }
-
-      if (response.error && !parsed?.success) {
-        setError("Error de conexión con el servidor.", `NETWORK_ERROR: ${response.error.message || response.error}`);
-        toast({ title: "Error", description: "No se pudo validar el código.", variant: "destructive" });
-        return;
-      }
-
-      if (!parsed?.success) {
-        setError(parsed?.error || "Código inválido o expirado.", parsed?.code || "VALIDATION_FAILED");
-        toast({ title: "Error", description: parsed?.error || "Validación fallida.", variant: "destructive" });
-        return;
-      }
-
-      setRecordType(parsed.record_type);
-      setStatus("success");
-      toast({
-        title: `¡${parsed.record_type === "entrada" ? "Entrada" : "Salida"} registrada!`,
-        description: parsed.message,
-      });
-
-      setTimeout(() => navigate("/dashboard"), 2000);
-    } catch (err: any) {
-      setError("Error inesperado.", `UNEXPECTED: ${err?.message}`);
-      toast({ title: "Error", description: "Error inesperado.", variant: "destructive" });
-    }
-  };
-
-  const handleScanSuccess = async (result: string) => {
-    await stopScanning();
-
-    if (!result.startsWith("nomia:")) {
-      setError("Código QR no reconocido. Usa el formato seguro.", "INVALID_FORMAT");
-      toast({ title: "Código inválido", description: "Formato no reconocido.", variant: "destructive" });
-      return;
-    }
-
-    if (!user) {
-      setError("Debes iniciar sesión.", "AUTH_REQUIRED");
-      return;
-    }
-
-    await validateQrScan(result, false);
-  };
-
-  const handleConfirmReentry = async () => {
-    setReentryDialogOpen(false);
-    if (pendingQrCode) {
-      setStatus("scanning"); // Show loading state
-      await validateQrScan(pendingQrCode, true);
-      setPendingQrCode(null);
-      setReentryInfo(null);
-    }
-  };
-
-  const handleCancelReentry = () => {
-    setReentryDialogOpen(false);
-    setPendingQrCode(null);
-    setReentryInfo(null);
-    setStatus("idle");
-  };
-
-  useEffect(() => {
-    return () => { stopScanning(); };
-  }, []);
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
@@ -198,7 +30,7 @@ const ScanQR = () => {
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 h-16 flex items-center gap-4">
-          <Link to="/dashboard"><Button variant="ghost" size="icon"><ArrowLeft className="w-5 h-5" /></Button></Link>
+          <Link to="/dashboard"><Button variant="ghost" size="icon" aria-label="Volver"><ArrowLeft className="w-5 h-5" /></Button></Link>
           <div>
             <h1 className="font-bold text-lg">Escanear QR</h1>
             <p className="text-xs text-muted-foreground">Validación segura en backend</p>
@@ -218,7 +50,7 @@ const ScanQR = () => {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="relative aspect-square rounded-2xl overflow-hidden bg-foreground/5">
-              {status === "idle" && (
+              {scanner.status === "idle" && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
                   <div className="w-20 h-20 rounded-2xl gradient-primary flex items-center justify-center">
                     <Camera className="w-10 h-10 text-primary-foreground" />
@@ -226,7 +58,7 @@ const ScanQR = () => {
                   <p className="text-sm text-muted-foreground text-center px-4">Presiona el botón para activar la cámara</p>
                 </div>
               )}
-              {status === "scanning" && (
+              {scanner.status === "scanning" && (
                 <>
                   <div id="qr-reader" className="w-full h-full" />
                   <div className="absolute inset-0 pointer-events-none">
@@ -236,30 +68,30 @@ const ScanQR = () => {
                   </div>
                 </>
               )}
-              {status === "success" && (
+              {scanner.status === "success" && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-success/10 animate-scale-in">
                   <div className="w-20 h-20 rounded-full bg-success flex items-center justify-center">
                     <CheckCircle className="w-10 h-10 text-success-foreground" />
                   </div>
                   <div className="text-center">
-                    <p className="font-semibold text-success">¡{recordType === "entrada" ? "Entrada" : "Salida"} registrada!</p>
+                    <p className="font-semibold text-success">¡{scanner.recordType === "entrada" ? "Entrada" : "Salida"} registrada!</p>
                     <p className="text-sm text-muted-foreground">Redirigiendo...</p>
                   </div>
                 </div>
               )}
-              {status === "error" && (
+              {scanner.status === "error" && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-destructive/10 animate-scale-in p-4">
                   <div className="w-16 h-16 rounded-full bg-destructive flex items-center justify-center">
                     <XCircle className="w-8 h-8 text-destructive-foreground" />
                   </div>
                   <div className="text-center w-full">
                     <p className="font-semibold text-destructive mb-1">Error</p>
-                    <p className="text-xs text-muted-foreground mb-2 px-2 line-clamp-2">{errorMessage || "Código inválido"}</p>
-                    {errorCode && (
+                    <p className="text-xs text-muted-foreground mb-2 px-2 line-clamp-2">{scanner.errorMessage || "Código inválido"}</p>
+                    {scanner.errorCode && (
                       <div className="bg-destructive/20 rounded-lg p-2 mx-2">
-                        <p className="text-[10px] text-destructive font-mono break-all mb-2">{errorCode}</p>
-                        <Button variant="outline" size="sm" className="h-7 text-xs" onClick={copyErrorToClipboard}>
-                          {copied ? <><Check className="w-3 h-3 mr-1" />Copiado</> : <><Copy className="w-3 h-3 mr-1" />Copiar</>}
+                        <p className="text-[10px] text-destructive font-mono break-all mb-2">{scanner.errorCode}</p>
+                        <Button variant="outline" size="sm" className="h-7 text-xs" onClick={scanner.copyErrorToClipboard} aria-label="Copiar código de error">
+                          {scanner.copied ? <><Check className="w-3 h-3 mr-1" />Copiado</> : <><Copy className="w-3 h-3 mr-1" />Copiar</>}
                         </Button>
                       </div>
                     )}
@@ -269,14 +101,14 @@ const ScanQR = () => {
             </div>
 
             <div className="space-y-3">
-              {status === "idle" && (
-                <Button variant="hero" size="lg" className="w-full" onClick={startScanning} disabled={isInitializing}>
-                  {isInitializing ? <><Loader2 className="w-5 h-5 animate-spin" />Iniciando...</> : <><Camera className="w-5 h-5" />Activar Cámara</>}
+              {scanner.status === "idle" && (
+                <Button variant="hero" size="lg" className="w-full" onClick={scanner.startScanning} disabled={scanner.isInitializing}>
+                  {scanner.isInitializing ? <><Loader2 className="w-5 h-5 animate-spin" />Iniciando...</> : <><Camera className="w-5 h-5" />Activar Cámara</>}
                 </Button>
               )}
-              {status === "scanning" && <Button variant="outline" size="lg" className="w-full" onClick={stopScanning}>Cancelar</Button>}
-              {status === "error" && (
-                <Button variant="hero" size="lg" className="w-full" onClick={() => { setStatus("idle"); setErrorMessage(""); setErrorCode(""); }}>
+              {scanner.status === "scanning" && <Button variant="outline" size="lg" className="w-full" onClick={scanner.stopScanning}>Cancelar</Button>}
+              {scanner.status === "error" && (
+                <Button variant="hero" size="lg" className="w-full" onClick={scanner.reset}>
                   Intentar de nuevo
                 </Button>
               )}
@@ -285,19 +117,18 @@ const ScanQR = () => {
         </Card>
       </main>
 
-      {/* Re-entry confirmation dialog */}
-      <Dialog open={reentryDialogOpen} onOpenChange={(open) => { if (!open) handleCancelReentry(); }}>
+      <Dialog open={scanner.reentryDialogOpen} onOpenChange={(open) => { if (!open) scanner.handleCancelReentry(); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>¿Volver a marcar ingreso?</DialogTitle>
             <DialogDescription>
-              Ya completaste {reentryInfo?.entry_count} ingreso(s) y {reentryInfo?.exit_count} salida(s) hoy. 
+              Ya completaste {scanner.reentryInfo?.entry_count} ingreso(s) y {scanner.reentryInfo?.exit_count} salida(s) hoy.
               ¿Deseas registrar un nuevo ingreso?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2 sm:gap-0">
-            <Button variant="outline" onClick={handleCancelReentry}>Cancelar</Button>
-            <Button variant="hero" onClick={handleConfirmReentry}>Sí, marcar ingreso</Button>
+            <Button variant="outline" onClick={scanner.handleCancelReentry}>Cancelar</Button>
+            <Button variant="hero" onClick={scanner.handleConfirmReentry}>Sí, marcar ingreso</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

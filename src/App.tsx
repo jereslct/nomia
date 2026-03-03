@@ -18,14 +18,22 @@ import Employee from "./pages/Employee";
 import History from "./pages/History";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import { OfflineBanner } from "./components/OfflineBanner";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 const queryClient = new QueryClient();
 
 const App = () => (
+  <ErrorBoundary>
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
+      <a href="#main-content" className="skip-to-content">
+        Saltar al contenido principal
+      </a>
+      <OfflineBanner />
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <main id="main-content">
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
@@ -87,9 +95,11 @@ const App = () => (
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </main>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;

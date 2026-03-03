@@ -80,7 +80,7 @@ const handler = async (req: Request): Promise<Response> => {
     if (!authHeader) {
       console.error("No authorization header provided");
       return new Response(
-        JSON.stringify({ success: false, error: "Unauthorized" }),
+        JSON.stringify({ success: false, error: "No autorizado" }),
         { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
@@ -96,7 +96,7 @@ const handler = async (req: Request): Promise<Response> => {
     if (authError || !user) {
       console.error("Auth error:", authError?.message);
       return new Response(
-        JSON.stringify({ success: false, error: "Unauthorized" }),
+        JSON.stringify({ success: false, error: "No autorizado" }),
         { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
@@ -111,7 +111,7 @@ const handler = async (req: Request): Promise<Response> => {
     if (roleError || roleData?.role !== "admin") {
       console.error("User is not an admin:", user.id);
       return new Response(
-        JSON.stringify({ success: false, error: "Forbidden - Admin access required" }),
+        JSON.stringify({ success: false, error: "Prohibido - Se requiere acceso de administrador" }),
         { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
@@ -121,21 +121,21 @@ const handler = async (req: Request): Promise<Response> => {
     // Input validation
     if (!to_email || !organization_name || !inviter_name || !app_url) {
       return new Response(
-        JSON.stringify({ success: false, error: "Missing required fields" }),
+        JSON.stringify({ success: false, error: "Faltan campos obligatorios" }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
     if (!isValidEmail(to_email)) {
       return new Response(
-        JSON.stringify({ success: false, error: "Invalid email format" }),
+        JSON.stringify({ success: false, error: "Formato de email inválido" }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
     if (!isValidAppUrl(app_url)) {
       return new Response(
-        JSON.stringify({ success: false, error: "Invalid app URL" }),
+        JSON.stringify({ success: false, error: "URL de aplicación inválida" }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
@@ -143,7 +143,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Validate string lengths to prevent abuse
     if (organization_name.length > 100 || inviter_name.length > 100) {
       return new Response(
-        JSON.stringify({ success: false, error: "Field length exceeds maximum" }),
+        JSON.stringify({ success: false, error: "La longitud del campo excede el máximo permitido" }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
@@ -245,7 +245,7 @@ const handler = async (req: Request): Promise<Response> => {
   } catch (error: any) {
     console.error("Error in send-invitation-email function:", error);
     return new Response(
-      JSON.stringify({ success: false, error: "Failed to send invitation email" }),
+      JSON.stringify({ success: false, error: "Error al enviar el email de invitación" }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },

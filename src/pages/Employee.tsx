@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import {
   Dialog,
   DialogContent,
@@ -19,79 +20,95 @@ import {
   MapPin,
   LogOut,
   History,
+  Timer,
+  CalendarClock,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
-import { Html5Qrcode } from "html5-qrcode";
 import { useAuth } from "@/hooks/useAuth";
+import { useScheduleConfig } from "@/hooks/useScheduleConfig";
 import { supabase } from "@/integrations/supabase/client";
-
-type ScanStatus = "idle" | "scanning" | "success" | "error";
+import { useQrScanner } from "@/hooks/useQrScanner";
 
 const Employee = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
   const { user, profile, loading, signOut } = useAuth();
-  const [status, setStatus] = useState<ScanStatus>("idle");
-  const [recordType, setRecordType] = useState<"entrada" | "salida" | null>(null);
+  const { config: scheduleConfig } = useScheduleConfig();
   const [scanDialogOpen, setScanDialogOpen] = useState(false);
   const [currentStatus, setCurrentStatus] = useState<{
     isWorking: boolean;
     location: string | null;
     entryTime: string | null;
-  }>({ isWorking: false, location: null, entryTime: null });
+    entryTimestamp: Date | null;
+    hoursWorked: number;
+    minutesWorked: number;
+  }>({ isWorking: false, location: null, entryTime: null, entryTimestamp: null, hoursWorked: 0, minutesWorked: 0 });
   const [isLoadingStatus, setIsLoadingStatus] = useState(true);
-  const scannerRef = useRef<Html5Qrcode | null>(null);
-  const [isInitializing, setIsInitializing] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string>("");
-  const [reentryDialogOpen, setReentryDialogOpen] = useState(false);
-  const [pendingQrCode, setPendingQrCode] = useState<string | null>(null);
-  const [reentryInfo, setReentryInfo] = useState<{ entry_count: number; exit_count: number } | null>(null);
+  const [elapsedMinutes, setElapsedMinutes] = useState(0);
+
+  const scanner = useQrScanner({
+    elementId: "qr-reader-employee",
+    useBarCodeDetector: true,
+    onSuccess: () => {
+      setTimeout(() => {
+        setScanDialogOpen(false);
+        scanner.reset();
+        fetchCurrentStatus();
+      }, 3000);
+    },
+  });
 
   useEffect(() => {
-    if (!loading && !user) {
-      navigate("/auth");
-    }
+    if (!loading && !user) navigate("/auth");
   }, [user, loading, navigate]);
 
   useEffect(() => {
-    if (user) {
-      fetchCurrentStatus();
-    }
+    if (user) fetchCurrentStatus();
   }, [user]);
 
   const fetchCurrentStatus = async () => {
     if (!user) return;
     setIsLoadingStatus(true);
-
     try {
       const today = new Date().toISOString().split("T")[0];
       const { data: todayRecords } = await supabase
         .from("attendance_records")
-        .select(`
-          record_type,
-          recorded_at,
-          locations (name)
-        `)
+        .select(`record_type, recorded_at, locations (name)`)
         .eq("user_id", user.id)
         .gte("recorded_at", `${today}T00:00:00`)
-        .order("recorded_at", { ascending: false })
-        .limit(1);
+        .order("recorded_at", { ascending: true });
 
-      const lastRecord = todayRecords?.[0];
-
-      if (lastRecord && lastRecord.record_type === "entrada") {
-        setCurrentStatus({
-          isWorking: true,
-          location: (lastRecord.locations as any)?.name || "Sin ubicación",
-          entryTime: new Date(lastRecord.recorded_at).toLocaleTimeString("es", {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-        });
-      } else {
-        setCurrentStatus({ isWorking: false, location: null, entryTime: null });
+      if (!todayRecords || todayRecords.length === 0) {
+        setCurrentStatus({ isWorking: false, location: null, entryTime: null, entryTimestamp: null, hoursWorked: 0, minutesWorked: 0 });
+        return;
       }
+
+      const entradas = todayRecords.filter((r) => r.record_type === "entrada");
+      const salidas = todayRecords.filter((r) => r.record_type === "salida");
+
+      let completedMinutes = 0;
+      const pairs = Math.min(entradas.length, salidas.length);
+      for (let i = 0; i < pairs; i++) {
+        const diff = new Date(salidas[i].recorded_at).getTime() - new Date(entradas[i].recorded_at).getTime();
+        if (diff > 0) completedMinutes += diff / (1000 * 60);
+      }
+
+      const lastRecord = todayRecords[todayRecords.length - 1];
+      const isWorking = lastRecord.record_type === "entrada";
+      const lastEntryTimestamp = isWorking ? new Date(lastRecord.recorded_at) : null;
+
+      if (isWorking && lastEntryTimestamp) {
+        const liveMinutes = (Date.now() - lastEntryTimestamp.getTime()) / (1000 * 60);
+        completedMinutes += liveMinutes;
+      }
+
+      setCurrentStatus({
+        isWorking,
+        location: isWorking ? ((lastRecord.locations as any)?.name || "Sin ubicación") : null,
+        entryTime: isWorking ? lastEntryTimestamp!.toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" }) : null,
+        entryTimestamp: lastEntryTimestamp,
+        hoursWorked: Math.floor(completedMinutes / 60),
+        minutesWorked: Math.round(completedMinutes % 60),
+      });
     } catch (error) {
       console.error("Error fetching status:", error);
     } finally {
@@ -99,233 +116,23 @@ const Employee = () => {
     }
   };
 
-  const requestCameraPermission = async (): Promise<boolean> => {
-    try {
-      // First check if camera is available
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        toast({
-          title: "Cámara no disponible",
-          description: "Tu navegador no soporta acceso a la cámara. Usa Safari o Chrome.",
-          variant: "destructive",
-        });
-        return false;
-      }
-
-      // Request camera permission explicitly first
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
-      });
-      
-      // Stop the stream immediately - we just needed to trigger permission
-      stream.getTracks().forEach((track) => track.stop());
-      return true;
-    } catch (err: any) {
-      console.error("Camera permission error:", err);
-      
-      let errorMessage = "No se pudo acceder a la cámara.";
-      
-      if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
-        errorMessage = "Permiso de cámara denegado. Ve a Ajustes > Safari > Cámara y permite el acceso.";
-      } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
-        errorMessage = "No se encontró ninguna cámara en tu dispositivo.";
-      } else if (err.name === "NotReadableError" || err.name === "TrackStartError") {
-        errorMessage = "La cámara está siendo usada por otra aplicación.";
-      } else if (err.name === "OverconstrainedError") {
-        errorMessage = "No se pudo configurar la cámara correctamente.";
-      } else if (err.name === "SecurityError") {
-        errorMessage = "Acceso a cámara bloqueado. Asegúrate de usar HTTPS.";
-      }
-      
-      toast({
-        title: "Error de cámara",
-        description: errorMessage,
-        variant: "destructive",
-      });
-      return false;
-    }
-  };
-
-  const startScanning = async () => {
-    if (scannerRef.current || isInitializing) return;
-
-    setIsInitializing(true);
-    
-    // Request permission first
-    const hasPermission = await requestCameraPermission();
-    if (!hasPermission) {
-      setIsInitializing(false);
-      setStatus("error");
-      return;
-    }
-
-    setStatus("scanning");
-
-    try {
-      // Small delay for iOS to properly release the camera
-      await new Promise((resolve) => setTimeout(resolve, 300));
-
-      const html5QrCode = new Html5Qrcode("qr-reader-employee", {
-        verbose: false,
-        experimentalFeatures: {
-          useBarCodeDetectorIfSupported: true,
-        },
-      });
-      scannerRef.current = html5QrCode;
-
-      await html5QrCode.start(
-        { facingMode: "environment" },
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-          aspectRatio: 1.0,
-        },
-        (decodedText) => {
-          handleScanSuccess(decodedText);
-        },
-        () => {
-          // Ignore scan errors - they happen continuously while scanning
-        }
-      );
-    } catch (err: any) {
-      console.error("Error starting scanner:", err);
-      
-      setStatus("error");
-      
-      let errorMessage = "No se pudo iniciar el escáner.";
-      if (err.toString().includes("Camera access denied")) {
-        errorMessage = "Permiso de cámara denegado. Permite el acceso en la configuración del navegador.";
-      }
-      
-      toast({
-        title: "Error de escáner",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setIsInitializing(false);
-    }
-  };
-
-  const stopScanning = async () => {
-    if (scannerRef.current) {
-      try {
-        await scannerRef.current.stop();
-        scannerRef.current = null;
-      } catch (err) {
-        console.error("Error stopping scanner:", err);
-      }
-    }
-  };
-
-  const validateQrScan = async (qrCode: string, forceReentry: boolean = false) => {
-    try {
-      const response = await supabase.functions.invoke("validate-qr-scan", {
-        body: { qr_code: qrCode, force_reentry: forceReentry },
-      });
-
-      const responseData = response.data || (response.error as any)?.context || response.error;
-      const parsed = typeof responseData === "string" ? (() => { try { return JSON.parse(responseData); } catch { return null; } })() : responseData;
-
-      if (parsed?.code === "REENTRY_CONFIRMATION_NEEDED") {
-        setPendingQrCode(qrCode);
-        setReentryInfo({ entry_count: parsed.entry_count, exit_count: parsed.exit_count });
-        setReentryDialogOpen(true);
-        return;
-      }
-
-      if (response.error && !parsed?.success) {
-        setErrorMessage("Error de conexión con el servidor.");
-        setStatus("error");
-        toast({ title: "Error", description: "No se pudo validar el código.", variant: "destructive" });
-        return;
-      }
-
-      if (!parsed?.success) {
-        setErrorMessage(parsed?.error || "Código inválido o expirado.");
-        setStatus("error");
-        toast({ title: "Error", description: parsed?.error || "Validación fallida.", variant: "destructive" });
-        return;
-      }
-
-      setRecordType(parsed.record_type);
-      setStatus("success");
-      toast({
-        title: `¡${parsed.record_type === "entrada" ? "Entrada" : "Salida"} registrada!`,
-        description: parsed.message,
-      });
-
-      setTimeout(() => {
-        setScanDialogOpen(false);
-        setStatus("idle");
-        setRecordType(null);
-        fetchCurrentStatus();
-      }, 2000);
-    } catch (error) {
-      console.error("Error recording attendance:", error);
-      setErrorMessage("Error inesperado.");
-      setStatus("error");
-      toast({
-        title: "Error",
-        description: "No se pudo registrar la asistencia. Intenta de nuevo.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleScanSuccess = async (result: string) => {
-    await stopScanning();
-
-    if (!result.startsWith("nomia:")) {
-      setErrorMessage("Código QR no reconocido. Usa el formato seguro.");
-      setStatus("error");
-      toast({
-        title: "Código inválido",
-        description: "Formato no reconocido.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!user) {
-      setErrorMessage("Debes iniciar sesión.");
-      setStatus("error");
-      return;
-    }
-
-    await validateQrScan(result, false);
-  };
-
-  const handleConfirmReentry = async () => {
-    setReentryDialogOpen(false);
-    if (pendingQrCode) {
-      setStatus("scanning");
-      await validateQrScan(pendingQrCode, true);
-      setPendingQrCode(null);
-      setReentryInfo(null);
-    }
-  };
-
-  const handleCancelReentry = () => {
-    setReentryDialogOpen(false);
-    setPendingQrCode(null);
-    setReentryInfo(null);
-    setStatus("idle");
-  };
+  useEffect(() => {
+    if (!currentStatus.isWorking || !currentStatus.entryTimestamp) return;
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const entry = currentStatus.entryTimestamp!.getTime();
+      setElapsedMinutes(Math.floor((now - entry) / (1000 * 60)));
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [currentStatus.isWorking, currentStatus.entryTimestamp]);
 
   const handleDialogChange = (open: boolean) => {
     setScanDialogOpen(open);
     if (!open) {
-      stopScanning();
-      setStatus("idle");
-      setRecordType(null);
+      scanner.stopScanning();
+      scanner.reset();
     }
   };
-
-  useEffect(() => {
-    return () => {
-      stopScanning();
-    };
-  }, []);
 
   const handleLogout = async () => {
     await signOut();
@@ -344,37 +151,33 @@ const Employee = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
       <header className="bg-background/80 backdrop-blur-lg border-b border-border safe-area-inset">
         <div className="px-4 h-14 flex items-center justify-between">
           <Link to="/dashboard">
-            <Button variant="ghost" size="icon" className="w-9 h-9">
+            <Button variant="ghost" size="icon" className="w-9 h-9" aria-label="Volver">
               <ArrowLeft className="w-5 h-5" />
             </Button>
           </Link>
           <div className="flex gap-2">
             <Link to="/history">
-              <Button variant="ghost" size="icon" className="w-9 h-9">
+              <Button variant="ghost" size="icon" className="w-9 h-9" aria-label="Historial">
                 <History className="w-5 h-5" />
               </Button>
             </Link>
-            <Button variant="ghost" size="icon" className="w-9 h-9" onClick={handleLogout}>
+            <Button variant="ghost" size="icon" className="w-9 h-9" onClick={handleLogout} aria-label="Cerrar sesión">
               <LogOut className="w-5 h-5" />
             </Button>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="flex-1 px-4 py-6 flex flex-col">
-        {/* Greeting Section */}
         <div className="mb-8">
           <p className="text-muted-foreground text-sm">Bienvenido de vuelta</p>
           <h1 className="text-2xl font-bold">Hola, {firstName} 👋</h1>
         </div>
 
-        {/* Status Card */}
-        <Card className="glass-card mb-6">
+        <Card className="glass-card mb-4">
           <CardContent className="pt-6 pb-6">
             {isLoadingStatus ? (
               <div className="flex items-center justify-center py-4">
@@ -391,7 +194,7 @@ const Employee = () => {
                     <p className="font-semibold text-success">Trabajando</p>
                   </div>
                 </div>
-                <div className="flex gap-4 pt-2">
+                <div className="flex gap-4 pt-2 flex-wrap">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <MapPin className="w-4 h-4" />
                     <span>{currentStatus.location}</span>
@@ -400,6 +203,33 @@ const Employee = () => {
                     <Clock className="w-4 h-4" />
                     <span>Entrada: {currentStatus.entryTime}</span>
                   </div>
+                </div>
+                <div className="pt-2 space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Timer className="w-4 h-4" />
+                      <span>Horas trabajadas hoy</span>
+                    </div>
+                    <span className="font-mono font-semibold">
+                      {currentStatus.hoursWorked}h {currentStatus.minutesWorked}m
+                    </span>
+                  </div>
+                  {(() => {
+                    const expectedMinutes = (scheduleConfig.exitHour - scheduleConfig.entryHour) * 60 + (scheduleConfig.exitMinute - scheduleConfig.entryMinute);
+                    const workedMinutes = currentStatus.hoursWorked * 60 + currentStatus.minutesWorked;
+                    const pct = Math.min(100, Math.round((workedMinutes / expectedMinutes) * 100));
+                    const remainMinutes = Math.max(0, expectedMinutes - workedMinutes);
+                    const remainH = Math.floor(remainMinutes / 60);
+                    const remainM = remainMinutes % 60;
+                    return (
+                      <>
+                        <Progress value={pct} className="h-2" />
+                        <p className="text-xs text-muted-foreground text-right">
+                          {remainMinutes > 0 ? `Faltan ${remainH}h ${remainM}m para completar la jornada` : "Jornada completa"}
+                        </p>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             ) : (
@@ -416,17 +246,26 @@ const Employee = () => {
           </CardContent>
         </Card>
 
-        {/* Spacer */}
+        {/* Schedule Info Card */}
+        <Card className="glass-card mb-6">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <CalendarClock className="w-5 h-5 text-primary" />
+              <div className="flex-1">
+                <p className="text-sm font-medium">Horario esperado</p>
+                <p className="text-xs text-muted-foreground">
+                  {String(scheduleConfig.entryHour).padStart(2, "0")}:{String(scheduleConfig.entryMinute).padStart(2, "0")} - {String(scheduleConfig.exitHour).padStart(2, "0")}:{String(scheduleConfig.exitMinute).padStart(2, "0")}
+                  {" · "}Tolerancia: {scheduleConfig.entryToleranceMinutes} min
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <div className="flex-1" />
 
-        {/* FAB / Scan Button */}
         <div className="pb-8">
-          <Button
-            variant="hero"
-            size="xl"
-            className="w-full h-16 text-lg gap-3 shadow-lg"
-            onClick={() => setScanDialogOpen(true)}
-          >
+          <Button variant="hero" size="xl" className="w-full h-16 text-lg gap-3 shadow-lg" onClick={() => setScanDialogOpen(true)}>
             <ScanLine className="w-6 h-6" />
             Escanear QR
           </Button>
@@ -436,47 +275,25 @@ const Employee = () => {
         </div>
       </main>
 
-      {/* Scan Dialog (Full Screen on Mobile) */}
       <Dialog open={scanDialogOpen} onOpenChange={handleDialogChange}>
         <DialogContent className="sm:max-w-md h-[100dvh] sm:h-auto p-0 gap-0 border-0 sm:border sm:rounded-lg">
           <DialogHeader className="p-4 border-b border-border">
             <DialogTitle className="text-center">Escanear Código QR</DialogTitle>
           </DialogHeader>
-
           <div className="flex-1 flex flex-col p-4 space-y-4">
-            {/* Scanner Container */}
             <div className="relative aspect-square rounded-2xl overflow-hidden bg-foreground/5 max-w-sm mx-auto w-full">
-              {status === "idle" && (
+              {scanner.status === "idle" && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-6">
                   <div className="w-20 h-20 rounded-2xl gradient-primary flex items-center justify-center animate-pulse-glow">
                     <ScanLine className="w-10 h-10 text-primary-foreground" />
                   </div>
-                  <p className="text-sm text-muted-foreground text-center">
-                    Presiona para activar la cámara y escanear el código QR
-                  </p>
-                  <Button
-                    variant="hero"
-                    size="lg"
-                    onClick={startScanning}
-                    disabled={isInitializing}
-                    className="mt-2"
-                  >
-                    {isInitializing ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        Iniciando...
-                      </>
-                    ) : (
-                      <>
-                        <ScanLine className="w-5 h-5" />
-                        Activar Cámara
-                      </>
-                    )}
+                  <p className="text-sm text-muted-foreground text-center">Presiona para activar la cámara y escanear el código QR</p>
+                  <Button variant="hero" size="lg" onClick={scanner.startScanning} disabled={scanner.isInitializing} className="mt-2">
+                    {scanner.isInitializing ? <><Loader2 className="w-5 h-5 animate-spin" />Iniciando...</> : <><ScanLine className="w-5 h-5" />Activar Cámara</>}
                   </Button>
                 </div>
               )}
-
-              {status === "scanning" && (
+              {scanner.status === "scanning" && (
                 <>
                   <div id="qr-reader-employee" className="w-full h-full" />
                   <div className="absolute inset-0 pointer-events-none">
@@ -486,83 +303,56 @@ const Employee = () => {
                   </div>
                 </>
               )}
-
-              {status === "success" && (
+              {scanner.status === "success" && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-success/10 animate-scale-in">
                   <div className="w-24 h-24 rounded-full bg-success flex items-center justify-center animate-bounce">
                     <CheckCircle className="w-12 h-12 text-success-foreground" />
                   </div>
                   <div className="text-center">
-                    <p className="text-xl font-bold text-success">
-                      ¡{recordType === "entrada" ? "Entrada" : "Salida"} registrada!
-                    </p>
+                    <p className="text-xl font-bold text-success">¡{scanner.recordType === "entrada" ? "Entrada" : "Salida"} registrada!</p>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {new Date().toLocaleTimeString("es", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                      {new Date().toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" })}
                     </p>
                   </div>
                 </div>
               )}
-
-              {status === "error" && (
+              {scanner.status === "error" && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-destructive/10 animate-scale-in p-6">
                   <div className="w-20 h-20 rounded-full bg-destructive flex items-center justify-center">
                     <XCircle className="w-10 h-10 text-destructive-foreground" />
                   </div>
                   <div className="text-center">
                     <p className="font-semibold text-destructive">Error</p>
-                    <p className="text-sm text-muted-foreground px-4">
-                      {errorMessage || "Verifica los permisos de cámara en Ajustes → Safari → Cámara"}
-                    </p>
+                    <p className="text-sm text-muted-foreground px-4">{scanner.errorMessage || "Verifica los permisos de cámara"}</p>
                   </div>
-                  <Button
-                    variant="outline"
-                    onClick={() => { setStatus("idle"); setErrorMessage(""); }}
-                    className="mt-2"
-                  >
-                    Reintentar
-                  </Button>
+                  <Button variant="outline" onClick={scanner.reset} className="mt-2">Reintentar</Button>
                 </div>
               )}
             </div>
-
-            {/* Cancel Button */}
-            {status === "scanning" && (
-              <Button
-                variant="outline"
-                size="lg"
-                className="w-full max-w-sm mx-auto"
-                onClick={() => {
-                  stopScanning();
-                  setStatus("idle");
-                }}
-              >
+            {scanner.status === "scanning" && (
+              <Button variant="outline" size="lg" className="w-full max-w-sm mx-auto" onClick={() => { scanner.stopScanning(); scanner.reset(); }}>
                 Cancelar
               </Button>
             )}
-
-            {/* Instructions */}
             <div className="text-center text-xs text-muted-foreground max-w-sm mx-auto">
               Apunta la cámara hacia el código QR mostrado por el administrador
             </div>
           </div>
         </DialogContent>
       </Dialog>
-      {/* Re-entry confirmation dialog */}
-      <Dialog open={reentryDialogOpen} onOpenChange={(open) => { if (!open) handleCancelReentry(); }}>
+
+      <Dialog open={scanner.reentryDialogOpen} onOpenChange={(open) => { if (!open) scanner.handleCancelReentry(); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>¿Volver a marcar ingreso?</DialogTitle>
             <DialogDescription>
-              Ya completaste {reentryInfo?.entry_count} ingreso(s) y {reentryInfo?.exit_count} salida(s) hoy.
+              Ya completaste {scanner.reentryInfo?.entry_count} ingreso(s) y {scanner.reentryInfo?.exit_count} salida(s) hoy.
               ¿Deseas registrar un nuevo ingreso?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2 sm:gap-0">
-            <Button variant="outline" onClick={handleCancelReentry}>Cancelar</Button>
-            <Button variant="hero" onClick={handleConfirmReentry}>Sí, marcar ingreso</Button>
+            <Button variant="outline" onClick={scanner.handleCancelReentry}>Cancelar</Button>
+            <Button variant="hero" onClick={scanner.handleConfirmReentry}>Sí, marcar ingreso</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

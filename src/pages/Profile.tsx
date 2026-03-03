@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ArrowLeft, Camera, Loader2, Save, User, Check, X, Shield, Briefcase } from "lucide-react";
+import { ArrowLeft, Camera, Loader2, Save, User, Check, X, Shield, Briefcase, KeyRound, CheckCircle, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -46,6 +46,12 @@ const Profile = () => {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+
+  // Password change
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
 
   // Cropping state
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
@@ -225,6 +231,30 @@ const Profile = () => {
     setCompletedCrop(undefined);
   };
 
+  const handleChangePassword = async () => {
+    setPasswordError("");
+    if (newPassword.length < 6) {
+      setPasswordError("La contraseña debe tener al menos 6 caracteres");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Las contraseñas no coinciden");
+      return;
+    }
+    setIsChangingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      toast({ title: "Contraseña actualizada", description: "Tu contraseña ha sido cambiada exitosamente." });
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "No se pudo cambiar la contraseña.", variant: "destructive" });
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!user) return;
 
@@ -281,7 +311,7 @@ const Profile = () => {
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 h-16 flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
+          <Button variant="ghost" size="icon" asChild aria-label="Volver">
             <Link to="/dashboard">
               <ArrowLeft className="w-5 h-5" />
             </Link>
@@ -293,7 +323,7 @@ const Profile = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8 max-w-lg">
+      <main className="container mx-auto px-4 py-8 max-w-lg space-y-6">
         <Card className="glass-card">
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
@@ -308,6 +338,7 @@ const Profile = () => {
                   type="button"
                   onClick={handleAvatarClick}
                   disabled={isUploadingAvatar}
+                  aria-label="Cambiar foto de perfil"
                   className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md hover:bg-primary/90 transition-colors disabled:opacity-50"
                 >
                   {isUploadingAvatar ? (
@@ -397,6 +428,67 @@ const Profile = () => {
             </Button>
           </CardContent>
         </Card>
+        {/* Email Verification */}
+        <Card className="glass-card">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              {user.email_confirmed_at ? (
+                <>
+                  <CheckCircle className="w-5 h-5 text-success shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium">Correo verificado</p>
+                    <p className="text-xs text-muted-foreground">Tu cuenta está verificada</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <AlertCircle className="w-5 h-5 text-warning shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-warning">Correo no verificado</p>
+                    <p className="text-xs text-muted-foreground">Revisa tu bandeja de entrada para verificar tu correo</p>
+                  </div>
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Password Change */}
+        <Card className="glass-card">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <KeyRound className="w-5 h-5" />
+              Cambiar Contraseña
+            </CardTitle>
+            <CardDescription>Actualiza tu contraseña de acceso</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">Nueva contraseña</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                placeholder="Mínimo 6 caracteres"
+                value={newPassword}
+                onChange={(e) => { setNewPassword(e.target.value); setPasswordError(""); }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirmar contraseña</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                placeholder="Repite la nueva contraseña"
+                value={confirmPassword}
+                onChange={(e) => { setConfirmPassword(e.target.value); setPasswordError(""); }}
+              />
+            </div>
+            {passwordError && <p className="text-sm text-destructive">{passwordError}</p>}
+            <Button onClick={handleChangePassword} disabled={isChangingPassword || !newPassword || !confirmPassword} variant="outline" className="w-full">
+              {isChangingPassword ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Cambiando...</> : <><KeyRound className="w-4 h-4 mr-2" /> Cambiar Contraseña</>}
+            </Button>
+          </CardContent>
+        </Card>
       </main>
 
       {/* Crop Dialog */}
@@ -417,7 +509,7 @@ const Profile = () => {
               >
                 <img
                   ref={imgRef}
-                  alt="Crop preview"
+                  alt="Vista previa del recorte"
                   src={imageSrc}
                   onLoad={onImageLoad}
                   className="max-h-[400px] w-auto"

@@ -1,9 +1,25 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+const allowedOrigin = Deno.env.get("ALLOWED_ORIGIN") || "*";
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": allowedOrigin,
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_MAX = 10;
+const RATE_LIMIT_WINDOW_MS = 60_000;
+
+function checkRateLimit(userId: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(userId);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(userId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return true;
+  }
+  entry.count++;
+  return entry.count <= RATE_LIMIT_MAX;
+}
 
 
 async function signPayload(payload: string, secret: string): Promise<string> {
@@ -36,19 +52,19 @@ Deno.serve(async (req) => {
     if (!supabaseUrl || !supabaseServiceKey || !supabaseAnonKey) {
       console.error("Missing environment variables");
       return new Response(
-        JSON.stringify({ error: "Server configuration error" }),
+        JSON.stringify({ error: "Error de configuración del servidor" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const qrSigningSecret = supabaseServiceKey.slice(0, 32);
+    const qrSigningSecret = Deno.env.get("QR_SIGNING_SECRET") || supabaseServiceKey.slice(0, 32);
 
     // Get auth token from request
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       console.error("No authorization header provided");
       return new Response(
-        JSON.stringify({ error: "No authorization header" }),
+        JSON.stringify({ error: "Falta encabezado de autorización" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -65,7 +81,7 @@ Deno.serve(async (req) => {
     if (userError || !user) {
       console.error("Auth error:", userError?.message);
       return new Response(
-        JSON.stringify({ error: "Unauthorized", details: userError?.message }),
+        JSON.stringify({ error: "No autorizado", details: userError?.message }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -82,16 +98,22 @@ Deno.serve(async (req) => {
     if (roleError || roleData?.role !== "admin") {
       console.error("Role check failed:", roleError?.message || "Not admin");
       return new Response(
-        JSON.stringify({ error: "Admin access required" }),
+        JSON.stringify({ error: "Se requiere acceso de administrador" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Parse request body
+    if (!checkRateLimit(user.id)) {
+      return new Response(
+        JSON.stringify({ error: "Demasiadas solicitudes. Esperá un momento." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { location_id, duration_seconds } = await req.json();
     if (!location_id) {
       return new Response(
-        JSON.stringify({ error: "location_id required" }),
+        JSON.stringify({ error: "Se requiere location_id" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -125,7 +147,7 @@ Deno.serve(async (req) => {
     if (insertError) {
       console.error("Insert error:", insertError.message);
       return new Response(
-        JSON.stringify({ error: "Failed to create QR code", details: insertError.message }),
+        JSON.stringify({ error: "No se pudo crear el código QR", details: insertError.message }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -145,7 +167,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error("Error generating QR:", error);
     return new Response(
-      JSON.stringify({ error: "Internal server error", details: String(error) }),
+      JSON.stringify({ error: "Error interno del servidor", details: String(error) }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

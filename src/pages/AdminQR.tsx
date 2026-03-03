@@ -121,7 +121,7 @@ const AdminQR = () => {
       }
 
       if (!data?.success || !data?.qr_code) {
-        throw new Error(data?.error || "Failed to generate QR");
+        throw new Error(data?.error || "No se pudo generar el código QR");
       }
 
       setQrValue(data.qr_code);
@@ -236,6 +236,7 @@ const AdminQR = () => {
           size="icon"
           className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
           onClick={toggleKioskMode}
+          aria-label="Salir de modo kiosko"
         >
           <Minimize className="w-6 h-6" />
         </Button>
@@ -289,7 +290,7 @@ const AdminQR = () => {
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 h-16 flex items-center gap-4">
           <Link to="/dashboard">
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" aria-label="Volver">
               <ArrowLeft className="w-5 h-5" />
             </Button>
           </Link>
@@ -400,6 +401,7 @@ const AdminQR = () => {
                   className="flex-1"
                   onClick={copyToClipboard}
                   disabled={!qrValue}
+                  aria-label="Copiar"
                 >
                   {copied ? (
                     <>
@@ -418,6 +420,7 @@ const AdminQR = () => {
                   className="flex-1"
                   onClick={() => generateSecureQR()}
                   disabled={isGenerating}
+                  aria-label="Regenerar QR"
                 >
                   {isGenerating ? (
                     <Loader2 className="w-4 h-4 animate-spin" />

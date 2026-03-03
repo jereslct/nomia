@@ -292,7 +292,7 @@ const Dashboard = () => {
             {isAdmin && (
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="ghost" size="icon" className="relative">
+                  <Button variant="ghost" size="icon" className="relative" aria-label="Notificaciones">
                     <Bell className="w-5 h-5" />
                     {pendingCount > 0 && (
                       <span className="absolute -top-0.5 -right-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
@@ -364,7 +364,7 @@ const Dashboard = () => {
               </div>
               <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
             </Link>
-            <Button variant="ghost" size="icon" onClick={handleLogout}>
+            <Button variant="ghost" size="icon" onClick={handleLogout} aria-label="Cerrar sesión">
               <LogOut className="w-5 h-5" />
             </Button>
           </div>
@@ -401,9 +401,34 @@ const Dashboard = () => {
               size="icon"
               className="shrink-0 h-8 w-8"
               onClick={() => setAlertDismissed(true)}
+              aria-label="Cerrar"
             >
               <X className="w-4 h-4" />
             </Button>
+          </div>
+        )}
+
+        {/* Entry Reminder for employees */}
+        {!isAdmin && !loadingRecords && todayRecords.filter(r => r.record_type === "entrada").length === 0 && (() => {
+          const now = new Date();
+          const entryLimit = scheduleConfig.entryHour * 60 + scheduleConfig.entryMinute + scheduleConfig.entryToleranceMinutes;
+          const currentMin = now.getHours() * 60 + now.getMinutes();
+          return currentMin >= entryLimit;
+        })() && (
+          <div className="flex items-center gap-3 p-4 bg-warning/10 border border-warning/30 rounded-xl animate-in fade-in">
+            <AlertCircle className="w-5 h-5 text-warning shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-warning">Aún no marcaste tu entrada</p>
+              <p className="text-xs text-muted-foreground">
+                Tu horario de entrada era a las {String(scheduleConfig.entryHour).padStart(2, "0")}:{String(scheduleConfig.entryMinute).padStart(2, "0")}. Escanea el código QR lo antes posible.
+              </p>
+            </div>
+            <Link to="/scan">
+              <Button variant="outline" size="sm" className="shrink-0">
+                <ScanLine className="w-4 h-4 mr-1" />
+                Escanear
+              </Button>
+            </Link>
           </div>
         )}
 
@@ -835,6 +860,50 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Gamification / Streak Card for employees */}
+        {!isAdmin && !loadingRecords && (() => {
+          const now = new Date();
+          const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+          const userEntries = attendanceHistory
+            .filter(r => r.record_type === "entrada" && r.user_id === user?.id && new Date(r.recorded_at) >= monthStart);
+          const onTimeCount = userEntries.filter(r => isOnTime(r.recorded_at, scheduleConfig.entryHour, scheduleConfig.entryMinute, scheduleConfig.entryToleranceMinutes)).length;
+          const totalEntries = userEntries.length;
+          const pctOnTime = totalEntries > 0 ? Math.round((onTimeCount / totalEntries) * 100) : 0;
+
+          let streak = 0;
+          const sortedDates = [...new Set(userEntries.map(r => r.recorded_at.split("T")[0]))].sort().reverse();
+          for (const dateStr of sortedDates) {
+            const dayEntry = userEntries.find(r => r.recorded_at.startsWith(dateStr));
+            if (dayEntry && isOnTime(dayEntry.recorded_at, scheduleConfig.entryHour, scheduleConfig.entryMinute, scheduleConfig.entryToleranceMinutes)) {
+              streak++;
+            } else break;
+          }
+
+          if (totalEntries === 0) return null;
+
+          return (
+            <Card className="glass-card mt-6">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-4">
+                  <div className="text-3xl">{streak >= 5 ? "🔥" : streak >= 3 ? "⭐" : "👍"}</div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-sm">
+                      {pctOnTime >= 90
+                        ? `¡Excelente! Llegaste a tiempo el ${pctOnTime}% del mes`
+                        : pctOnTime >= 70
+                          ? `Buen trabajo: ${pctOnTime}% de puntualidad este mes`
+                          : `Puntualidad este mes: ${pctOnTime}%`}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {streak > 0 ? `Racha actual: ${streak} día${streak > 1 ? "s" : ""} consecutivo${streak > 1 ? "s" : ""} a tiempo` : "Empieza una racha llegando a tiempo mañana"}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })()}
 
         {/* Recent Activity - Full Width */}
         <Card className="glass-card mt-6">

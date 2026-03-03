@@ -544,14 +544,6 @@ const Admin = () => {
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   const presentCount = employees.filter((e) => e.status === "presente").length;
   const lateCount = employees.filter((e) => e.status === "tarde").length;
   const finishedCount = employees.filter((e) => e.status === "finalizado").length;
@@ -572,6 +564,14 @@ const Admin = () => {
     ].filter((d) => d.value > 0);
     return data;
   }, [presentCount, lateCount, absentCount, finishedCount]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">

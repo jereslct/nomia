@@ -765,14 +765,6 @@ const AdminUsers = () => {
     setSelectedMemberIds(new Set());
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, invitationFilter, selectedOrg, showAllEmployees]);
@@ -800,6 +792,14 @@ const AdminUsers = () => {
 
   const activeMembers = members.filter((m) => m.status === "accepted").length;
   const pendingMembers = members.filter((m) => m.status === "pending").length;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">

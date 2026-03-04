@@ -160,6 +160,9 @@ const Admin = () => {
   const [manualLocationId, setManualLocationId] = useState("");
   const [isSubmittingManual, setIsSubmittingManual] = useState(false);
   const [locations, setLocations] = useState<LocationOption[]>([]);
+  const [allOrgs, setAllOrgs] = useState<{ id: string; name: string }[]>([]);
+  const [allOrgEmployees, setAllOrgEmployees] = useState<{ user_id: string; full_name: string; org_id: string }[]>([]);
+  const [manualOrgFilter, setManualOrgFilter] = useState<string>("all");
 
   useEffect(() => {
     if (!loading && (!user || !isAdmin)) {
@@ -248,6 +251,53 @@ const Admin = () => {
     }
   }, [organizationId]);
 
+  const fetchAllOrgEmployees = async () => {
+    if (!user) return;
+    try {
+      const { data: orgs } = await supabase
+        .from("organizations")
+        .select("id, name")
+        .eq("owner_id", user.id)
+        .order("created_at", { ascending: true });
+
+      if (!orgs || orgs.length === 0) return;
+      setAllOrgs(orgs);
+
+      const allEmps: { user_id: string; full_name: string; org_id: string }[] = [];
+
+      for (const org of orgs) {
+        const { data: members } = await supabase
+          .from("organization_members")
+          .select("user_id")
+          .eq("organization_id", org.id)
+          .eq("status", "accepted")
+          .not("user_id", "is", null);
+
+        if (!members) continue;
+        const memberIds = members.map((m) => m.user_id).filter((id): id is string => id !== null);
+        if (memberIds.length === 0) continue;
+
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", memberIds);
+
+        profiles?.forEach((p) => {
+          allEmps.push({ user_id: p.user_id, full_name: p.full_name, org_id: org.id });
+        });
+      }
+
+      setAllOrgEmployees(allEmps);
+    } catch (error) {
+      console.error("Error fetching all org employees:", error);
+    }
+  };
+
+  const filteredManualEmployees = useMemo(() => {
+    if (manualOrgFilter === "all") return allOrgEmployees;
+    return allOrgEmployees.filter((e) => e.org_id === manualOrgFilter);
+  }, [allOrgEmployees, manualOrgFilter]);
+
   const openManualDialog = (employee?: EmployeeStatus) => {
     const now = new Date();
     setManualUserId(employee?.user_id || "");
@@ -259,6 +309,8 @@ const Admin = () => {
       `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`
     );
     setManualLocationId(locationId || locations[0]?.id || "");
+    setManualOrgFilter("all");
+    fetchAllOrgEmployees();
     setManualDialogOpen(true);
   };
 
@@ -293,10 +345,11 @@ const Admin = () => {
 
       if (error) throw error;
 
-      const emp = employees.find((e) => e.user_id === manualUserId);
+      const empFromOrg = allOrgEmployees.find((e) => e.user_id === manualUserId);
+      const empName = empFromOrg?.full_name || employees.find((e) => e.user_id === manualUserId)?.name || "el empleado";
       toast({
         title: "Registro creado",
-        description: `${manualRecordType === "entrada" ? "Entrada" : "Salida"} registrada para ${emp?.name || "el empleado"} a las ${manualTime}.`,
+        description: `${manualRecordType === "entrada" ? "Entrada" : "Salida"} registrada para ${empName} a las ${manualTime}.`,
       });
 
       setManualDialogOpen(false);
@@ -872,6 +925,25 @@ const Admin = () => {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
+              {allOrgs.length > 1 && (
+                <div className="space-y-2">
+                  <Label htmlFor="manual-org-filter">Organización</Label>
+                  <Select value={manualOrgFilter} onValueChange={(v) => { setManualOrgFilter(v); setManualUserId(""); }}>
+                    <SelectTrigger id="manual-org-filter">
+                      <SelectValue placeholder="Todas las organizaciones" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas las organizaciones</SelectItem>
+                      {allOrgs.map((org) => (
+                        <SelectItem key={org.id} value={org.id}>
+                          {org.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="manual-employee">Empleado</Label>
                 <Select value={manualUserId} onValueChange={setManualUserId}>
@@ -879,9 +951,9 @@ const Admin = () => {
                     <SelectValue placeholder="Selecciona un empleado" />
                   </SelectTrigger>
                   <SelectContent>
-                    {employees.map((emp) => (
+                    {filteredManualEmployees.map((emp) => (
                       <SelectItem key={emp.user_id} value={emp.user_id}>
-                        {emp.name}
+                        {emp.full_name}
                       </SelectItem>
                     ))}
                   </SelectContent>

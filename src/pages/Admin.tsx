@@ -860,8 +860,8 @@ const Admin = () => {
           </CardContent>
         </Card>
         {/* Manual Registration Dialog */}
-        <Dialog open={manualDialogOpen} onOpenChange={setManualDialogOpen}>
-          <DialogContent className="sm:max-w-md">
+        <Dialog open={manualDialogOpen} onOpenChange={setManualDialogOpen} modal={false}>
+          <DialogContent className="sm:max-w-md" onInteractOutside={(e) => e.preventDefault()}>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <ClipboardPen className="w-5 h-5" />

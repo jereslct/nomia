@@ -32,7 +32,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { ArrowLeft, QrCode, RefreshCw, Users, Clock, MapPin, Loader2, BarChart3, UserX, ClipboardPen, LogIn, LogOut } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useScheduleConfig } from "@/hooks/useScheduleConfig";
 import { useToast } from "@/hooks/use-toast";
@@ -136,6 +136,7 @@ interface LocationOption {
 
 const Admin = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isAdmin, loading } = useAuth();
   const { config: scheduleConfig, organizationId: scheduleOrgId } = useScheduleConfig();
   const { toast } = useToast();
@@ -260,6 +261,14 @@ const Admin = () => {
     setManualLocationId(locationId || locations[0]?.id || "");
     setManualDialogOpen(true);
   };
+
+  // Auto-open manual dialog when navigated from Dashboard
+  useEffect(() => {
+    if (location.state?.openManualRegister) {
+      openManualDialog();
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state]);
 
   const handleManualRecord = async () => {
     if (!manualUserId || !manualLocationId || !manualDate || !manualTime) {

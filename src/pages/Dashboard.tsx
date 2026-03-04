@@ -20,6 +20,7 @@ import {
   Bell,
   Mail,
   X,
+  ClipboardList,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import QRCode from "react-qr-code";
@@ -500,6 +501,20 @@ const Dashboard = () => {
                     <div className="flex-1">
                       <h3 className="font-semibold">Reportes</h3>
                       <p className="text-sm text-muted-foreground">Estadísticas y reportes</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                  </CardContent>
+                </Card>
+              </Link>
+              <Link to="/admin" state={{ openManualRegister: true }}>
+                <Card className="glass-card hover-lift cursor-pointer group h-full">
+                  <CardContent className="p-6 flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-warning/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <ClipboardList className="w-7 h-7 text-warning" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold">Registro Manual</h3>
+                      <p className="text-sm text-muted-foreground">Fichar asistencia manualmente</p>
                     </div>
                     <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
                   </CardContent>

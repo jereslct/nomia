@@ -1,70 +1,60 @@
 
-# Plan: Prueba integral de todas las funcionalidades de Nomia
 
-Se probara cada seccion de la aplicacion navegando con el browser automatizado, verificando que las paginas cargan correctamente, muestran datos y no tienen errores en consola.
+# Plan: Corrección de errores visuales en mobile
 
----
-
-## Tests a ejecutar (en orden)
-
-### 1. Landing page (`/`)
-- Verificar que carga sin errores
-- Verificar que hay botones/links para ir a login
-
-### 2. Autenticacion (`/auth`)
-- Verificar que la pagina de login carga
-- Login con jere@gmail.com (requiere que el usuario este logueado en el preview)
-
-### 3. Dashboard (`/dashboard`)
-- Verificar que carga con datos (registros de asistencia, estadisticas)
-- Verificar tarjetas de resumen (presentes, tardanzas, ausentes)
-- Verificar invitaciones pendientes si las hay
-
-### 4. Panel Admin (`/admin`)
-- Verificar que carga la vista de administracion
-- Verificar grafico de torta de asistencia
-- Verificar tabla de empleados del dia
-
-### 5. Admin - Gestion de Usuarios (`/admin/users`)
-- Verificar que lista los empleados de las organizaciones
-- Verificar filtros y busqueda
-
-### 6. Admin - Reportes (`/admin/reports`)
-- Verificar que cargan los graficos (barras, torta)
-- Verificar filtros de periodo (esta semana, este mes, mes anterior)
-- Verificar tabla de reporte por empleado con filtros, ordenamiento y paginacion
-- Verificar exportacion (boton presente)
-
-### 7. Admin - Ubicaciones (`/admin/locations`)
-- Verificar que lista las ubicaciones por organizacion
-- Verificar que se pueden ver las 5 tiendas
-
-### 8. Admin - Turnos (`/admin/shifts`)
-- Verificar que muestra los turnos configurados por organizacion
-
-### 9. Admin - Codigos QR (`/admin/qr`)
-- Verificar que la pagina de generacion de QR carga
-
-### 10. Historial (`/history`)
-- Verificar que muestra registros de asistencia del usuario logueado
-
-### 11. Perfil (`/profile`)
-- Verificar que muestra datos del perfil del usuario
-
-### 12. Escanear QR (`/scan`)
-- Verificar que la pagina del escaner carga (no se puede probar la camara)
-
-### 13. Vista Empleado (`/employee`)
-- Verificar que carga la vista de empleado
+Analicé las capturas y el código de todas las páginas admin. Estos son los problemas detectados y las correcciones propuestas:
 
 ---
 
-## Metodologia
+## Problemas identificados
 
-Se navegara a cada ruta con el browser automatizado, se tomara screenshot y se revisaran console logs para detectar errores. Se reportaran todos los problemas encontrados al finalizar.
+1. **`/admin` - Header cortado arriba**: El título "Panel de Administrador" y los botones de acción (Registro Manual, Reportes, Refresh) se amontonan en mobile porque el header tiene `h-16` fijo y los botones usan `flex items-center justify-between` sin wrapping.
 
-## Seccion tecnica
+2. **`/admin` - Tabs del Monitor en Vivo desbordan**: Los 5 TabsTrigger ("Todos", "En Horario", "Tarde", "Ausentes", "Fin") no caben en pantalla mobile y se cortan horizontalmente.
 
-- Herramientas: `browser--navigate_to_sandbox`, `browser--screenshot`, `browser--read-console-logs`, `browser--observe`
-- Se verificara que no haya errores de React (hooks, rendering) ni errores de red (401, 500)
-- Se probaran interacciones basicas como cambio de filtros y navegacion entre tabs
+3. **`/admin` - Tabla del Monitor en Vivo**: Las 6 columnas (Empleado, Entrada, Salida, Estado, Local, Acciones) no caben en mobile.
+
+4. **`/admin/users` - Título "Empleados de [OrgName]" se rompe**: El CardTitle con nombre largo de organización ("Compulsiva Recoleta") ocupa demasiado espacio y los botones de acción ("Invitación masiva") quedan apretados.
+
+5. **`/admin/users` - Tablas de empleados desbordan**: 8 columnas (Checkbox, Empleado, Email, Teléfono, Organización, Estado, Solicitud, Fecha) imposible en mobile.
+
+6. **`/admin/locations` - Título "Ubicaciones de [OrgName]" se rompe**: Mismo problema que AdminUsers con nombres largos de organización.
+
+7. **`/admin/locations` - Tabla desborda**: 5 columnas (Nombre, Dirección, Estado, Registros hoy, Acciones) se cortan a la derecha.
+
+8. **`/admin/reports` - Header cortado**: Título "Reportes y Estadísticas" + botones Refresh y Exportar se comprimen.
+
+---
+
+## Correcciones propuestas
+
+### 1. Headers de todas las páginas admin (`Admin.tsx`, `AdminReports.tsx`)
+- Cambiar el header a `min-h-16` en vez de `h-16` fijo para que pueda crecer.
+- En `/admin`: ocultar texto de botones en mobile (ya existe `hidden sm:inline` pero el header sigue apretado). Hacer los botones `size="icon"` en mobile.
+- En `/admin/reports`: igual, hacer botones más compactos en mobile.
+
+### 2. Tabs del Monitor en Vivo (`Admin.tsx`)
+- Envolver los `TabsList` en un contenedor con `overflow-x-auto` y `scrollbar-hide` para scroll horizontal en mobile.
+- Reducir el texto de cada tab en mobile (abreviar o quitar los counts).
+
+### 3. Tablas que desbordan en mobile (`Admin.tsx`, `AdminUsers.tsx`, `AdminLocations.tsx`)
+- Envolver cada `<Table>` en un `<div className="overflow-x-auto">` para permitir scroll horizontal.
+- Ocultar columnas menos importantes en mobile con `hidden sm:table-cell` (ej: Teléfono, Fecha, Dirección, Registros hoy).
+
+### 4. CardHeaders con títulos largos (`AdminUsers.tsx`, `AdminLocations.tsx`)
+- Cambiar `flex-row` a `flex-col sm:flex-row` en los CardHeader que tienen título + botones de acción.
+- Truncar nombres de organización largos con `truncate` y `max-w` en mobile.
+
+---
+
+## Archivos a modificar
+
+| Archivo | Cambios |
+|---|---|
+| `src/pages/Admin.tsx` | Header flexible, tabs scrollables, tabla con overflow-x-auto, columnas ocultas en mobile |
+| `src/pages/AdminUsers.tsx` | CardHeader responsive, tablas con overflow-x-auto, columnas ocultas en mobile |
+| `src/pages/AdminLocations.tsx` | CardHeader responsive, tabla con overflow-x-auto, columnas ocultas en mobile |
+| `src/pages/AdminReports.tsx` | Header flexible, botones compactos en mobile |
+
+Aproximadamente 4 archivos con cambios focalizados en layout responsive (clases Tailwind).
+

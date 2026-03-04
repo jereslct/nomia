@@ -292,24 +292,14 @@ const Index = () => {
                         ))}
                       </div>
 
-                      {current.status === "live" && (
+                      {current.status === "live" && current.url && (
                         <div className="flex gap-3 pt-3">
-                          {current.internalUrl && (
-                            <Link to={current.internalUrl}>
-                              <Button variant="hero" size="lg" className="group">
-                                Abrir App
-                                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                              </Button>
-                            </Link>
-                          )}
-                          {current.url && (
-                            <a href={current.url} target="_blank" rel="noopener noreferrer">
-                              <Button variant="outline" size="lg">
-                                <ExternalLink className="w-4 h-4" />
-                                Ver Sitio
-                              </Button>
-                            </a>
-                          )}
+                          <a href={current.url} target="_blank" rel="noopener noreferrer">
+                            <Button variant="outline" size="lg">
+                              <ExternalLink className="w-4 h-4" />
+                              Ver Sitio
+                            </Button>
+                          </a>
                         </div>
                       )}
                     </motion.div>

@@ -174,6 +174,7 @@ const Admin = () => {
     if (user && isAdmin) {
       fetchTodayAttendance();
       initializeLocation();
+      fetchAllOrgEmployees();
     }
   }, [user, isAdmin]);
 
@@ -310,7 +311,6 @@ const Admin = () => {
     );
     setManualLocationId(locationId || locations[0]?.id || "");
     setManualOrgFilter("all");
-    fetchAllOrgEmployees();
     setManualDialogOpen(true);
   };
 

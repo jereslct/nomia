@@ -1,13 +1,19 @@
 import { Button } from "@/components/ui/button";
 import {
   QrCode, Calculator, Receipt, TrendingUp, MessageSquare,
-  ArrowRight, ExternalLink, Sparkles, ChevronLeft, ChevronRight, ArrowUpRight
+  ArrowRight, ExternalLink, Sparkles, ChevronLeft, ChevronRight, ArrowUpRight,
+  Briefcase, Heart
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import { useState, useRef, useEffect, useCallback } from "react";
 
 /* ═══════════════════ DATA ═══════════════════ */
+
+const categories = [
+  { id: "negocios", label: "Negocios", icon: Briefcase, color: "#3b82f6" },
+  { id: "bienestar", label: "Bienestar", icon: Heart, color: "#10b981" },
+] as const;
 
 const projects = [
   {
@@ -22,6 +28,7 @@ const projects = [
     tags: ["QR Scan", "Turnos", "Reportes", "Multi-sede"],
     phase: "Fase 1",
     color: "#3b82f6",
+    category: "negocios" as const,
     accentGradient: "from-blue-500 via-cyan-400 to-blue-600",
     mockupGradient: "from-blue-600/20 via-cyan-500/10 to-transparent",
   },
@@ -36,6 +43,7 @@ const projects = [
     tags: ["OCR con IA", "Multi-Comprobante", "Excel", "100% Móvil"],
     phase: "Activo",
     color: "#c87533",
+    category: "negocios" as const,
     accentGradient: "from-amber-600 via-orange-400 to-amber-700",
     mockupGradient: "from-amber-600/20 via-orange-500/10 to-transparent",
   },
@@ -49,6 +57,7 @@ const projects = [
     status: "live" as const,
     tags: ["IA + RAG", "PDF a Chat", "Lista de Compras", "100% Tu Plan"],
     color: "#10b981",
+    category: "bienestar" as const,
     accentGradient: "from-emerald-500 via-teal-400 to-emerald-600",
     mockupGradient: "from-emerald-600/20 via-teal-500/10 to-transparent",
   },
@@ -62,6 +71,7 @@ const projects = [
     tags: ["Facturación", "Stock", "Catálogo", "Ventas"],
     phase: "Fase 2",
     color: "#f59e0b",
+    category: "negocios" as const,
     accentGradient: "from-amber-500 via-orange-400 to-amber-600",
     mockupGradient: "from-amber-600/20 via-orange-500/10 to-transparent",
   },
@@ -75,6 +85,7 @@ const projects = [
     tags: ["Gastos", "Sueldos", "Rentabilidad", "Equilibrio"],
     phase: "Fase 3",
     color: "#ef4444",
+    category: "negocios" as const,
     accentGradient: "from-rose-500 via-pink-400 to-rose-600",
     mockupGradient: "from-rose-600/20 via-pink-500/10 to-transparent",
   },
@@ -266,12 +277,23 @@ const Index = () => {
                       className="space-y-5"
                     >
                       <div className="flex items-center gap-3">
-                        <span
-                          className="text-xs font-black uppercase tracking-[0.15em] px-3 py-1 rounded-full"
-                          style={{ background: `${current.color}15`, color: current.color }}
-                        >
-                          {current.phase}
-                        </span>
+                        {(() => {
+                          const cat = categories.find(c => c.id === current.category);
+                          return cat ? (
+                            <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.15em] px-2.5 py-1 rounded-full bg-secondary text-muted-foreground">
+                              <cat.icon className="w-3 h-3" />
+                              {cat.label}
+                            </span>
+                          ) : null;
+                        })()}
+                        {current.phase && (
+                          <span
+                            className="text-xs font-black uppercase tracking-[0.15em] px-3 py-1 rounded-full"
+                            style={{ background: `${current.color}15`, color: current.color }}
+                          >
+                            {current.phase}
+                          </span>
+                        )}
                         <StatusBadge status={current.status} />
                       </div>
 
@@ -323,41 +345,54 @@ const Index = () => {
             </div>
 
             {/* Thumbnails */}
-            <div className="flex items-center justify-center gap-3 mt-8">
-              {projects.map((p, i) => (
-                <button
-                  key={p.id}
-                  onClick={() => { setDirection(i > currentSlide ? 1 : -1); setCurrentSlide(i); }}
-                  className={`group relative flex items-center gap-2 px-4 py-2.5 rounded-2xl border transition-all duration-300 ${
-                    i === currentSlide
-                      ? "border-primary bg-primary/10 shadow-md shadow-primary/10"
-                      : "border-border/50 bg-card/50 hover:border-border hover:bg-card"
-                  }`}
-                >
-                  <div
-                    className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
-                      i === currentSlide ? "scale-110" : "opacity-60 group-hover:opacity-100"
-                    }`}
-                    style={{ background: i === currentSlide ? `${p.color}20` : undefined }}
-                  >
-                    <p.icon className="w-4 h-4" style={{ color: p.color }} />
-                  </div>
-                  <span className={`text-xs font-semibold hidden md:block transition-colors ${
-                    i === currentSlide ? "text-foreground" : "text-muted-foreground"
-                  }`}>
-                    {p.name}
-                  </span>
-                  {/* Progress bar for active */}
-                  {i === currentSlide && (
-                    <motion.div
-                      className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-primary"
-                      initial={{ scaleX: 0, originX: 0 }}
-                      animate={{ scaleX: 1 }}
-                      transition={{ duration: 6, ease: "linear" }}
-                      key={`progress-${currentSlide}`}
-                    />
+            <div className="flex items-center justify-center gap-2 mt-8">
+              {categories.map((cat, catIdx) => (
+                <div key={cat.id} className="flex items-center gap-2">
+                  {catIdx > 0 && (
+                    <div className="w-px h-6 bg-border/60 mx-1" />
                   )}
-                </button>
+                  <span className="text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground hidden md:flex items-center gap-1 mr-1">
+                    <cat.icon className="w-3 h-3" style={{ color: cat.color }} />
+                    {cat.label}
+                  </span>
+                  {projects.filter(p => p.category === cat.id).map((p) => {
+                    const i = projects.indexOf(p);
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => { setDirection(i > currentSlide ? 1 : -1); setCurrentSlide(i); }}
+                        className={`group relative flex items-center gap-2 px-3 py-2 rounded-2xl border transition-all duration-300 ${
+                          i === currentSlide
+                            ? "border-primary bg-primary/10 shadow-md shadow-primary/10"
+                            : "border-border/50 bg-card/50 hover:border-border hover:bg-card"
+                        }`}
+                      >
+                        <div
+                          className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${
+                            i === currentSlide ? "scale-110" : "opacity-60 group-hover:opacity-100"
+                          }`}
+                          style={{ background: i === currentSlide ? `${p.color}20` : undefined }}
+                        >
+                          <p.icon className="w-3.5 h-3.5" style={{ color: p.color }} />
+                        </div>
+                        <span className={`text-xs font-semibold hidden md:block transition-colors ${
+                          i === currentSlide ? "text-foreground" : "text-muted-foreground"
+                        }`}>
+                          {p.name}
+                        </span>
+                        {i === currentSlide && (
+                          <motion.div
+                            className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-primary"
+                            initial={{ scaleX: 0, originX: 0 }}
+                            animate={{ scaleX: 1 }}
+                            transition={{ duration: 6, ease: "linear" }}
+                            key={`progress-${currentSlide}`}
+                          />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               ))}
             </div>
           </div>
@@ -376,67 +411,97 @@ const Index = () => {
             <p className="text-sm font-bold text-primary uppercase tracking-[0.2em]">Ecosistema</p>
             <h2 className="text-4xl md:text-6xl font-black tracking-tight">Todos los módulos</h2>
             <p className="text-muted-foreground max-w-lg mx-auto">
-              Cada pieza se conecta con las demás para darte una visión completa de tu negocio.
+              Cada pieza se conecta con las demás para darte una visión completa.
             </p>
           </motion.div>
 
-          {/* Bento layout */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 auto-rows-[280px]">
-            {projects.map((p, i) => {
-              // Bento sizes: first = large, rest alternate
-              const span = i === 0 ? "md:col-span-7" : i === 1 ? "md:col-span-5" : i === 2 ? "md:col-span-4" : i === 3 ? "md:col-span-4" : "md:col-span-4";
-
-              return (
+          {categories.map((cat) => {
+            const catProjects = projects.filter(p => p.category === cat.id);
+            return (
+              <div key={cat.id} className="mb-12 last:mb-0">
+                {/* Category header */}
                 <motion.div
-                  key={p.id}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
+                  initial={{ opacity: 0, x: -20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
-                  transition={{ delay: i * 0.08, duration: 0.5 }}
-                  className={`${span} group relative rounded-3xl overflow-hidden border border-border/50 bg-card hover:border-border transition-all duration-500 cursor-pointer`}
-                  onClick={() => {
-                    if (p.url && p.status === "live") window.open(p.url, "_blank");
-                  }}
+                  className="flex items-center gap-3 mb-6"
                 >
-                  {/* Gradient bg */}
-                  <div className={`absolute inset-0 bg-gradient-to-br ${p.mockupGradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
-
-                  {/* Content */}
-                  <div className="relative h-full p-7 flex flex-col justify-between z-10">
-                    <div className="flex items-start justify-between">
-                      <div
-                        className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${p.accentGradient} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-500`}
-                        style={{ boxShadow: `0 10px 30px -10px ${p.color}30` }}
-                      >
-                        <p.icon className="w-7 h-7 text-white" strokeWidth={1.5} />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <StatusBadge status={p.status} />
-                        {p.status === "live" && (
-                          <ArrowUpRight className="w-5 h-5 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
-                        {p.phase}
-                      </span>
-                      <h3 className="text-2xl font-black tracking-tight">{p.name}</h3>
-                      <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">{p.description}</p>
-                      <div className="flex flex-wrap gap-1.5 pt-1">
-                        {p.tags.slice(0, 3).map((t) => (
-                          <span key={t} className="px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground text-[10px] font-semibold">
-                            {t}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center"
+                    style={{ background: `${cat.color}15` }}
+                  >
+                    <cat.icon className="w-5 h-5" style={{ color: cat.color }} />
                   </div>
+                  <div>
+                    <h3 className="text-lg font-black tracking-tight">{cat.label}</h3>
+                    <p className="text-xs text-muted-foreground">
+                      {cat.id === "negocios" ? "Herramientas para gestionar tu empresa" : "Soluciones para tu bienestar personal"}
+                    </p>
+                  </div>
+                  <div className="flex-1 h-px bg-border/50 ml-4" />
                 </motion.div>
-              );
-            })}
-          </div>
+
+                {/* Grid */}
+                <div className={`grid grid-cols-1 gap-4 auto-rows-[280px] ${
+                  catProjects.length === 1 ? "md:grid-cols-1 max-w-lg" : "md:grid-cols-12"
+                }`}>
+                  {catProjects.map((p, i) => {
+                    const span = catProjects.length === 1
+                      ? ""
+                      : i === 0 ? "md:col-span-7" : i === 1 ? "md:col-span-5" : "md:col-span-4";
+
+                    return (
+                      <motion.div
+                        key={p.id}
+                        initial={{ opacity: 0, y: 30 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: i * 0.08, duration: 0.5 }}
+                        className={`${span} group relative rounded-3xl overflow-hidden border border-border/50 bg-card hover:border-border transition-all duration-500 cursor-pointer`}
+                        onClick={() => {
+                          if (p.url && p.status === "live") window.open(p.url, "_blank");
+                        }}
+                      >
+                        <div className={`absolute inset-0 bg-gradient-to-br ${p.mockupGradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+
+                        <div className="relative h-full p-7 flex flex-col justify-between z-10">
+                          <div className="flex items-start justify-between">
+                            <div
+                              className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${p.accentGradient} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-500`}
+                              style={{ boxShadow: `0 10px 30px -10px ${p.color}30` }}
+                            >
+                              <p.icon className="w-7 h-7 text-white" strokeWidth={1.5} />
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <StatusBadge status={p.status} />
+                              {p.status === "live" && (
+                                <ArrowUpRight className="w-5 h-5 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+                              {p.phase}
+                            </span>
+                            <h3 className="text-2xl font-black tracking-tight">{p.name}</h3>
+                            <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">{p.description}</p>
+                            <div className="flex flex-wrap gap-1.5 pt-1">
+                              {p.tags.slice(0, 3).map((t) => (
+                                <span key={t} className="px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground text-[10px] font-semibold">
+                                  {t}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </section>
 

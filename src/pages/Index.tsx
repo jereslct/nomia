@@ -222,7 +222,7 @@ const Index = () => {
           {/* Carousel */}
           <div className="relative">
             {/* Main slide */}
-            <div className="relative h-[500px] md:h-[600px] rounded-3xl overflow-hidden bg-card border border-border/50">
+            <div className="relative min-h-[700px] md:h-[600px] rounded-3xl overflow-hidden bg-card border border-border/50">
               <AnimatePresence custom={direction} mode="wait">
                 <motion.div
                   key={currentSlide}
@@ -235,20 +235,20 @@ const Index = () => {
                   className="absolute inset-0 flex flex-col md:flex-row"
                 >
                   {/* Left: Visual */}
-                  <div className="relative w-full md:w-1/2 h-1/2 md:h-full flex items-center justify-center overflow-hidden">
+                  <div className="relative w-full md:w-1/2 h-[200px] md:h-full flex items-center justify-center overflow-hidden flex-shrink-0">
                     <div className={`absolute inset-0 bg-gradient-to-br ${current.mockupGradient}`} />
 
-                    {/* Decorative circles */}
-                    <div className="absolute inset-0 flex items-center justify-center">
+                    {/* Decorative circles - hidden on mobile */}
+                    <div className="absolute inset-0 hidden md:flex items-center justify-center">
                       <motion.div
                         animate={{ rotate: 360 }}
                         transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-                        className="absolute w-[300px] h-[300px] md:w-[400px] md:h-[400px] rounded-full border border-border/20"
+                        className="absolute w-[400px] h-[400px] rounded-full border border-border/20"
                       />
                       <motion.div
                         animate={{ rotate: -360 }}
                         transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
-                        className="absolute w-[200px] h-[200px] md:w-[280px] md:h-[280px] rounded-full border border-border/10"
+                        className="absolute w-[280px] h-[280px] rounded-full border border-border/10"
                       />
                     </div>
 
@@ -260,23 +260,23 @@ const Index = () => {
                       className="relative z-10"
                     >
                       <div
-                        className={`w-32 h-32 md:w-44 md:h-44 rounded-3xl bg-gradient-to-br ${current.accentGradient} flex items-center justify-center shadow-2xl`}
+                        className={`w-20 h-20 md:w-44 md:h-44 rounded-2xl md:rounded-3xl bg-gradient-to-br ${current.accentGradient} flex items-center justify-center shadow-2xl`}
                         style={{ boxShadow: `0 25px 60px -15px ${current.color}40` }}
                       >
-                        <current.icon className="w-16 h-16 md:w-24 md:h-24 text-white" strokeWidth={1.5} />
+                        <current.icon className="w-10 h-10 md:w-24 md:h-24 text-white" strokeWidth={1.5} />
                       </div>
                     </motion.div>
                   </div>
 
                   {/* Right: Info */}
-                  <div className="w-full md:w-1/2 h-1/2 md:h-full flex flex-col justify-center p-8 md:p-14">
+                  <div className="w-full md:w-1/2 flex-1 md:h-full flex flex-col justify-center p-5 md:p-14 overflow-y-auto">
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.15, duration: 0.5 }}
-                      className="space-y-5"
+                      className="space-y-3 md:space-y-5"
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 flex-wrap">
                         {(() => {
                           const cat = categories.find(c => c.id === current.category);
                           return cat ? (
@@ -298,11 +298,11 @@ const Index = () => {
                       </div>
 
                       <div>
-                        <h3 className="text-3xl md:text-5xl font-black tracking-tight">{current.name}</h3>
-                        <p className="text-lg text-muted-foreground mt-1">{current.subtitle}</p>
+                        <h3 className="text-2xl md:text-5xl font-black tracking-tight">{current.name}</h3>
+                        <p className="text-sm md:text-lg text-muted-foreground mt-0.5 md:mt-1">{current.subtitle}</p>
                       </div>
 
-                      <p className="text-muted-foreground leading-relaxed text-base md:text-lg max-w-md">
+                      <p className="text-muted-foreground leading-relaxed text-sm md:text-lg max-w-md">
                         {current.description}
                       </p>
 
@@ -332,20 +332,20 @@ const Index = () => {
               {/* Nav arrows */}
               <button
                 onClick={() => paginate(-1)}
-                className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-background/80 backdrop-blur-sm border border-border/50 flex items-center justify-center hover:bg-background transition-colors shadow-lg"
+                className="absolute left-2 md:left-4 bottom-4 md:top-1/2 md:bottom-auto md:-translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 rounded-full bg-background/80 backdrop-blur-sm border border-border/50 flex items-center justify-center hover:bg-background transition-colors shadow-lg"
               >
-                <ChevronLeft className="w-5 h-5" />
+                <ChevronLeft className="w-4 h-4 md:w-5 md:h-5" />
               </button>
               <button
                 onClick={() => paginate(1)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-background/80 backdrop-blur-sm border border-border/50 flex items-center justify-center hover:bg-background transition-colors shadow-lg"
+                className="absolute right-2 md:right-4 bottom-4 md:top-1/2 md:bottom-auto md:-translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 rounded-full bg-background/80 backdrop-blur-sm border border-border/50 flex items-center justify-center hover:bg-background transition-colors shadow-lg"
               >
-                <ChevronRight className="w-5 h-5" />
+                <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
               </button>
             </div>
 
             {/* Thumbnails */}
-            <div className="flex items-center justify-center gap-2 mt-8">
+            <div className="flex items-center justify-start md:justify-center gap-2 mt-6 md:mt-8 overflow-x-auto pb-2 scrollbar-hide">
               {categories.map((cat, catIdx) => (
                 <div key={cat.id} className="flex items-center gap-2">
                   {catIdx > 0 && (

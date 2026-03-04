@@ -577,8 +577,8 @@ const Admin = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="container mx-auto px-4 min-h-16 py-2 flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-3">
             <Link to="/dashboard">
               <Button variant="ghost" size="icon" aria-label="Volver">
                 <ArrowLeft className="w-5 h-5" />
@@ -586,21 +586,27 @@ const Admin = () => {
             </Link>
             <div>
               <h1 className="font-bold text-lg">Panel de Administrador</h1>
-              <p className="text-xs text-muted-foreground">Monitor en vivo de asistencia</p>
+              <p className="text-xs text-muted-foreground hidden sm:block">Monitor en vivo de asistencia</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => openManualDialog()}>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <Button variant="outline" size="icon" className="sm:hidden" onClick={() => openManualDialog()} aria-label="Registro Manual">
+              <ClipboardPen className="w-4 h-4" />
+            </Button>
+            <Button variant="outline" size="sm" className="hidden sm:inline-flex" onClick={() => openManualDialog()}>
               <ClipboardPen className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">Registro Manual</span>
+              Registro Manual
             </Button>
             <Link to="/admin/reports">
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="icon" className="sm:hidden" aria-label="Reportes">
+                <BarChart3 className="w-4 h-4" />
+              </Button>
+              <Button variant="outline" size="sm" className="hidden sm:inline-flex">
                 <BarChart3 className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">Reportes</span>
+                Reportes
               </Button>
             </Link>
-            <Button variant="outline" size="sm" onClick={fetchTodayAttendance} disabled={isLoadingData}>
+            <Button variant="outline" size="icon" className="h-9 w-9 sm:h-9 sm:w-9" onClick={fetchTodayAttendance} disabled={isLoadingData} aria-label="Actualizar">
               <RefreshCw className={`w-4 h-4 ${isLoadingData ? "animate-spin" : ""}`} />
             </Button>
           </div>
@@ -749,15 +755,17 @@ const Admin = () => {
                 </CardTitle>
                 <CardDescription>Estado actual de asistencia de empleados (actualización en tiempo real)</CardDescription>
               </div>
-              <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
-                <TabsList>
-                  <TabsTrigger value="todos">Todos ({totalCount})</TabsTrigger>
-                  <TabsTrigger value="presente">En Horario ({presentCount})</TabsTrigger>
-                  <TabsTrigger value="tarde">Tarde ({lateCount})</TabsTrigger>
-                  <TabsTrigger value="ausente">Ausentes ({absentCount})</TabsTrigger>
-                  <TabsTrigger value="finalizado">Fin ({finishedCount})</TabsTrigger>
-                </TabsList>
-              </Tabs>
+              <div className="overflow-x-auto -mx-2 px-2">
+                <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
+                  <TabsList className="w-auto">
+                    <TabsTrigger value="todos" className="text-xs sm:text-sm">Todos <span className="hidden sm:inline ml-1">({totalCount})</span></TabsTrigger>
+                    <TabsTrigger value="presente" className="text-xs sm:text-sm"><span className="sm:hidden">Horario</span><span className="hidden sm:inline">En Horario ({presentCount})</span></TabsTrigger>
+                    <TabsTrigger value="tarde" className="text-xs sm:text-sm">Tarde <span className="hidden sm:inline ml-1">({lateCount})</span></TabsTrigger>
+                    <TabsTrigger value="ausente" className="text-xs sm:text-sm"><span className="sm:hidden">Ausent.</span><span className="hidden sm:inline">Ausentes ({absentCount})</span></TabsTrigger>
+                    <TabsTrigger value="finalizado" className="text-xs sm:text-sm">Fin <span className="hidden sm:inline ml-1">({finishedCount})</span></TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -788,10 +796,10 @@ const Admin = () => {
                   <TableHeader>
                     <TableRow className="bg-muted/50">
                       <TableHead className="font-semibold">Empleado</TableHead>
-                      <TableHead className="font-semibold">Hora Entrada</TableHead>
-                      <TableHead className="font-semibold">Hora Salida</TableHead>
+                      <TableHead className="font-semibold">Entrada</TableHead>
+                      <TableHead className="font-semibold hidden sm:table-cell">Salida</TableHead>
                       <TableHead className="font-semibold">Estado</TableHead>
-                      <TableHead className="font-semibold">Local</TableHead>
+                      <TableHead className="font-semibold hidden md:table-cell">Local</TableHead>
                       <TableHead className="font-semibold text-right">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -812,11 +820,11 @@ const Admin = () => {
                         <TableCell className="font-mono">
                           {employee.entryTime || <span className="text-muted-foreground">—</span>}
                         </TableCell>
-                        <TableCell className="font-mono">
+                        <TableCell className="font-mono hidden sm:table-cell">
                           {employee.exitTime || <span className="text-muted-foreground">—</span>}
                         </TableCell>
                         <TableCell>{getStatusBadge(employee.status)}</TableCell>
-                        <TableCell>
+                        <TableCell className="hidden md:table-cell">
                           <div className="flex items-center gap-1.5 text-muted-foreground">
                             <MapPin className="w-3.5 h-3.5" />
                             <span className="text-sm">{employee.location}</span>

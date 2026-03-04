@@ -1082,13 +1082,13 @@ const AdminUsers = () => {
                             aria-label="Seleccionar todos"
                           />
                         </TableHead>
-                        <TableHead className="font-semibold">Empleado</TableHead>
-                        <TableHead className="font-semibold">Email</TableHead>
-                        <TableHead className="font-semibold">Teléfono</TableHead>
-                        <TableHead className="font-semibold">Organización</TableHead>
-                        <TableHead className="font-semibold">Estado</TableHead>
-                        <TableHead className="font-semibold">Solicitud</TableHead>
-                        <TableHead className="font-semibold">Fecha</TableHead>
+                         <TableHead className="font-semibold">Empleado</TableHead>
+                          <TableHead className="font-semibold hidden sm:table-cell">Email</TableHead>
+                          <TableHead className="font-semibold hidden lg:table-cell">Teléfono</TableHead>
+                          <TableHead className="font-semibold hidden md:table-cell">Organización</TableHead>
+                          <TableHead className="font-semibold">Estado</TableHead>
+                          <TableHead className="font-semibold hidden sm:table-cell">Solicitud</TableHead>
+                          <TableHead className="font-semibold hidden lg:table-cell">Fecha</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1114,10 +1114,10 @@ const AdminUsers = () => {
                               </span>
                             </div>
                           </TableCell>
-                          <TableCell className="text-muted-foreground">
+                          <TableCell className="text-muted-foreground hidden sm:table-cell">
                             {member.invited_email}
                           </TableCell>
-                          <TableCell className="text-muted-foreground">
+                          <TableCell className="text-muted-foreground hidden lg:table-cell">
                             {member.profile?.phone_number ? (
                               <div className="flex items-center gap-1">
                                 <Phone className="w-3 h-3" />
@@ -1127,12 +1127,12 @@ const AdminUsers = () => {
                               <span className="text-muted-foreground/50">—</span>
                             )}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="hidden md:table-cell">
                             <Badge variant="outline">{member.organization_name}</Badge>
                           </TableCell>
                           <TableCell>{getEntryStatusBadge(member.entryStatus)}</TableCell>
-                          <TableCell>{getStatusText(member.status)}</TableCell>
-                          <TableCell className="text-muted-foreground">
+                          <TableCell className="hidden sm:table-cell">{getStatusText(member.status)}</TableCell>
+                          <TableCell className="text-muted-foreground hidden lg:table-cell">
                             {new Date(member.created_at).toLocaleDateString("es")}
                           </TableCell>
                         </TableRow>
@@ -1197,15 +1197,15 @@ const AdminUsers = () => {
 
             {/* Members Table */}
             <Card className="glass-card">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
+              <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="min-w-0">
                   <CardTitle className="flex items-center gap-2">
-                    <Users className="w-5 h-5" />
-                    Empleados de {selectedOrg.name}
+                    <Users className="w-5 h-5 shrink-0" />
+                    <span className="truncate">Empleados de {selectedOrg.name}</span>
                   </CardTitle>
                   <CardDescription>Lista de empleados e invitaciones</CardDescription>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                 <Dialog open={bulkInviteDialogOpen} onOpenChange={setBulkInviteDialogOpen}>
                   <DialogTrigger asChild>
                     <Button variant="outline" size="sm">
@@ -1336,11 +1336,11 @@ const AdminUsers = () => {
                             />
                           </TableHead>
                           <TableHead className="font-semibold">Empleado</TableHead>
-                          <TableHead className="font-semibold">Email</TableHead>
-                          <TableHead className="font-semibold">Teléfono</TableHead>
+                          <TableHead className="font-semibold hidden sm:table-cell">Email</TableHead>
+                          <TableHead className="font-semibold hidden lg:table-cell">Teléfono</TableHead>
                           <TableHead className="font-semibold">Estado</TableHead>
-                          <TableHead className="font-semibold">Solicitud</TableHead>
-                          <TableHead className="font-semibold">Fecha</TableHead>
+                          <TableHead className="font-semibold hidden sm:table-cell">Solicitud</TableHead>
+                          <TableHead className="font-semibold hidden lg:table-cell">Fecha</TableHead>
                           <TableHead className="font-semibold text-right">Acciones</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -1367,10 +1367,10 @@ const AdminUsers = () => {
                                 </span>
                               </div>
                             </TableCell>
-                            <TableCell className="text-muted-foreground">
+                            <TableCell className="text-muted-foreground hidden sm:table-cell">
                               {member.invited_email}
                             </TableCell>
-                            <TableCell className="text-muted-foreground">
+                            <TableCell className="text-muted-foreground hidden lg:table-cell">
                               {member.profile?.phone_number ? (
                                 <div className="flex items-center gap-1">
                                   <Phone className="w-3 h-3" />
@@ -1381,8 +1381,8 @@ const AdminUsers = () => {
                               )}
                             </TableCell>
                             <TableCell>{getEntryStatusBadge(member.entryStatus)}</TableCell>
-                            <TableCell>{getStatusText(member.status)}</TableCell>
-                            <TableCell className="text-muted-foreground">
+                            <TableCell className="hidden sm:table-cell">{getStatusText(member.status)}</TableCell>
+                            <TableCell className="text-muted-foreground hidden lg:table-cell">
                               {new Date(member.created_at).toLocaleDateString("es")}
                             </TableCell>
                             <TableCell className="text-right">

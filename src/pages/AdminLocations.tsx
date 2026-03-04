@@ -426,11 +426,11 @@ const AdminLocations = () => {
             {selectedOrg && (
               <Card className="glass-card">
                 <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="min-w-0">
                       <CardTitle className="flex items-center gap-2">
-                        <MapPin className="w-5 h-5" />
-                        Ubicaciones de {selectedOrg.name}
+                        <MapPin className="w-5 h-5 shrink-0" />
+                        <span className="truncate">Ubicaciones de {selectedOrg.name}</span>
                       </CardTitle>
                       <CardDescription>
                         {locations.length === 0
@@ -511,9 +511,9 @@ const AdminLocations = () => {
                         <TableHeader>
                           <TableRow className="bg-muted/50">
                             <TableHead className="font-semibold">Nombre</TableHead>
-                            <TableHead className="font-semibold">Dirección</TableHead>
+                            <TableHead className="font-semibold hidden sm:table-cell">Dirección</TableHead>
                             <TableHead className="font-semibold">Estado</TableHead>
-                            <TableHead className="font-semibold text-center">Registros hoy</TableHead>
+                            <TableHead className="font-semibold text-center hidden sm:table-cell">Registros hoy</TableHead>
                             <TableHead className="font-semibold text-right">Acciones</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -526,7 +526,7 @@ const AdminLocations = () => {
                                   <span className="font-medium">{loc.name}</span>
                                 </div>
                               </TableCell>
-                              <TableCell>
+                              <TableCell className="hidden sm:table-cell">
                                 <span className="text-sm text-muted-foreground">
                                   {loc.address || "—"}
                                 </span>
@@ -538,7 +538,7 @@ const AdminLocations = () => {
                                   <Badge variant="secondary">Inactiva</Badge>
                                 )}
                               </TableCell>
-                              <TableCell className="text-center">
+                              <TableCell className="text-center hidden sm:table-cell">
                                 <span className="text-sm font-mono">{loc.attendance_count || 0}</span>
                               </TableCell>
                               <TableCell>

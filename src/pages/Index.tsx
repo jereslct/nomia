@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import {
-  QrCode, Calculator, Receipt, TrendingUp,
+  QrCode, Calculator, Receipt, TrendingUp, MessageSquare,
   ArrowRight, ExternalLink, Sparkles, ChevronLeft, ChevronRight, ArrowUpRight
 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -41,13 +41,13 @@ const projects = [
   },
   {
     id: 3,
-    name: "AFIP Connect",
-    subtitle: "Contabilidad & ARCA",
-    description: "Conexión directa con AFIP. Contabilidad básica, facturas A/B, compras, resumen de IVA.",
-    icon: Calculator,
-    status: "coming_soon" as const,
-    tags: ["AFIP", "Contabilidad", "IVA", "Facturas"],
-    phase: "Fase 2",
+    name: "NutriChat",
+    subtitle: "Asistente Nutricional IA",
+    description: "Convertí tu plan nutricional en PDF en un asistente inteligente. Lista de compras automática, soporte instantáneo y cero alucinaciones con tecnología RAG.",
+    icon: MessageSquare,
+    url: "https://nutrichat.letschange.space/",
+    status: "live" as const,
+    tags: ["IA + RAG", "PDF a Chat", "Lista de Compras", "100% Tu Plan"],
     color: "#10b981",
     accentGradient: "from-emerald-500 via-teal-400 to-emerald-600",
     mockupGradient: "from-emerald-600/20 via-teal-500/10 to-transparent",

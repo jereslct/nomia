@@ -117,7 +117,7 @@ export function useVacations() {
       const { data: requestsData, error } = await query;
       if (error) throw error;
 
-      setRequests((requestsData as VacationRequest[]) || []);
+      setRequests((requestsData as unknown as VacationRequest[]) || []);
     } catch (err) {
       console.error("Error fetching vacations:", err);
       setBalance(null);

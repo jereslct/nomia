@@ -103,7 +103,7 @@ export function useAbsences(userId?: string) {
       const { data, error } = await query;
       if (error) throw error;
 
-      setAbsences((data as Absence[]) || []);
+      setAbsences((data as unknown as Absence[]) || []);
     } catch (err) {
       console.error("Error fetching absences:", err);
       setAbsences([]);

@@ -81,7 +81,7 @@ export function useEmployeeDocuments(userId?: string) {
         return;
       }
 
-      setDocuments((data as EmployeeDocument[]) || []);
+      setDocuments((data as unknown as EmployeeDocument[]) || []);
     } catch (err) {
       console.error("Error fetching documents:", err);
       setDocuments([]);

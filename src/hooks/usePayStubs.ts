@@ -83,7 +83,7 @@ export const usePayStubs = (userId?: string) => {
       const { data, error } = await query;
 
       if (error) throw error;
-      setPayStubs((data as PayStub[]) || []);
+      setPayStubs((data as unknown as PayStub[]) || []);
     } catch (error) {
       console.error("Error fetching pay stubs:", error);
       toast({

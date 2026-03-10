@@ -69,7 +69,7 @@ export const usePayStubs = (userId?: string) => {
 
       let query = supabase
         .from("pay_stubs")
-        .select("*, profiles!pay_stubs_user_id_fkey(full_name, email)")
+        .select("*")
         .eq("organization_id", orgId)
         .order("period_year", { ascending: false })
         .order("period_month", { ascending: false });
@@ -83,7 +83,7 @@ export const usePayStubs = (userId?: string) => {
       const { data, error } = await query;
 
       if (error) throw error;
-      setPayStubs((data as PayStub[]) || []);
+      setPayStubs((data as unknown as PayStub[]) || []);
     } catch (error) {
       console.error("Error fetching pay stubs:", error);
       toast({

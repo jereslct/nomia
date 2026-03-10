@@ -63,7 +63,7 @@ export function useEmployeeDocuments(userId?: string) {
 
       let query = supabase
         .from("employee_documents")
-        .select("*, profiles!employee_documents_user_id_fkey(full_name)")
+        .select("*")
         .eq("organization_id", orgId)
         .order("created_at", { ascending: false });
 
@@ -81,7 +81,7 @@ export function useEmployeeDocuments(userId?: string) {
         return;
       }
 
-      setDocuments((data as EmployeeDocument[]) || []);
+      setDocuments((data as unknown as EmployeeDocument[]) || []);
     } catch (err) {
       console.error("Error fetching documents:", err);
       setDocuments([]);

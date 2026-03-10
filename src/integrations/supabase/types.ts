@@ -14,6 +14,62 @@ export type Database = {
   }
   public: {
     Tables: {
+      absences: {
+        Row: {
+          certificate_file_name: string | null
+          certificate_url: string | null
+          created_at: string
+          date: string
+          id: string
+          justification: string | null
+          organization_id: string
+          reported_by: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["absence_status"]
+          type: Database["public"]["Enums"]["absence_type"]
+          user_id: string
+        }
+        Insert: {
+          certificate_file_name?: string | null
+          certificate_url?: string | null
+          created_at?: string
+          date: string
+          id?: string
+          justification?: string | null
+          organization_id: string
+          reported_by: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["absence_status"]
+          type?: Database["public"]["Enums"]["absence_type"]
+          user_id: string
+        }
+        Update: {
+          certificate_file_name?: string | null
+          certificate_url?: string | null
+          created_at?: string
+          date?: string
+          id?: string
+          justification?: string | null
+          organization_id?: string
+          reported_by?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["absence_status"]
+          type?: Database["public"]["Enums"]["absence_type"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "absences_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attendance_records: {
         Row: {
           created_at: string
@@ -55,6 +111,94 @@ export type Database = {
             columns: ["qr_code_id"]
             isOneToOne: false
             referencedRelation: "qr_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_documents: {
+        Row: {
+          category: Database["public"]["Enums"]["document_category"]
+          created_at: string
+          description: string | null
+          file_name: string
+          file_size: number
+          file_url: string
+          id: string
+          organization_id: string
+          status: Database["public"]["Enums"]["document_status"]
+          updated_at: string
+          uploaded_by: string
+          user_id: string
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["document_category"]
+          created_at?: string
+          description?: string | null
+          file_name: string
+          file_size?: number
+          file_url: string
+          id?: string
+          organization_id: string
+          status?: Database["public"]["Enums"]["document_status"]
+          updated_at?: string
+          uploaded_by: string
+          user_id: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["document_category"]
+          created_at?: string
+          description?: string | null
+          file_name?: string
+          file_size?: number
+          file_url?: string
+          id?: string
+          organization_id?: string
+          status?: Database["public"]["Enums"]["document_status"]
+          updated_at?: string
+          uploaded_by?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_documents_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      evaluation_templates: {
+        Row: {
+          created_at: string
+          created_by: string
+          criteria: Json
+          id: string
+          name: string
+          organization_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          criteria?: Json
+          id?: string
+          name: string
+          organization_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          criteria?: Json
+          id?: string
+          name?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evaluation_templates_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -165,6 +309,122 @@ export type Database = {
         }
         Relationships: []
       }
+      pay_stubs: {
+        Row: {
+          created_at: string
+          downloaded_at: string | null
+          file_name: string
+          file_size: number
+          file_url: string
+          id: string
+          organization_id: string
+          period_month: number
+          period_year: number
+          uploaded_by: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          downloaded_at?: string | null
+          file_name: string
+          file_size?: number
+          file_url: string
+          id?: string
+          organization_id: string
+          period_month: number
+          period_year: number
+          uploaded_by: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          downloaded_at?: string | null
+          file_name?: string
+          file_size?: number
+          file_url?: string
+          id?: string
+          organization_id?: string
+          period_month?: number
+          period_year?: number
+          uploaded_by?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pay_stubs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      performance_evaluations: {
+        Row: {
+          comments: string | null
+          created_at: string
+          evaluator_id: string
+          id: string
+          organization_id: string
+          overall_score: number | null
+          period_end: string
+          period_start: string
+          scores: Json
+          shared_at: string | null
+          status: Database["public"]["Enums"]["evaluation_status"]
+          template_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comments?: string | null
+          created_at?: string
+          evaluator_id: string
+          id?: string
+          organization_id: string
+          overall_score?: number | null
+          period_end: string
+          period_start: string
+          scores?: Json
+          shared_at?: string | null
+          status?: Database["public"]["Enums"]["evaluation_status"]
+          template_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comments?: string | null
+          created_at?: string
+          evaluator_id?: string
+          id?: string
+          organization_id?: string
+          overall_score?: number | null
+          period_end?: string
+          period_start?: string
+          scores?: Json
+          shared_at?: string | null
+          status?: Database["public"]["Enums"]["evaluation_status"]
+          template_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_evaluations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_evaluations_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "evaluation_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -257,6 +517,100 @@ export type Database = {
         }
         Relationships: []
       }
+      vacation_balances: {
+        Row: {
+          created_at: string
+          id: string
+          organization_id: string
+          total_days: number
+          updated_at: string
+          used_days: number
+          user_id: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          organization_id: string
+          total_days?: number
+          updated_at?: string
+          used_days?: number
+          user_id: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          organization_id?: string
+          total_days?: number
+          updated_at?: string
+          used_days?: number
+          user_id?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vacation_balances_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vacation_requests: {
+        Row: {
+          created_at: string
+          days_count: number
+          end_date: string
+          id: string
+          organization_id: string
+          reason: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          start_date: string
+          status: Database["public"]["Enums"]["vacation_request_status"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          days_count: number
+          end_date: string
+          id?: string
+          organization_id: string
+          reason?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          start_date: string
+          status?: Database["public"]["Enums"]["vacation_request_status"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          days_count?: number
+          end_date?: string
+          id?: string
+          organization_id?: string
+          reason?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          start_date?: string
+          status?: Database["public"]["Enums"]["vacation_request_status"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vacation_requests_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       work_shifts: {
         Row: {
           active_days: number[]
@@ -346,7 +700,22 @@ export type Database = {
       }
     }
     Enums: {
+      absence_status: "pending" | "approved" | "rejected"
+      absence_type:
+        | "unjustified"
+        | "justified"
+        | "medical_certificate"
+        | "birth_leave"
+        | "other_leave"
       app_role: "admin" | "user"
+      document_category:
+        | "curriculum"
+        | "arca_registration"
+        | "signed_receipt"
+        | "other"
+      document_status: "pending" | "approved" | "rejected"
+      evaluation_status: "draft" | "completed" | "shared"
+      vacation_request_status: "pending" | "approved" | "rejected" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -474,7 +843,24 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      absence_status: ["pending", "approved", "rejected"],
+      absence_type: [
+        "unjustified",
+        "justified",
+        "medical_certificate",
+        "birth_leave",
+        "other_leave",
+      ],
       app_role: ["admin", "user"],
+      document_category: [
+        "curriculum",
+        "arca_registration",
+        "signed_receipt",
+        "other",
+      ],
+      document_status: ["pending", "approved", "rejected"],
+      evaluation_status: ["draft", "completed", "shared"],
+      vacation_request_status: ["pending", "approved", "rejected", "cancelled"],
     },
   },
 } as const

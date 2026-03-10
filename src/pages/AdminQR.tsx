@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, RefreshCw, Clock, Copy, Check, Loader2, Shield, MapPin, Timer, Maximize, Minimize } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { ROUTES } from "@/lib/routes";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,7 +38,7 @@ const AdminQR = () => {
 
   useEffect(() => {
     if (!loading && (!user || !isAdmin)) {
-      navigate("/dashboard");
+      navigate(ROUTES.PANEL);
     }
   }, [user, isAdmin, loading, navigate]);
 
@@ -289,7 +290,7 @@ const AdminQR = () => {
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 h-16 flex items-center gap-4">
-          <Link to="/dashboard">
+          <Link to={ROUTES.PANEL}>
             <Button variant="ghost" size="icon" aria-label="Volver">
               <ArrowLeft className="w-5 h-5" />
             </Button>

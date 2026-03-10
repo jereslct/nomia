@@ -32,6 +32,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { ROUTES } from "@/lib/routes";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkShifts, type WorkShift, type WorkShiftInput } from "@/hooks/useWorkShifts";
 import { useToast } from "@/hooks/use-toast";
@@ -70,7 +71,7 @@ const AdminShifts = () => {
 
   useEffect(() => {
     if (!authLoading && (!user || !isAdmin)) {
-      navigate("/dashboard");
+      navigate(ROUTES.PANEL);
     }
   }, [user, isAdmin, authLoading, navigate]);
 
@@ -171,7 +172,7 @@ const AdminShifts = () => {
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link to="/dashboard">
+            <Link to={ROUTES.PANEL}>
               <Button variant="ghost" size="icon">
                 <ArrowLeft className="w-5 h-5" />
               </Button>

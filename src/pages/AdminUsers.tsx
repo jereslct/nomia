@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ArrowLeft, UserPlus, Users, Mail, Loader2, Check, Clock, X, Building2, Plus, ChevronRight, Trash2, Phone, Search, ChevronLeft, Filter, Upload, MoreHorizontal, RefreshCw } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { ROUTES } from "@/lib/routes";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -134,7 +135,7 @@ const AdminUsers = () => {
 
   useEffect(() => {
     if (!loading && (!user || !isAdmin)) {
-      navigate("/dashboard");
+      navigate(ROUTES.PANEL);
     }
   }, [user, isAdmin, loading, navigate]);
 
@@ -807,7 +808,7 @@ const AdminUsers = () => {
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link to="/dashboard">
+            <Link to={ROUTES.PANEL}>
               <Button variant="ghost" size="icon" aria-label="Volver">
                 <ArrowLeft className="w-5 h-5" />
               </Button>

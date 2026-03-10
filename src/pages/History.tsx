@@ -10,6 +10,7 @@ import {
 import { ArrowLeft, Calendar, CheckCircle, XCircle, Clock, ChevronDown, ChevronLeft, ChevronRight, Download, FileSpreadsheet, FileText, Loader2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { ROUTES } from "@/lib/routes";
 import { supabase } from "@/integrations/supabase/client";
 import { exportToCSV, exportToExcel, buildTimestamp } from "@/lib/exportUtils";
 import { format, startOfMonth, endOfMonth, addMonths, subMonths } from "date-fns";
@@ -37,7 +38,7 @@ const History = () => {
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
-    if (!loading && !user) navigate("/auth");
+    if (!loading && !user) navigate(ROUTES.ACCESO);
   }, [user, loading, navigate]);
 
   useEffect(() => {
@@ -160,7 +161,7 @@ const History = () => {
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link to="/dashboard">
+            <Link to={ROUTES.PANEL}>
               <Button variant="ghost" size="icon" aria-label="Volver">
                 <ArrowLeft className="w-5 h-5" />
               </Button>

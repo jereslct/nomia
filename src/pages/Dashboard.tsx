@@ -29,6 +29,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { ROUTES } from "@/lib/routes";
 import QRCode from "react-qr-code";
 import { isSameDay } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
@@ -90,7 +91,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (!loading && !user) {
-      navigate("/auth");
+      navigate(ROUTES.ACCESO);
     }
   }, [user, loading, navigate]);
 
@@ -244,7 +245,7 @@ const Dashboard = () => {
 
   const handleLogout = async () => {
     await signOut();
-    navigate("/");
+    navigate(ROUTES.HOME);
   };
 
   const formatTime = (dateStr: string) => {
@@ -352,7 +353,7 @@ const Dashboard = () => {
                   </div>
                   {pendingCount > 0 && (
                     <div className="p-3 border-t border-border">
-                      <Link to="/admin/users" className="w-full">
+                      <Link to={ROUTES.ADMIN_USUARIOS} className="w-full">
                         <Button variant="outline" size="sm" className="w-full text-xs">
                           Ver todas las invitaciones
                           <ChevronRight className="w-3 h-3 ml-1" />
@@ -363,7 +364,7 @@ const Dashboard = () => {
                 </PopoverContent>
               </Popover>
             )}
-            <Link to="/profile" className="hidden sm:flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted/50 transition-colors group">
+            <Link to={ROUTES.PERFIL} className="hidden sm:flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted/50 transition-colors group">
               <div className="text-right">
                 <p className="text-sm font-medium group-hover:text-primary transition-colors">{profile?.full_name || user.email}</p>
                 <p className="text-xs text-muted-foreground">{user.email}</p>
@@ -396,7 +397,7 @@ const Dashboard = () => {
                   : `${pendingCount} usuarios aún no aceptaron sus invitaciones`}
               </p>
             </div>
-            <Link to="/admin/users">
+            <Link to={ROUTES.ADMIN_USUARIOS}>
               <Button variant="outline" size="sm" className="shrink-0 text-xs">
                 Gestionar
                 <ChevronRight className="w-3 h-3 ml-1" />
@@ -429,7 +430,7 @@ const Dashboard = () => {
                 Tu horario de entrada era a las {String(scheduleConfig.entryHour).padStart(2, "0")}:{String(scheduleConfig.entryMinute).padStart(2, "0")}. Escanea el código QR lo antes posible.
               </p>
             </div>
-            <Link to="/scan">
+            <Link to={ROUTES.ESCANEAR}>
               <Button variant="outline" size="sm" className="shrink-0">
                 <ScanLine className="w-4 h-4 mr-1" />
                 Escanear
@@ -442,7 +443,7 @@ const Dashboard = () => {
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {isAdmin ? (
             <>
-              <Link to="/admin/qr">
+              <Link to={ROUTES.ADMIN_QR}>
                 <Card className="glass-card hover-lift cursor-pointer group h-full">
                   <CardContent className="p-6 flex items-center gap-4">
                     <div className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -456,7 +457,7 @@ const Dashboard = () => {
                   </CardContent>
                 </Card>
               </Link>
-              <Link to="/admin/users">
+              <Link to={ROUTES.ADMIN_USUARIOS}>
                 <Card className="glass-card hover-lift cursor-pointer group h-full">
                   <CardContent className="p-6 flex items-center gap-4">
                     <div className="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -470,7 +471,7 @@ const Dashboard = () => {
                   </CardContent>
                 </Card>
               </Link>
-              <Link to="/admin/locations">
+              <Link to={ROUTES.ADMIN_UBICACIONES}>
                 <Card className="glass-card hover-lift cursor-pointer group h-full">
                   <CardContent className="p-6 flex items-center gap-4">
                     <div className="w-14 h-14 rounded-2xl bg-success/10 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -484,7 +485,7 @@ const Dashboard = () => {
                   </CardContent>
                 </Card>
               </Link>
-              <Link to="/admin">
+              <Link to={ROUTES.ADMIN}>
                 <Card className="glass-card hover-lift cursor-pointer group h-full">
                   <CardContent className="p-6 flex items-center gap-4">
                     <div className="w-14 h-14 rounded-2xl bg-destructive/10 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -498,7 +499,7 @@ const Dashboard = () => {
                   </CardContent>
                 </Card>
               </Link>
-              <Link to="/admin/reports">
+              <Link to={ROUTES.ADMIN_REPORTES}>
                 <Card className="glass-card hover-lift cursor-pointer group h-full">
                   <CardContent className="p-6 flex items-center gap-4">
                     <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -512,7 +513,7 @@ const Dashboard = () => {
                   </CardContent>
                 </Card>
               </Link>
-              <Link to="/admin" state={{ openManualRegister: true }}>
+              <Link to={ROUTES.ADMIN} state={{ openManualRegister: true }}>
                 <Card className="glass-card hover-lift cursor-pointer group h-full">
                   <CardContent className="p-6 flex items-center gap-4">
                     <div className="w-14 h-14 rounded-2xl bg-warning/10 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -526,7 +527,7 @@ const Dashboard = () => {
                   </CardContent>
                 </Card>
               </Link>
-              <Link to="/admin/absences">
+              <Link to={ROUTES.ADMIN_AUSENCIAS}>
                 <Card className="glass-card hover-lift cursor-pointer group h-full">
                   <CardContent className="p-6 flex items-center gap-4">
                     <div className="w-14 h-14 rounded-2xl bg-destructive/10 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -540,7 +541,7 @@ const Dashboard = () => {
                   </CardContent>
                 </Card>
               </Link>
-              <Link to="/admin/legajos">
+              <Link to={ROUTES.ADMIN_LEGAJOS}>
                 <Card className="glass-card hover-lift cursor-pointer group h-full">
                   <CardContent className="p-6 flex items-center gap-4">
                     <div className="w-14 h-14 rounded-2xl bg-blue-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -554,7 +555,7 @@ const Dashboard = () => {
                   </CardContent>
                 </Card>
               </Link>
-              <Link to="/admin/pay-stubs">
+              <Link to={ROUTES.ADMIN_RECIBOS}>
                 <Card className="glass-card hover-lift cursor-pointer group h-full">
                   <CardContent className="p-6 flex items-center gap-4">
                     <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -568,7 +569,7 @@ const Dashboard = () => {
                   </CardContent>
                 </Card>
               </Link>
-              <Link to="/admin/vacations">
+              <Link to={ROUTES.ADMIN_VACACIONES}>
                 <Card className="glass-card hover-lift cursor-pointer group h-full">
                   <CardContent className="p-6 flex items-center gap-4">
                     <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -582,7 +583,7 @@ const Dashboard = () => {
                   </CardContent>
                 </Card>
               </Link>
-              <Link to="/admin/evaluations">
+              <Link to={ROUTES.ADMIN_EVALUACIONES}>
                 <Card className="glass-card hover-lift cursor-pointer group h-full">
                   <CardContent className="p-6 flex items-center gap-4">
                     <div className="w-14 h-14 rounded-2xl bg-violet-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -599,7 +600,7 @@ const Dashboard = () => {
             </>
           ) : (
             <>
-              <Link to="/scan">
+              <Link to={ROUTES.ESCANEAR}>
                 <Card className="glass-card hover-lift cursor-pointer group h-full">
                   <CardContent className="p-6 flex items-center gap-4">
                     <div className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center group-hover:scale-110 transition-transform animate-pulse-glow">
@@ -613,7 +614,7 @@ const Dashboard = () => {
                   </CardContent>
                 </Card>
               </Link>
-              <Link to="/history">
+              <Link to={ROUTES.HISTORIAL}>
                 <Card className="glass-card hover-lift cursor-pointer group h-full">
                   <CardContent className="p-6 flex items-center gap-4">
                     <div className="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -627,7 +628,7 @@ const Dashboard = () => {
                   </CardContent>
                 </Card>
               </Link>
-              <Link to="/absences">
+              <Link to={ROUTES.AUSENCIAS}>
                 <Card className="glass-card hover-lift cursor-pointer group h-full">
                   <CardContent className="p-6 flex items-center gap-4">
                     <div className="w-14 h-14 rounded-2xl bg-destructive/10 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -641,7 +642,7 @@ const Dashboard = () => {
                   </CardContent>
                 </Card>
               </Link>
-              <Link to="/profile/documents">
+              <Link to={ROUTES.PERFIL_DOCUMENTOS}>
                 <Card className="glass-card hover-lift cursor-pointer group h-full">
                   <CardContent className="p-6 flex items-center gap-4">
                     <div className="w-14 h-14 rounded-2xl bg-blue-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -655,7 +656,7 @@ const Dashboard = () => {
                   </CardContent>
                 </Card>
               </Link>
-              <Link to="/pay-stubs">
+              <Link to={ROUTES.RECIBOS}>
                 <Card className="glass-card hover-lift cursor-pointer group h-full">
                   <CardContent className="p-6 flex items-center gap-4">
                     <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -669,7 +670,7 @@ const Dashboard = () => {
                   </CardContent>
                 </Card>
               </Link>
-              <Link to="/vacations">
+              <Link to={ROUTES.VACACIONES}>
                 <Card className="glass-card hover-lift cursor-pointer group h-full">
                   <CardContent className="p-6 flex items-center gap-4">
                     <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -683,7 +684,7 @@ const Dashboard = () => {
                   </CardContent>
                 </Card>
               </Link>
-              <Link to="/evaluations">
+              <Link to={ROUTES.EVALUACIONES}>
                 <Card className="glass-card hover-lift cursor-pointer group h-full">
                   <CardContent className="p-6 flex items-center gap-4">
                     <div className="w-14 h-14 rounded-2xl bg-violet-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -724,7 +725,7 @@ const Dashboard = () => {
                   )}
                 </div>
                 {isAdmin && (
-                  <Link to="/admin/shifts">
+                  <Link to={ROUTES.ADMIN_TURNOS}>
                     <Button
                       type="button"
                       variant="ghost"
@@ -751,7 +752,7 @@ const Dashboard = () => {
                       <p className="text-sm text-muted-foreground mb-3">
                         No hay turnos configurados
                       </p>
-                      <Link to="/admin/shifts">
+                      <Link to={ROUTES.ADMIN_TURNOS}>
                         <Button variant="outline" size="sm">Crear Turno</Button>
                       </Link>
                     </div>
@@ -777,7 +778,7 @@ const Dashboard = () => {
                         </div>
                       ))}
                       {shifts.length > 3 && (
-                        <Link to="/admin/shifts" className="block">
+                        <Link to={ROUTES.ADMIN_TURNOS} className="block">
                           <p className="text-xs text-primary text-center hover:underline">
                             +{shifts.length - 3} turno{shifts.length - 3 > 1 ? "s" : ""} más
                           </p>
@@ -901,7 +902,7 @@ const Dashboard = () => {
                     <p className="text-xs">Genera uno desde Gestionar QR</p>
                   </div>
                 )}
-                <Link to="/admin/qr" className="w-full mt-4">
+                <Link to={ROUTES.ADMIN_QR} className="w-full mt-4">
                   <Button variant="outline" size="sm" className="w-full">
                     <Settings className="w-4 h-4 mr-2" />
                     Gestionar QR
@@ -917,7 +918,7 @@ const Dashboard = () => {
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg">Este Mes</CardTitle>
                 {isAdmin && (
-                  <Link to="/admin/reports">
+                  <Link to={ROUTES.ADMIN_REPORTES}>
                     <Button variant="ghost" size="sm" className="text-xs h-7">
                       Ver reportes
                       <ChevronRight className="w-3 h-3 ml-1" />

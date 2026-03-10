@@ -67,17 +67,30 @@ Required environment variables in `.env`:
 4. ProtectedRoute wrapper guards authenticated routes (src/components/ProtectedRoute.tsx:11)
 5. Admin routes require `requireAdmin` prop (src/App.tsx:40)
 
-### Route Hierarchy
+### Route Hierarchy (all routes in Spanish, centralized in src/lib/routes.ts)
 - `/` - Landing page
-- `/auth` - Authentication
-- `/dashboard` - Main dashboard (protected)
-- `/scan` - QR code scanner (protected)
-- `/history` - Attendance history (protected)
-- `/profile` - User profile (protected)
-- `/employee` - Employee view (protected)
-- `/admin` - Admin dashboard (protected, admin-only)
-- `/admin/qr` - QR code management (protected, admin-only)
-- `/admin/users` - User management (protected, admin-only)
+- `/acceso` - Autenticación
+- `/panel` - Panel principal (protegido)
+- `/escanear` - Escáner QR (protegido)
+- `/historial` - Historial de asistencia (protegido)
+- `/perfil` - Perfil de usuario (protegido)
+- `/perfil/documentos` - Documentos del empleado (protegido)
+- `/empleado` - Vista de empleado (protegido)
+- `/ausencias` - Faltas del empleado (protegido)
+- `/recibos` - Recibos de sueldo (protegido)
+- `/vacaciones` - Vacaciones (protegido)
+- `/evaluaciones` - Evaluaciones (protegido)
+- `/admin` - Panel de administración (protegido, solo admin)
+- `/admin/qr` - Gestión de QR (protegido, solo admin)
+- `/admin/usuarios` - Gestión de usuarios (protegido, solo admin)
+- `/admin/reportes` - Reportes (protegido, solo admin)
+- `/admin/ubicaciones` - Ubicaciones (protegido, solo admin)
+- `/admin/turnos` - Turnos (protegido, solo admin)
+- `/admin/ausencias` - Ausencias (protegido, solo admin)
+- `/admin/legajos` - Legajos (protegido, solo admin)
+- `/admin/recibos` - Recibos de sueldo (protegido, solo admin)
+- `/admin/vacaciones` - Vacaciones (protegido, solo admin)
+- `/admin/evaluaciones` - Evaluaciones (protegido, solo admin)
 
 ### Database Tables (key ones)
 - `profiles`: User profile information

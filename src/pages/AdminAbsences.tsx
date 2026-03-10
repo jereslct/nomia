@@ -45,6 +45,7 @@ import {
   Users,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { ROUTES } from "@/lib/routes";
 import { useAuth } from "@/hooks/useAuth";
 import { useAbsences, Absence, AbsenceType, AbsenceStatus } from "@/hooks/useAbsences";
 import { useToast } from "@/hooks/use-toast";
@@ -92,7 +93,7 @@ const AdminAbsences = () => {
 
   useEffect(() => {
     if (!authLoading && (!user || !isAdmin)) {
-      navigate("/dashboard");
+      navigate(ROUTES.PANEL);
     }
   }, [user, isAdmin, authLoading, navigate]);
 
@@ -244,7 +245,7 @@ const AdminAbsences = () => {
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 min-h-16 py-2 flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-3">
-            <Link to="/dashboard">
+            <Link to={ROUTES.PANEL}>
               <Button variant="ghost" size="icon" aria-label="Volver">
                 <ArrowLeft className="w-5 h-5" />
               </Button>

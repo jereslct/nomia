@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { ROUTES } from "@/lib/routes";
 import { useEmployeeDocuments, type EmployeeDocument } from "@/hooks/useEmployeeDocuments";
 import { useToast } from "@/hooks/use-toast";
 import type { Enums } from "@/integrations/supabase/types";
@@ -156,7 +157,7 @@ export default function EmployeeDocuments() {
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 sm:px-6 h-16 flex items-center gap-3">
-          <Link to="/profile">
+          <Link to={ROUTES.PERFIL}>
             <Button variant="ghost" size="icon" aria-label="Volver">
               <ArrowLeft className="h-5 w-5" />
             </Button>

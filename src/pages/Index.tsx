@@ -5,6 +5,7 @@ import {
   Briefcase, Heart
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { ROUTES } from "@/lib/routes";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import { useState, useRef, useEffect, useCallback } from "react";
 
@@ -24,7 +25,7 @@ const projects = [
     icon: QrCode,
     status: "live" as const,
     url: "https://beam-in-out.lovable.app",
-    internalUrl: "/auth",
+    internalUrl: ROUTES.ACCESO,
     tags: ["QR Scan", "Turnos", "Reportes", "Multi-sede"],
     phase: "Fase 1",
     color: "#3b82f6",
@@ -132,10 +133,10 @@ const Index = () => {
             <span className="font-black text-lg tracking-tight">Suite</span>
           </div>
           <div className="flex items-center gap-2">
-            <Link to="/auth">
+            <Link to={ROUTES.ACCESO}>
               <Button variant="ghost" size="sm">Ingresar</Button>
             </Link>
-            <Link to="/auth?mode=signup">
+            <Link to={`${ROUTES.ACCESO}?mode=signup`}>
               <Button variant="hero" size="sm">Comenzar</Button>
             </Link>
           </div>
@@ -585,7 +586,7 @@ const Index = () => {
               <p className="text-primary-foreground/70 max-w-lg mx-auto text-lg">
                 Nomia ya está disponible. Registrate gratis y probá el control de asistencia por QR.
               </p>
-              <Link to="/auth?mode=signup">
+              <Link to={`${ROUTES.ACCESO}?mode=signup`}>
                 <Button
                   size="xl"
                   className="bg-background text-foreground hover:bg-background/90 shadow-2xl font-bold mt-2"

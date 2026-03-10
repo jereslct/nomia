@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { ROUTES } from "@/lib/routes";
 import { useScheduleConfig } from "@/hooks/useScheduleConfig";
 import { supabase } from "@/integrations/supabase/client";
 import { useQrScanner } from "@/hooks/useQrScanner";
@@ -58,7 +59,7 @@ const Employee = () => {
   });
 
   useEffect(() => {
-    if (!loading && !user) navigate("/auth");
+    if (!loading && !user) navigate(ROUTES.ACCESO);
   }, [user, loading, navigate]);
 
   useEffect(() => {
@@ -136,7 +137,7 @@ const Employee = () => {
 
   const handleLogout = async () => {
     await signOut();
-    navigate("/auth");
+    navigate(ROUTES.ACCESO);
   };
 
   if (loading) {
@@ -153,13 +154,13 @@ const Employee = () => {
     <div className="min-h-screen bg-background flex flex-col">
       <header className="bg-background/80 backdrop-blur-lg border-b border-border safe-area-inset">
         <div className="px-4 h-14 flex items-center justify-between">
-          <Link to="/dashboard">
+          <Link to={ROUTES.PANEL}>
             <Button variant="ghost" size="icon" className="w-9 h-9" aria-label="Volver">
               <ArrowLeft className="w-5 h-5" />
             </Button>
           </Link>
           <div className="flex gap-2">
-            <Link to="/history">
+            <Link to={ROUTES.HISTORIAL}>
               <Button variant="ghost" size="icon" className="w-9 h-9" aria-label="Historial">
                 <History className="w-5 h-5" />
               </Button>

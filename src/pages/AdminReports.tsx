@@ -62,6 +62,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { ROUTES } from "@/lib/routes";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from "recharts";
 import { useAuth } from "@/hooks/useAuth";
 import { useScheduleConfig } from "@/hooks/useScheduleConfig";
@@ -225,7 +226,7 @@ const AdminReports = () => {
 
   useEffect(() => {
     if (!authLoading && (!user || !isAdmin)) {
-      navigate("/dashboard");
+      navigate(ROUTES.PANEL);
     }
   }, [user, isAdmin, authLoading, navigate]);
 
@@ -620,7 +621,7 @@ const fetchRecords = async (orgIds: string[]) => {
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 min-h-16 py-2 flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-3">
-            <Link to="/dashboard">
+            <Link to={ROUTES.PANEL}>
               <Button variant="ghost" size="icon" aria-label="Volver">
                 <ArrowLeft className="w-5 h-5" />
               </Button>
@@ -680,7 +681,7 @@ const fetchRecords = async (orgIds: string[]) => {
               <Users className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
               <p className="text-muted-foreground">No se encontró ninguna organización</p>
               <p className="text-sm text-muted-foreground mt-1">Crea una organización primero desde el panel de administración</p>
-              <Link to="/admin/users" className="mt-4 inline-block">
+              <Link to={ROUTES.ADMIN_USUARIOS} className="mt-4 inline-block">
                 <Button variant="outline" size="sm">Ir a Organizaciones</Button>
               </Link>
             </CardContent>

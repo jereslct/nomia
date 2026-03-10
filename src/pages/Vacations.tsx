@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
+import { ROUTES } from "@/lib/routes";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -115,7 +116,7 @@ const Vacations = () => {
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 h-16 flex items-center gap-3">
-          <Link to="/dashboard">
+          <Link to={ROUTES.PANEL}>
             <Button variant="ghost" size="icon" aria-label="Volver">
               <ArrowLeft className="w-5 h-5" />
             </Button>

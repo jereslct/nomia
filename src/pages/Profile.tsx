@@ -9,6 +9,7 @@ import { ArrowLeft, Camera, Loader2, Save, User, Check, X, Shield, Briefcase, Ke
 import { Badge } from "@/components/ui/badge";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { ROUTES } from "@/lib/routes";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import ReactCrop, { Crop, PixelCrop, centerCrop, makeAspectCrop } from "react-image-crop";
@@ -61,7 +62,7 @@ const Profile = () => {
 
   useEffect(() => {
     if (!loading && !user) {
-      navigate("/auth");
+      navigate(ROUTES.ACCESO);
     }
   }, [user, loading, navigate]);
 
@@ -312,7 +313,7 @@ const Profile = () => {
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 h-16 flex items-center gap-4">
           <Button variant="ghost" size="icon" asChild aria-label="Volver">
-            <Link to="/dashboard">
+            <Link to={ROUTES.PANEL}>
               <ArrowLeft className="w-5 h-5" />
             </Link>
           </Button>

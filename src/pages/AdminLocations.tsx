@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ArrowLeft, MapPin, Plus, Loader2, Building2, ChevronRight, Pencil, Trash2, ToggleLeft, ToggleRight } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { ROUTES } from "@/lib/routes";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -85,7 +86,7 @@ const AdminLocations = () => {
 
   useEffect(() => {
     if (!loading && (!user || !isAdmin)) {
-      navigate("/dashboard");
+      navigate(ROUTES.PANEL);
     }
   }, [user, isAdmin, loading, navigate]);
 
@@ -354,7 +355,7 @@ const AdminLocations = () => {
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 h-16 flex items-center gap-4">
-          <Link to="/dashboard">
+          <Link to={ROUTES.PANEL}>
             <Button variant="ghost" size="icon">
               <ArrowLeft className="w-5 h-5" />
             </Button>
@@ -379,7 +380,7 @@ const AdminLocations = () => {
               <p className="text-muted-foreground">No tienes organizaciones creadas.</p>
               <p className="text-sm text-muted-foreground mt-1">
                 Crea una organización primero desde{" "}
-                <Link to="/admin/users" className="text-primary underline">
+                <Link to={ROUTES.ADMIN_USUARIOS} className="text-primary underline">
                   Gestión de Usuarios
                 </Link>.
               </p>

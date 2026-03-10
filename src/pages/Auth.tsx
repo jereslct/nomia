@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { QrCode, Mail, Lock, User, ArrowLeft, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { ROUTES } from "@/lib/routes";
 import { z } from "zod";
 
 const authSchema = z.object({
@@ -37,7 +38,7 @@ const Auth = () => {
   // Redirect if already logged in
   useEffect(() => {
     if (!loading && user) {
-      navigate("/dashboard");
+      navigate(ROUTES.PANEL);
     }
   }, [user, loading, navigate]);
 
@@ -96,7 +97,7 @@ const Auth = () => {
           title: "¡Bienvenido de vuelta!",
           description: "Has iniciado sesión correctamente.",
         });
-        navigate("/dashboard");
+        navigate(ROUTES.PANEL);
       } else {
         const { error } = await signUp(formData.email, formData.password, formData.name);
         
@@ -121,7 +122,7 @@ const Auth = () => {
           title: "¡Cuenta creada!",
           description: "Tu cuenta ha sido creada exitosamente.",
         });
-        navigate("/dashboard");
+        navigate(ROUTES.PANEL);
       }
     } finally {
       setIsSubmitting(false);
@@ -140,7 +141,7 @@ const Auth = () => {
     <div className="min-h-screen gradient-hero flex flex-col">
       {/* Back to Home */}
       <div className="p-4">
-        <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
+        <Link to={ROUTES.HOME} className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft className="w-4 h-4" />
           Volver al inicio
         </Link>
@@ -249,7 +250,7 @@ const Auth = () => {
                     onClick={() => {
                       setIsLogin(!isLogin);
                       setErrors({});
-                      navigate(isLogin ? "/auth?mode=signup" : "/auth", { replace: true });
+                      navigate(isLogin ? `${ROUTES.ACCESO}?mode=signup` : ROUTES.ACCESO, { replace: true });
                     }}
                     className="text-primary hover:underline font-medium"
                   >

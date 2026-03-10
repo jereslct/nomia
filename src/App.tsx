@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ROUTES } from "@/lib/routes";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -45,114 +46,113 @@ const App = () => (
       <BrowserRouter>
         <main id="main-content">
         <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/dashboard" element={
+          <Route path={ROUTES.HOME} element={<Index />} />
+          <Route path={ROUTES.ACCESO} element={<Auth />} />
+          <Route path={ROUTES.PANEL} element={
             <ProtectedRoute>
               <Dashboard />
             </ProtectedRoute>
           } />
-          <Route path="/scan" element={
+          <Route path={ROUTES.ESCANEAR} element={
             <ProtectedRoute>
               <ScanQR />
             </ProtectedRoute>
           } />
-          <Route path="/admin" element={
+          <Route path={ROUTES.ADMIN} element={
             <ProtectedRoute requireAdmin>
               <Admin />
             </ProtectedRoute>
           } />
-          <Route path="/admin/qr" element={
+          <Route path={ROUTES.ADMIN_QR} element={
             <ProtectedRoute requireAdmin>
               <AdminQR />
             </ProtectedRoute>
           } />
-          <Route path="/admin/users" element={
+          <Route path={ROUTES.ADMIN_USUARIOS} element={
             <ProtectedRoute requireAdmin>
               <AdminUsers />
             </ProtectedRoute>
           } />
-          <Route path="/admin/reports" element={
+          <Route path={ROUTES.ADMIN_REPORTES} element={
             <ProtectedRoute requireAdmin>
-            <AdminReports />
+              <AdminReports />
             </ProtectedRoute>
           } />
-          <Route path="/admin/locations" element={
+          <Route path={ROUTES.ADMIN_UBICACIONES} element={
             <ProtectedRoute requireAdmin>
               <AdminLocations />
             </ProtectedRoute>
           } />
-          <Route path="/admin/shifts" element={
+          <Route path={ROUTES.ADMIN_TURNOS} element={
             <ProtectedRoute requireAdmin>
               <AdminShifts />
             </ProtectedRoute>
           } />
-          <Route path="/admin/absences" element={
+          <Route path={ROUTES.ADMIN_AUSENCIAS} element={
             <ProtectedRoute requireAdmin>
               <AdminAbsences />
             </ProtectedRoute>
           } />
-          <Route path="/admin/legajos" element={
+          <Route path={ROUTES.ADMIN_LEGAJOS} element={
             <ProtectedRoute requireAdmin>
               <AdminLegajos />
             </ProtectedRoute>
           } />
-          <Route path="/admin/pay-stubs" element={
+          <Route path={ROUTES.ADMIN_RECIBOS} element={
             <ProtectedRoute requireAdmin>
               <AdminPayStubs />
             </ProtectedRoute>
           } />
-          <Route path="/admin/vacations" element={
+          <Route path={ROUTES.ADMIN_VACACIONES} element={
             <ProtectedRoute requireAdmin>
               <AdminVacations />
             </ProtectedRoute>
           } />
-          <Route path="/admin/evaluations" element={
+          <Route path={ROUTES.ADMIN_EVALUACIONES} element={
             <ProtectedRoute requireAdmin>
               <AdminEvaluations />
             </ProtectedRoute>
           } />
-          <Route path="/employee" element={
+          <Route path={ROUTES.EMPLEADO} element={
             <ProtectedRoute>
               <Employee />
             </ProtectedRoute>
           } />
-          <Route path="/history" element={
+          <Route path={ROUTES.HISTORIAL} element={
             <ProtectedRoute>
               <History />
             </ProtectedRoute>
           } />
-          <Route path="/profile" element={
+          <Route path={ROUTES.PERFIL} element={
             <ProtectedRoute>
               <Profile />
             </ProtectedRoute>
           } />
-          <Route path="/profile/documents" element={
+          <Route path={ROUTES.PERFIL_DOCUMENTOS} element={
             <ProtectedRoute>
               <EmployeeDocuments />
             </ProtectedRoute>
           } />
-          <Route path="/absences" element={
+          <Route path={ROUTES.AUSENCIAS} element={
             <ProtectedRoute>
               <Absences />
             </ProtectedRoute>
           } />
-          <Route path="/pay-stubs" element={
+          <Route path={ROUTES.RECIBOS} element={
             <ProtectedRoute>
               <PayStubs />
             </ProtectedRoute>
           } />
-          <Route path="/vacations" element={
+          <Route path={ROUTES.VACACIONES} element={
             <ProtectedRoute>
               <Vacations />
             </ProtectedRoute>
           } />
-          <Route path="/evaluations" element={
+          <Route path={ROUTES.EVALUACIONES} element={
             <ProtectedRoute>
               <Evaluations />
             </ProtectedRoute>
           } />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
         </main>

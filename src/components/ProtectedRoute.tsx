@@ -1,5 +1,6 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { ROUTES } from "@/lib/routes";
 import { Loader2 } from "lucide-react";
 
 interface ProtectedRouteProps {
@@ -26,7 +27,7 @@ export const ProtectedRoute = ({
 
   // Redirect to auth if authentication is required but user is not logged in
   if (requireAuth && !user) {
-    return <Navigate to="/auth" replace />;
+    return <Navigate to={ROUTES.ACCESO} replace />;
   }
 
   // Show 403 Forbidden if admin is required but user is not admin
@@ -39,7 +40,7 @@ export const ProtectedRoute = ({
           <p className="text-muted-foreground">
             No tienes permisos para acceder a esta página.
           </p>
-          <Navigate to="/dashboard" replace />
+          <Navigate to={ROUTES.PANEL} replace />
         </div>
       </div>
     );

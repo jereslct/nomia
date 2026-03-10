@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { ROUTES } from "@/lib/routes";
 import { useAbsences, Absence, AbsenceType } from "@/hooks/useAbsences";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -64,7 +65,7 @@ const Absences = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!authLoading && !user) navigate("/auth");
+    if (!authLoading && !user) navigate(ROUTES.ACCESO);
   }, [user, authLoading, navigate]);
 
   const filteredAbsences = useMemo(() => {
@@ -153,7 +154,7 @@ const Absences = () => {
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 h-16 flex items-center gap-4">
-          <Link to="/dashboard">
+          <Link to={ROUTES.PANEL}>
             <Button variant="ghost" size="icon" aria-label="Volver">
               <ArrowLeft className="w-5 h-5" />
             </Button>

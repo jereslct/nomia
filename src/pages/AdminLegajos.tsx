@@ -36,6 +36,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { ROUTES } from "@/lib/routes";
 import { useAuth } from "@/hooks/useAuth";
 import { useEmployeeDocuments, type EmployeeDocument } from "@/hooks/useEmployeeDocuments";
 import { useToast } from "@/hooks/use-toast";
@@ -125,7 +126,7 @@ export default function AdminLegajos() {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-6 max-w-6xl">
         <div className="flex items-center gap-3 mb-6">
-          <Link to="/dashboard">
+          <Link to={ROUTES.PANEL}>
             <Button variant="ghost" size="icon">
               <ArrowLeft className="h-5 w-5" />
             </Button>

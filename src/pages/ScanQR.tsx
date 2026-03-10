@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { ArrowLeft, Camera, CheckCircle, XCircle, Loader2, Copy, Check, Shield } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { ROUTES } from "@/lib/routes";
 import { useQrScanner } from "@/hooks/useQrScanner";
 
 const ScanQR = () => {
@@ -14,12 +15,12 @@ const ScanQR = () => {
   const scanner = useQrScanner({
     elementId: "qr-reader",
     onSuccess: () => {
-      setTimeout(() => navigate("/dashboard"), 3000);
+      setTimeout(() => navigate(ROUTES.PANEL), 3000);
     },
   });
 
   useEffect(() => {
-    if (!loading && !user) navigate("/auth");
+    if (!loading && !user) navigate(ROUTES.ACCESO);
   }, [user, loading, navigate]);
 
   if (loading) {
@@ -30,7 +31,7 @@ const ScanQR = () => {
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 h-16 flex items-center gap-4">
-          <Link to="/dashboard"><Button variant="ghost" size="icon" aria-label="Volver"><ArrowLeft className="w-5 h-5" /></Button></Link>
+          <Link to={ROUTES.PANEL}><Button variant="ghost" size="icon" aria-label="Volver"><ArrowLeft className="w-5 h-5" /></Button></Link>
           <div>
             <h1 className="font-bold text-lg">Escanear QR</h1>
             <p className="text-xs text-muted-foreground">Validación segura en backend</p>

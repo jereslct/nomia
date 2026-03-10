@@ -126,7 +126,7 @@ export default function AdminLegajos() {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-6 max-w-6xl">
         <div className="flex items-center gap-3 mb-6">
-          <Link to={ROUTES.PANEL}>
+          <Link to={ROUTES.ADMIN}>
             <Button variant="ghost" size="icon">
               <ArrowLeft className="h-5 w-5" />
             </Button>

@@ -31,7 +31,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { ArrowLeft, QrCode, RefreshCw, Users, Clock, MapPin, Loader2, BarChart3, UserX, ClipboardPen, LogIn, LogOut } from "lucide-react";
+import { ArrowLeft, QrCode, RefreshCw, Users, Clock, MapPin, Loader2, BarChart3, UserX, ClipboardPen, LogIn, LogOut, AlertTriangle, FolderOpen, Receipt, Palmtree, Star, ChevronRight } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { ROUTES } from "@/lib/routes";
 import { useAuth } from "@/hooks/useAuth";
@@ -677,6 +677,40 @@ const Admin = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8 space-y-8">
+        {/* Quick Navigation */}
+        <div className="flex flex-wrap gap-2">
+          <Link to={ROUTES.ADMIN_AUSENCIAS}>
+            <Button variant="outline" size="sm" className="gap-2">
+              <AlertTriangle className="w-4 h-4 text-destructive" />
+              Faltas
+            </Button>
+          </Link>
+          <Link to={ROUTES.ADMIN_LEGAJOS}>
+            <Button variant="outline" size="sm" className="gap-2">
+              <FolderOpen className="w-4 h-4 text-blue-500" />
+              Legajos
+            </Button>
+          </Link>
+          <Link to={ROUTES.ADMIN_RECIBOS}>
+            <Button variant="outline" size="sm" className="gap-2">
+              <Receipt className="w-4 h-4 text-emerald-500" />
+              Recibos
+            </Button>
+          </Link>
+          <Link to={ROUTES.ADMIN_VACACIONES}>
+            <Button variant="outline" size="sm" className="gap-2">
+              <Palmtree className="w-4 h-4 text-cyan-500" />
+              Vacaciones
+            </Button>
+          </Link>
+          <Link to={ROUTES.ADMIN_EVALUACIONES}>
+            <Button variant="outline" size="sm" className="gap-2">
+              <Star className="w-4 h-4 text-violet-500" />
+              Evaluaciones
+            </Button>
+          </Link>
+        </div>
+
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card

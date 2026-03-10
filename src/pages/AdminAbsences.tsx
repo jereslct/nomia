@@ -245,7 +245,7 @@ const AdminAbsences = () => {
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 min-h-16 py-2 flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-3">
-            <Link to={ROUTES.PANEL}>
+            <Link to={ROUTES.ADMIN}>
               <Button variant="ghost" size="icon" aria-label="Volver">
                 <ArrowLeft className="w-5 h-5" />
               </Button>

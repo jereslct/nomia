@@ -90,7 +90,7 @@ export function useAbsences(userId?: string) {
 
       let query = supabase
         .from("absences")
-        .select("*, profiles!absences_user_id_fkey(full_name)")
+        .select("*")
         .eq("organization_id", orgId)
         .order("date", { ascending: false });
 

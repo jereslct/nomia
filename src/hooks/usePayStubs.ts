@@ -69,7 +69,7 @@ export const usePayStubs = (userId?: string) => {
 
       let query = supabase
         .from("pay_stubs")
-        .select("*, profiles!pay_stubs_user_id_fkey(full_name, email)")
+        .select("*")
         .eq("organization_id", orgId)
         .order("period_year", { ascending: false })
         .order("period_month", { ascending: false });

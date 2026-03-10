@@ -106,7 +106,7 @@ export function useVacations() {
 
       let query = supabase
         .from("vacation_requests")
-        .select("*, profiles!vacation_requests_user_id_fkey(full_name)")
+        .select("*")
         .eq("organization_id", orgId)
         .order("created_at", { ascending: false });
 

@@ -21,6 +21,12 @@ import {
   Mail,
   X,
   ClipboardList,
+  FileText,
+  FolderOpen,
+  Receipt,
+  Palmtree,
+  Star,
+  AlertTriangle,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import QRCode from "react-qr-code";
@@ -520,6 +526,76 @@ const Dashboard = () => {
                   </CardContent>
                 </Card>
               </Link>
+              <Link to="/admin/absences">
+                <Card className="glass-card hover-lift cursor-pointer group h-full">
+                  <CardContent className="p-6 flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-destructive/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <AlertTriangle className="w-7 h-7 text-destructive" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold">Faltas</h3>
+                      <p className="text-sm text-muted-foreground">Reporte de ausencias</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                  </CardContent>
+                </Card>
+              </Link>
+              <Link to="/admin/legajos">
+                <Card className="glass-card hover-lift cursor-pointer group h-full">
+                  <CardContent className="p-6 flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-blue-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <FolderOpen className="w-7 h-7 text-blue-500" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold">Legajos</h3>
+                      <p className="text-sm text-muted-foreground">Documentos de empleados</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                  </CardContent>
+                </Card>
+              </Link>
+              <Link to="/admin/pay-stubs">
+                <Card className="glass-card hover-lift cursor-pointer group h-full">
+                  <CardContent className="p-6 flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Receipt className="w-7 h-7 text-emerald-500" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold">Recibos</h3>
+                      <p className="text-sm text-muted-foreground">Recibos de sueldo</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                  </CardContent>
+                </Card>
+              </Link>
+              <Link to="/admin/vacations">
+                <Card className="glass-card hover-lift cursor-pointer group h-full">
+                  <CardContent className="p-6 flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Palmtree className="w-7 h-7 text-cyan-500" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold">Vacaciones</h3>
+                      <p className="text-sm text-muted-foreground">Solicitudes y balances</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                  </CardContent>
+                </Card>
+              </Link>
+              <Link to="/admin/evaluations">
+                <Card className="glass-card hover-lift cursor-pointer group h-full">
+                  <CardContent className="p-6 flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-violet-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Star className="w-7 h-7 text-violet-500" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold">Evaluaciones</h3>
+                      <p className="text-sm text-muted-foreground">Desempeño del equipo</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                  </CardContent>
+                </Card>
+              </Link>
             </>
           ) : (
             <>
@@ -546,6 +622,76 @@ const Dashboard = () => {
                     <div className="flex-1">
                       <h3 className="font-semibold">Historial</h3>
                       <p className="text-sm text-muted-foreground">Ver mis registros</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                  </CardContent>
+                </Card>
+              </Link>
+              <Link to="/absences">
+                <Card className="glass-card hover-lift cursor-pointer group h-full">
+                  <CardContent className="p-6 flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-destructive/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <AlertTriangle className="w-7 h-7 text-destructive" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold">Mis Faltas</h3>
+                      <p className="text-sm text-muted-foreground">Ver y justificar ausencias</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                  </CardContent>
+                </Card>
+              </Link>
+              <Link to="/profile/documents">
+                <Card className="glass-card hover-lift cursor-pointer group h-full">
+                  <CardContent className="p-6 flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-blue-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <FolderOpen className="w-7 h-7 text-blue-500" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold">Mi Legajo</h3>
+                      <p className="text-sm text-muted-foreground">Documentos personales</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                  </CardContent>
+                </Card>
+              </Link>
+              <Link to="/pay-stubs">
+                <Card className="glass-card hover-lift cursor-pointer group h-full">
+                  <CardContent className="p-6 flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Receipt className="w-7 h-7 text-emerald-500" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold">Mis Recibos</h3>
+                      <p className="text-sm text-muted-foreground">Recibos de sueldo</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                  </CardContent>
+                </Card>
+              </Link>
+              <Link to="/vacations">
+                <Card className="glass-card hover-lift cursor-pointer group h-full">
+                  <CardContent className="p-6 flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Palmtree className="w-7 h-7 text-cyan-500" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold">Vacaciones</h3>
+                      <p className="text-sm text-muted-foreground">Solicitar y ver estado</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                  </CardContent>
+                </Card>
+              </Link>
+              <Link to="/evaluations">
+                <Card className="glass-card hover-lift cursor-pointer group h-full">
+                  <CardContent className="p-6 flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-violet-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Star className="w-7 h-7 text-violet-500" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold">Evaluaciones</h3>
+                      <p className="text-sm text-muted-foreground">Mi desempeño</p>
                     </div>
                     <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
                   </CardContent>

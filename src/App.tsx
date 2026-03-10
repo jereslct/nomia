@@ -14,9 +14,19 @@ import AdminUsers from "./pages/AdminUsers";
 import AdminReports from "./pages/AdminReports";
 import AdminLocations from "./pages/AdminLocations";
 import AdminShifts from "./pages/AdminShifts";
+import AdminAbsences from "./pages/AdminAbsences";
+import AdminLegajos from "./pages/AdminLegajos";
+import AdminPayStubs from "./pages/AdminPayStubs";
+import AdminVacations from "./pages/AdminVacations";
+import AdminEvaluations from "./pages/AdminEvaluations";
 import Employee from "./pages/Employee";
 import History from "./pages/History";
 import Profile from "./pages/Profile";
+import Absences from "./pages/Absences";
+import EmployeeDocuments from "./pages/EmployeeDocuments";
+import PayStubs from "./pages/PayStubs";
+import Vacations from "./pages/Vacations";
+import Evaluations from "./pages/Evaluations";
 import NotFound from "./pages/NotFound";
 import { OfflineBanner } from "./components/OfflineBanner";
 import { ErrorBoundary } from "./components/ErrorBoundary";
@@ -77,6 +87,31 @@ const App = () => (
               <AdminShifts />
             </ProtectedRoute>
           } />
+          <Route path="/admin/absences" element={
+            <ProtectedRoute requireAdmin>
+              <AdminAbsences />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/legajos" element={
+            <ProtectedRoute requireAdmin>
+              <AdminLegajos />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/pay-stubs" element={
+            <ProtectedRoute requireAdmin>
+              <AdminPayStubs />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/vacations" element={
+            <ProtectedRoute requireAdmin>
+              <AdminVacations />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/evaluations" element={
+            <ProtectedRoute requireAdmin>
+              <AdminEvaluations />
+            </ProtectedRoute>
+          } />
           <Route path="/employee" element={
             <ProtectedRoute>
               <Employee />
@@ -90,6 +125,31 @@ const App = () => (
           <Route path="/profile" element={
             <ProtectedRoute>
               <Profile />
+            </ProtectedRoute>
+          } />
+          <Route path="/profile/documents" element={
+            <ProtectedRoute>
+              <EmployeeDocuments />
+            </ProtectedRoute>
+          } />
+          <Route path="/absences" element={
+            <ProtectedRoute>
+              <Absences />
+            </ProtectedRoute>
+          } />
+          <Route path="/pay-stubs" element={
+            <ProtectedRoute>
+              <PayStubs />
+            </ProtectedRoute>
+          } />
+          <Route path="/vacations" element={
+            <ProtectedRoute>
+              <Vacations />
+            </ProtectedRoute>
+          } />
+          <Route path="/evaluations" element={
+            <ProtectedRoute>
+              <Evaluations />
             </ProtectedRoute>
           } />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

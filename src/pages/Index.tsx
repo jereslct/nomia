@@ -144,32 +144,32 @@ const Index = () => {
       </nav>
 
       {/* ─── Hero Full-Screen ─── */}
-      <section ref={heroRef} className="relative h-screen flex items-center justify-center overflow-hidden">
+      <section ref={heroRef} className="relative min-h-[60vh] flex items-center justify-center overflow-hidden pt-16 pb-8">
         {/* Animated background */}
         <motion.div style={{ y: heroY, opacity: heroOpacity }} className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-background" />
-          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[800px] rounded-full bg-primary/5 blur-[120px]" />
-          <div className="absolute bottom-1/4 left-1/4 w-[400px] h-[400px] rounded-full bg-accent/5 blur-[100px]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-primary/3 via-transparent to-background" />
+          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-primary/4 blur-[120px]" />
+          <div className="absolute bottom-1/4 left-1/4 w-[300px] h-[300px] rounded-full bg-accent/3 blur-[100px]" />
         </motion.div>
 
-        <div className="relative z-10 container mx-auto px-6 text-center space-y-8">
+        <div className="relative z-10 container mx-auto px-6 text-center space-y-6">
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
-            className="space-y-6"
+            className="space-y-4"
           >
-            <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-border/50 bg-card/50 backdrop-blur-sm text-sm font-medium text-muted-foreground">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border/50 bg-card/50 backdrop-blur-sm text-sm font-medium text-muted-foreground">
               <Sparkles className="w-4 h-4 text-primary" />
               Ecosistema de Gestión para Tiendas
             </div>
 
-            <h1 className="text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter leading-[0.85]">
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tighter leading-[0.9]">
               <span className="block">Gestión</span>
               <span className="block text-gradient">sin límites</span>
             </h1>
 
-            <p className="text-lg md:text-xl text-muted-foreground max-w-lg mx-auto leading-relaxed">
+            <p className="text-base md:text-lg text-muted-foreground max-w-lg mx-auto leading-relaxed">
               Todo lo que necesitás para administrar tu negocio,
               desde la asistencia hasta la rentabilidad.
             </p>
@@ -194,9 +194,9 @@ const Index = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1.2 }}
-            className="absolute bottom-10 left-1/2 -translate-x-1/2"
+            className="mt-6"
           >
-            <div className="w-6 h-10 rounded-full border-2 border-muted-foreground/30 flex justify-center pt-2">
+            <div className="w-6 h-10 rounded-full border-2 border-muted-foreground/30 flex justify-center pt-2 mx-auto">
               <motion.div
                 animate={{ y: [0, 12, 0] }}
                 transition={{ duration: 1.5, repeat: Infinity }}
@@ -208,22 +208,22 @@ const Index = () => {
       </section>
 
       {/* ─── Visual Gallery / Carousel ─── */}
-      <section id="gallery" className="relative py-24 px-6">
+      <section id="gallery" className="relative py-10 px-6">
         <div className="container mx-auto max-w-7xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-16 space-y-3"
+            className="text-center mb-8 space-y-2"
           >
             <p className="text-sm font-bold text-primary uppercase tracking-[0.2em]">Portafolio</p>
-            <h2 className="text-4xl md:text-6xl font-black tracking-tight">Nuestros Productos</h2>
+            <h2 className="text-3xl md:text-5xl font-black tracking-tight">Nuestros Productos</h2>
           </motion.div>
 
           {/* Carousel */}
           <div className="relative">
             {/* Main slide */}
-            <div className="relative min-h-[700px] md:h-[600px] rounded-3xl overflow-hidden bg-card border border-border/50">
+            <div className="relative min-h-[520px] md:h-[460px] rounded-3xl overflow-hidden bg-card border border-border/50">
               <AnimatePresence custom={direction} mode="wait">
                 <motion.div
                   key={currentSlide}
@@ -236,7 +236,7 @@ const Index = () => {
                   className="absolute inset-0 flex flex-col md:flex-row"
                 >
                   {/* Left: Visual */}
-                  <div className="relative w-full md:w-1/2 h-[200px] md:h-full flex items-center justify-center overflow-hidden flex-shrink-0">
+                  <div className="relative w-full md:w-1/2 h-[160px] md:h-full flex items-center justify-center overflow-hidden flex-shrink-0">
                     <div className={`absolute inset-0 bg-gradient-to-br ${current.mockupGradient}`} />
 
                     {/* Decorative circles - hidden on mobile */}
@@ -261,16 +261,16 @@ const Index = () => {
                       className="relative z-10"
                     >
                       <div
-                        className={`w-20 h-20 md:w-44 md:h-44 rounded-2xl md:rounded-3xl bg-gradient-to-br ${current.accentGradient} flex items-center justify-center shadow-2xl`}
+                        className={`w-16 h-16 md:w-32 md:h-32 rounded-2xl md:rounded-3xl bg-gradient-to-br ${current.accentGradient} flex items-center justify-center shadow-2xl`}
                         style={{ boxShadow: `0 25px 60px -15px ${current.color}40` }}
                       >
-                        <current.icon className="w-10 h-10 md:w-24 md:h-24 text-white" strokeWidth={1.5} />
+                        <current.icon className="w-8 h-8 md:w-16 md:h-16 text-white" strokeWidth={1.5} />
                       </div>
                     </motion.div>
                   </div>
 
                   {/* Right: Info */}
-                  <div className="w-full md:w-1/2 flex-1 md:h-full flex flex-col justify-center p-5 md:p-14 overflow-y-auto">
+                  <div className="w-full md:w-1/2 flex-1 md:h-full flex flex-col justify-center p-5 md:p-10 overflow-y-auto">
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -299,11 +299,11 @@ const Index = () => {
                       </div>
 
                       <div>
-                        <h3 className="text-2xl md:text-5xl font-black tracking-tight">{current.name}</h3>
-                        <p className="text-sm md:text-lg text-muted-foreground mt-0.5 md:mt-1">{current.subtitle}</p>
+                        <h3 className="text-2xl md:text-4xl font-black tracking-tight">{current.name}</h3>
+                        <p className="text-sm md:text-base text-muted-foreground mt-0.5">{current.subtitle}</p>
                       </div>
 
-                      <p className="text-muted-foreground leading-relaxed text-sm md:text-lg max-w-md">
+                      <p className="text-muted-foreground leading-relaxed text-sm md:text-base max-w-md">
                         {current.description}
                       </p>
 
@@ -346,7 +346,7 @@ const Index = () => {
             </div>
 
             {/* Thumbnails */}
-            <div className="flex items-center justify-start md:justify-center gap-2 mt-6 md:mt-8 overflow-x-auto pb-2 scrollbar-hide">
+            <div className="flex items-center justify-start md:justify-center gap-2 mt-4 md:mt-5 overflow-x-auto pb-2 scrollbar-hide">
               {categories.map((cat, catIdx) => (
                 <div key={cat.id} className="flex items-center gap-2">
                   {catIdx > 0 && (
@@ -401,17 +401,17 @@ const Index = () => {
       </section>
 
       {/* ─── Bento Grid ─── */}
-      <section className="py-24 px-6">
+      <section className="py-10 px-6">
         <div className="container mx-auto max-w-6xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-16 space-y-3"
+            className="text-center mb-8 space-y-2"
           >
             <p className="text-sm font-bold text-primary uppercase tracking-[0.2em]">Ecosistema</p>
-            <h2 className="text-4xl md:text-6xl font-black tracking-tight">Todos los módulos</h2>
-            <p className="text-muted-foreground max-w-lg mx-auto">
+            <h2 className="text-2xl md:text-4xl font-black tracking-tight">Todos los módulos</h2>
+            <p className="text-sm text-muted-foreground max-w-lg mx-auto">
               Cada pieza se conecta con las demás para darte una visión completa.
             </p>
           </motion.div>
@@ -419,13 +419,13 @@ const Index = () => {
           {categories.map((cat) => {
             const catProjects = projects.filter(p => p.category === cat.id);
             return (
-              <div key={cat.id} className="mb-12 last:mb-0">
+              <div key={cat.id} className="mb-8 last:mb-0">
                 {/* Category header */}
                 <motion.div
                   initial={{ opacity: 0, x: -20 }}
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
-                  className="flex items-center gap-3 mb-6"
+                  className="flex items-center gap-3 mb-4"
                 >
                   <div
                     className="w-10 h-10 rounded-xl flex items-center justify-center"
@@ -443,62 +443,61 @@ const Index = () => {
                 </motion.div>
 
                 {/* Grid */}
-                <div className={`grid grid-cols-1 gap-4 auto-rows-[280px] ${
-                  catProjects.length === 1 ? "md:grid-cols-1 max-w-lg" : "md:grid-cols-12"
+                <div className={`grid grid-cols-1 gap-3 ${
+                  catProjects.length === 1 ? "md:grid-cols-1 max-w-md" :
+                  catProjects.length === 2 ? "md:grid-cols-2" :
+                  catProjects.length === 3 ? "md:grid-cols-3" : "md:grid-cols-2"
                 }`}>
-                  {catProjects.map((p, i) => {
-                    const span = catProjects.length === 1
-                      ? ""
-                      : i === 0 ? "md:col-span-7" : i === 1 ? "md:col-span-5" : "md:col-span-4";
+                  {catProjects.map((p, i) => (
+                    <motion.div
+                      key={p.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: i * 0.06, duration: 0.4 }}
+                      className="group relative rounded-2xl overflow-hidden border border-border/50 bg-card hover:border-border transition-all duration-300 cursor-pointer"
+                      onClick={() => {
+                        if (p.url && p.status === "live") window.open(p.url, "_blank");
+                      }}
+                    >
+                      <div className={`absolute inset-0 bg-gradient-to-br ${p.mockupGradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
 
-                    return (
-                      <motion.div
-                        key={p.id}
-                        initial={{ opacity: 0, y: 30 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ delay: i * 0.08, duration: 0.5 }}
-                        className={`${span} group relative rounded-3xl overflow-hidden border border-border/50 bg-card hover:border-border transition-all duration-500 cursor-pointer`}
-                        onClick={() => {
-                          if (p.url && p.status === "live") window.open(p.url, "_blank");
-                        }}
-                      >
-                        <div className={`absolute inset-0 bg-gradient-to-br ${p.mockupGradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
-
-                        <div className="relative h-full p-7 flex flex-col justify-between z-10">
-                          <div className="flex items-start justify-between">
-                            <div
-                              className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${p.accentGradient} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-500`}
-                              style={{ boxShadow: `0 10px 30px -10px ${p.color}30` }}
-                            >
-                              <p.icon className="w-7 h-7 text-white" strokeWidth={1.5} />
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <StatusBadge status={p.status} />
-                              {p.status === "live" && (
-                                <ArrowUpRight className="w-5 h-5 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
-                              )}
-                            </div>
+                      <div className="relative p-5 space-y-4 z-10">
+                        <div className="flex items-start justify-between">
+                          <div
+                            className={`w-12 h-12 rounded-xl bg-gradient-to-br ${p.accentGradient} flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300`}
+                            style={{ boxShadow: `0 8px 20px -8px ${p.color}30` }}
+                          >
+                            <p.icon className="w-6 h-6 text-white" strokeWidth={1.5} />
                           </div>
+                          <div className="flex items-center gap-2">
+                            <StatusBadge status={p.status} />
+                            {p.status === "live" && (
+                              <ArrowUpRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+                            )}
+                          </div>
+                        </div>
 
-                          <div className="space-y-2">
+                        <div className="space-y-1.5">
+                          {p.phase && (
                             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
                               {p.phase}
                             </span>
-                            <h3 className="text-2xl font-black tracking-tight">{p.name}</h3>
-                            <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">{p.description}</p>
-                            <div className="flex flex-wrap gap-1.5 pt-1">
-                              {p.tags.slice(0, 3).map((t) => (
-                                <span key={t} className="px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground text-[10px] font-semibold">
-                                  {t}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
+                          )}
+                          <h3 className="text-xl font-black tracking-tight">{p.name}</h3>
+                          <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">{p.description}</p>
                         </div>
-                      </motion.div>
-                    );
-                  })}
+
+                        <div className="flex flex-wrap gap-1.5">
+                          {p.tags.slice(0, 3).map((t) => (
+                            <span key={t} className="px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground text-[10px] font-semibold">
+                              {t}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
                 </div>
               </div>
             );
@@ -507,19 +506,19 @@ const Index = () => {
       </section>
 
       {/* ─── Roadmap Visual ─── */}
-      <section className="py-24 px-6 bg-card/50">
+      <section className="py-10 px-6 bg-card/50">
         <div className="container mx-auto max-w-5xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-16 space-y-3"
+            className="text-center mb-8 space-y-2"
           >
             <p className="text-sm font-bold text-primary uppercase tracking-[0.2em]">Roadmap</p>
-            <h2 className="text-4xl md:text-6xl font-black tracking-tight">El camino</h2>
+            <h2 className="text-2xl md:text-4xl font-black tracking-tight">El camino</h2>
           </motion.div>
 
-          <div className="space-y-6">
+          <div className="space-y-4">
             {[
               { phase: "Fase 1", title: "Control de Asistencia", desc: "QR, horarios, legajo, vacaciones, evaluación, reportes de faltas.", status: "live", color: "#3b82f6" },
               { phase: "Fase 2", title: "Facturación & AFIP", desc: "Conexión AFIP, facturación, stock, catálogo, reportes de ventas, alertas de faltantes.", status: "building", color: "#f59e0b" },
@@ -543,8 +542,8 @@ const Index = () => {
                 </div>
 
                 {/* Card */}
-                <div className="glass-card rounded-2xl p-6 flex-1 hover-lift mb-2">
-                  <div className="flex items-center gap-3 mb-3">
+                <div className="glass-card rounded-2xl p-5 flex-1 hover-lift mb-1">
+                  <div className="flex items-center gap-3 mb-2">
                     <span
                       className="text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full"
                       style={{ background: `${phase.color}15`, color: phase.color }}
@@ -567,7 +566,7 @@ const Index = () => {
       </section>
 
       {/* ─── CTA ─── */}
-      <section className="py-24 px-6">
+      <section className="py-10 px-6">
         <div className="container mx-auto max-w-4xl">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -578,12 +577,12 @@ const Index = () => {
             <div className="absolute inset-0 gradient-primary" />
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.15),transparent_70%)]" />
 
-            <div className="relative p-12 md:p-20 text-center space-y-8">
-              <h2 className="text-4xl md:text-6xl font-black tracking-tight text-primary-foreground leading-tight">
+            <div className="relative p-8 md:p-12 text-center space-y-4">
+              <h2 className="text-2xl md:text-4xl font-black tracking-tight text-primary-foreground leading-tight">
                 Empezá a gestionar
                 <br />tu negocio hoy
               </h2>
-              <p className="text-primary-foreground/70 max-w-lg mx-auto text-lg">
+              <p className="text-primary-foreground/70 max-w-lg mx-auto text-base">
                 Nomia ya está disponible. Registrate gratis y probá el control de asistencia por QR.
               </p>
               <Link to={`${ROUTES.ACCESO}?mode=signup`}>
@@ -601,7 +600,7 @@ const Index = () => {
       </section>
 
       {/* ─── Footer ─── */}
-      <footer className="py-10 px-6 border-t border-border/30">
+      <footer className="py-6 px-6 border-t border-border/30">
         <div className="container mx-auto max-w-6xl flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">

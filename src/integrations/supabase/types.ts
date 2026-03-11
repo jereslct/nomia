@@ -70,235 +70,6 @@ export type Database = {
           },
         ]
       }
-      brands: {
-        Row: {
-          created_at: string
-          id: string
-          is_active: boolean
-          name: string
-          organization_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          name: string
-          organization_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          name?: string
-          organization_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "brands_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      customers: {
-        Row: {
-          address: string | null
-          created_at: string
-          credit_limit: number
-          cuit: string | null
-          current_balance: number
-          email: string | null
-          id: string
-          is_active: boolean
-          name: string
-          organization_id: string
-          phone: string | null
-          tax_condition: Database["public"]["Enums"]["tax_condition"]
-        }
-        Insert: {
-          address?: string | null
-          created_at?: string
-          credit_limit?: number
-          cuit?: string | null
-          current_balance?: number
-          email?: string | null
-          id?: string
-          is_active?: boolean
-          name: string
-          organization_id: string
-          phone?: string | null
-          tax_condition?: Database["public"]["Enums"]["tax_condition"]
-        }
-        Update: {
-          address?: string | null
-          created_at?: string
-          credit_limit?: number
-          cuit?: string | null
-          current_balance?: number
-          email?: string | null
-          id?: string
-          is_active?: boolean
-          name?: string
-          organization_id?: string
-          phone?: string | null
-          tax_condition?: Database["public"]["Enums"]["tax_condition"]
-        }
-        Relationships: [
-          {
-            foreignKeyName: "customers_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      exchange_rates: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          currency: string
-          date: string
-          id: string
-          organization_id: string
-          rate: number
-          source: string
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          currency?: string
-          date?: string
-          id?: string
-          organization_id: string
-          rate: number
-          source?: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          currency?: string
-          date?: string
-          id?: string
-          organization_id?: string
-          rate?: number
-          source?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "exchange_rates_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      payments: {
-        Row: {
-          amount: number
-          created_at: string
-          created_by: string | null
-          customer_id: string | null
-          date: string
-          id: string
-          organization_id: string
-          payment_method: Database["public"]["Enums"]["payment_method"]
-          reference: string | null
-          sale_id: string | null
-        }
-        Insert: {
-          amount: number
-          created_at?: string
-          created_by?: string | null
-          customer_id?: string | null
-          date?: string
-          id?: string
-          organization_id: string
-          payment_method?: Database["public"]["Enums"]["payment_method"]
-          reference?: string | null
-          sale_id?: string | null
-        }
-        Update: {
-          amount?: number
-          created_at?: string
-          created_by?: string | null
-          customer_id?: string | null
-          date?: string
-          id?: string
-          organization_id?: string
-          payment_method?: Database["public"]["Enums"]["payment_method"]
-          reference?: string | null
-          sale_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "payments_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "payments_sale_id_fkey"
-            columns: ["sale_id"]
-            isOneToOne: false
-            referencedRelation: "sales"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "payments_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "customers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      points_of_sale: {
-        Row: {
-          created_at: string
-          id: string
-          is_active: boolean
-          location_id: string | null
-          name: string
-          organization_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          location_id?: string | null
-          name: string
-          organization_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          location_id?: string | null
-          name?: string
-          organization_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "points_of_sale_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "points_of_sale_location_id_fkey"
-            columns: ["location_id"]
-            isOneToOne: false
-            referencedRelation: "locations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       afip_config: {
         Row: {
           certificado_url: string | null
@@ -793,10 +564,8 @@ export type Database = {
           afip_vencimiento_cae: string | null
           client_cuit: string | null
           client_name: string | null
-          client_tax_condition: string | null
           created_at: string
           created_by: string | null
-          customer_id: string | null
           date: string
           direction: Database["public"]["Enums"]["invoice_direction"]
           id: string
@@ -814,10 +583,8 @@ export type Database = {
           afip_vencimiento_cae?: string | null
           client_cuit?: string | null
           client_name?: string | null
-          client_tax_condition?: string | null
           created_at?: string
           created_by?: string | null
-          customer_id?: string | null
           date?: string
           direction?: Database["public"]["Enums"]["invoice_direction"]
           id?: string
@@ -835,10 +602,8 @@ export type Database = {
           afip_vencimiento_cae?: string | null
           client_cuit?: string | null
           client_name?: string | null
-          client_tax_condition?: string | null
           created_at?: string
           created_by?: string | null
-          customer_id?: string | null
           date?: string
           direction?: Database["public"]["Enums"]["invoice_direction"]
           id?: string
@@ -1176,10 +941,7 @@ export type Database = {
       products: {
         Row: {
           barcode: string | null
-          brand_id: string | null
           category_id: string | null
-          cost_currency: string
-          cost_exchange_rate: number | null
           cost_price: number
           created_at: string
           current_stock: number
@@ -1190,7 +952,6 @@ export type Database = {
           min_stock: number
           name: string
           organization_id: string
-          reorder_point: number
           sell_price: number
           sku: string | null
           supplier_id: string | null
@@ -1198,10 +959,7 @@ export type Database = {
         }
         Insert: {
           barcode?: string | null
-          brand_id?: string | null
           category_id?: string | null
-          cost_currency?: string
-          cost_exchange_rate?: number | null
           cost_price?: number
           created_at?: string
           current_stock?: number
@@ -1212,7 +970,6 @@ export type Database = {
           min_stock?: number
           name: string
           organization_id: string
-          reorder_point?: number
           sell_price?: number
           sku?: string | null
           supplier_id?: string | null
@@ -1220,10 +977,7 @@ export type Database = {
         }
         Update: {
           barcode?: string | null
-          brand_id?: string | null
           category_id?: string | null
-          cost_currency?: string
-          cost_exchange_rate?: number | null
           cost_price?: number
           created_at?: string
           current_stock?: number
@@ -1234,7 +988,6 @@ export type Database = {
           min_stock?: number
           name?: string
           organization_id?: string
-          reorder_point?: number
           sell_price?: number
           sku?: string | null
           supplier_id?: string | null
@@ -1555,7 +1308,6 @@ export type Database = {
       sales: {
         Row: {
           created_at: string
-          customer_id: string | null
           date: string
           id: string
           invoice_id: string | null
@@ -1565,8 +1317,6 @@ export type Database = {
           notes: string | null
           organization_id: string
           payment_method: Database["public"]["Enums"]["payment_method"]
-          payment_status: Database["public"]["Enums"]["payment_status"]
-          pos_id: string | null
           sale_channel: Database["public"]["Enums"]["sale_channel"]
           seller_id: string | null
           subtotal: number
@@ -1574,7 +1324,6 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          customer_id?: string | null
           date?: string
           id?: string
           invoice_id?: string | null
@@ -1584,8 +1333,6 @@ export type Database = {
           notes?: string | null
           organization_id: string
           payment_method?: Database["public"]["Enums"]["payment_method"]
-          payment_status?: Database["public"]["Enums"]["payment_status"]
-          pos_id?: string | null
           sale_channel?: Database["public"]["Enums"]["sale_channel"]
           seller_id?: string | null
           subtotal?: number
@@ -1593,7 +1340,6 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          customer_id?: string | null
           date?: string
           id?: string
           invoice_id?: string | null
@@ -1603,8 +1349,6 @@ export type Database = {
           notes?: string | null
           organization_id?: string
           payment_method?: Database["public"]["Enums"]["payment_method"]
-          payment_status?: Database["public"]["Enums"]["payment_status"]
-          pos_id?: string | null
           sale_channel?: Database["public"]["Enums"]["sale_channel"]
           seller_id?: string | null
           subtotal?: number
@@ -1993,12 +1737,7 @@ export type Database = {
       }
     }
     Views: {
-      v_product_stock: {
-        Row: {
-          product_id: string
-          calculated_stock: number
-        }
-      }
+      [_ in never]: never
     }
     Functions: {
       get_org_default_shift: {
@@ -2032,10 +1771,6 @@ export type Database = {
       is_organization_owner: {
         Args: { _org_id: string; _user_id: string }
         Returns: boolean
-      }
-      get_iva_summary: {
-        Args: { _org_id: string; _period_start: string; _period_end: string }
-        Returns: { iva_debito: number; iva_credito: number; iva_a_pagar: number }[]
       }
       user_belongs_to_org: { Args: { _org_id: string }; Returns: boolean }
       users_share_organization: {
@@ -2077,9 +1812,7 @@ export type Database = {
         | "mix_productos"
         | "personalizado"
       payment_method: "efectivo" | "tarjeta" | "transferencia" | "otro"
-      payment_status: "pending" | "partial" | "paid" | "overdue"
       sale_channel: "local_fisico" | "catalogo" | "online"
-      tax_condition: "responsable_inscripto" | "monotributista" | "consumidor_final" | "exento"
       stock_movement_type:
         | "compra"
         | "venta"
@@ -2252,9 +1985,7 @@ export const Constants = {
         "personalizado",
       ],
       payment_method: ["efectivo", "tarjeta", "transferencia", "otro"],
-      payment_status: ["pending", "partial", "paid", "overdue"],
       sale_channel: ["local_fisico", "catalogo", "online"],
-      tax_condition: ["responsable_inscripto", "monotributista", "consumidor_final", "exento"],
       stock_movement_type: [
         "compra",
         "venta",

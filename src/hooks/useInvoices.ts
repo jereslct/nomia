@@ -59,10 +59,10 @@ export function useInvoices() {
         .order("date", { ascending: false })
         .limit(500);
       if (filters?.direction) query = query.eq("direction", filters.direction);
-      if (filters?.status) query = query.eq("status", filters.status);
+      if (filters?.status) query = query.eq("status", filters.status as any);
       if (filters?.dateFrom) query = query.gte("date", filters.dateFrom);
       if (filters?.dateTo) query = query.lte("date", filters.dateTo);
-      if (filters?.invoiceType) query = query.eq("invoice_type", filters.invoiceType);
+      if (filters?.invoiceType) query = query.eq("invoice_type", filters.invoiceType as any);
       const { data, error } = await query;
       if (error) throw error;
       setInvoices((data as unknown as Invoice[]) || []);

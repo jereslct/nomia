@@ -26,7 +26,7 @@ export const useSubscription = () => {
 
     const fetchSubscription = async () => {
       try {
-        const { data: apps, error } = await supabase.rpc(
+        const { data: apps, error } = await (supabase.rpc as any)(
           "get_org_subscription_apps",
           { _user_id: user.id }
         );
@@ -41,8 +41,8 @@ export const useSubscription = () => {
         );
 
         if (orgId) {
-          const { data: sub } = await supabase
-            .from("organization_subscriptions")
+          const { data: sub } = await (supabase
+            .from as any)("organization_subscriptions")
             .select("subscription_plans(name, slug, apps_included)")
             .eq("organization_id", orgId)
             .in("status", ["active", "trial"])

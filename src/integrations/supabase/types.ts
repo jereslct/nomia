@@ -70,6 +70,50 @@ export type Database = {
           },
         ]
       }
+      afip_config: {
+        Row: {
+          certificado_url: string | null
+          created_at: string
+          cuit: string | null
+          environment: string
+          id: string
+          is_active: boolean
+          organization_id: string
+          punto_venta: number | null
+          updated_at: string
+        }
+        Insert: {
+          certificado_url?: string | null
+          created_at?: string
+          cuit?: string | null
+          environment?: string
+          id?: string
+          is_active?: boolean
+          organization_id: string
+          punto_venta?: number | null
+          updated_at?: string
+        }
+        Update: {
+          certificado_url?: string | null
+          created_at?: string
+          cuit?: string | null
+          environment?: string
+          id?: string
+          is_active?: boolean
+          organization_id?: string
+          punto_venta?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "afip_config_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attendance_records: {
         Row: {
           created_at: string
@@ -111,6 +155,121 @@ export type Database = {
             columns: ["qr_code_id"]
             isOneToOne: false
             referencedRelation: "qr_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      business_expenses: {
+        Row: {
+          amount: number
+          business_unit_id: string
+          category_id: string
+          created_at: string
+          created_by: string | null
+          date: string
+          description: string | null
+          id: string
+          notes: string | null
+          organization_id: string
+          period_month: number
+          period_year: number
+          receipt_url: string | null
+        }
+        Insert: {
+          amount?: number
+          business_unit_id: string
+          category_id: string
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          description?: string | null
+          id?: string
+          notes?: string | null
+          organization_id: string
+          period_month: number
+          period_year: number
+          receipt_url?: string | null
+        }
+        Update: {
+          amount?: number
+          business_unit_id?: string
+          category_id?: string
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          description?: string | null
+          id?: string
+          notes?: string | null
+          organization_id?: string
+          period_month?: number
+          period_year?: number
+          receipt_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_expenses_business_unit_id_fkey"
+            columns: ["business_unit_id"]
+            isOneToOne: false
+            referencedRelation: "business_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_expenses_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "expense_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_expenses_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      business_units: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          location_id: string | null
+          name: string
+          organization_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          location_id?: string | null
+          name: string
+          organization_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          location_id?: string | null
+          name?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_units_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_units_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -168,6 +327,50 @@ export type Database = {
           },
         ]
       }
+      employee_sales_objectives: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          objective_type: Database["public"]["Enums"]["objective_type"]
+          organization_id: string
+          period_type: Database["public"]["Enums"]["objective_period"]
+          target_value: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          objective_type?: Database["public"]["Enums"]["objective_type"]
+          organization_id: string
+          period_type?: Database["public"]["Enums"]["objective_period"]
+          target_value?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          objective_type?: Database["public"]["Enums"]["objective_type"]
+          organization_id?: string
+          period_type?: Database["public"]["Enums"]["objective_period"]
+          target_value?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_sales_objectives_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       evaluation_templates: {
         Row: {
           created_at: string
@@ -196,6 +399,226 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "evaluation_templates_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expense_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          organization_id: string
+          sort_order: number
+          type: Database["public"]["Enums"]["expense_type"]
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          organization_id: string
+          sort_order?: number
+          type?: Database["public"]["Enums"]["expense_type"]
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          organization_id?: string
+          sort_order?: number
+          type?: Database["public"]["Enums"]["expense_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_categories_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expense_sheets: {
+        Row: {
+          approved_by: string | null
+          business_unit_id: string | null
+          created_at: string
+          id: string
+          organization_id: string
+          period_month: number
+          period_year: number
+          status: Database["public"]["Enums"]["expense_sheet_status"]
+          total: number
+          total_fixed: number
+          total_variable: number
+          updated_at: string
+        }
+        Insert: {
+          approved_by?: string | null
+          business_unit_id?: string | null
+          created_at?: string
+          id?: string
+          organization_id: string
+          period_month: number
+          period_year: number
+          status?: Database["public"]["Enums"]["expense_sheet_status"]
+          total?: number
+          total_fixed?: number
+          total_variable?: number
+          updated_at?: string
+        }
+        Update: {
+          approved_by?: string | null
+          business_unit_id?: string | null
+          created_at?: string
+          id?: string
+          organization_id?: string
+          period_month?: number
+          period_year?: number
+          status?: Database["public"]["Enums"]["expense_sheet_status"]
+          total?: number
+          total_fixed?: number
+          total_variable?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_sheets_business_unit_id_fkey"
+            columns: ["business_unit_id"]
+            isOneToOne: false
+            referencedRelation: "business_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_sheets_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_items: {
+        Row: {
+          description: string
+          id: string
+          invoice_id: string
+          iva_amount: number
+          iva_rate: number
+          product_id: string | null
+          quantity: number
+          subtotal: number
+          unit_price: number
+        }
+        Insert: {
+          description: string
+          id?: string
+          invoice_id: string
+          iva_amount?: number
+          iva_rate?: number
+          product_id?: string | null
+          quantity?: number
+          subtotal?: number
+          unit_price?: number
+        }
+        Update: {
+          description?: string
+          id?: string
+          invoice_id?: string
+          iva_amount?: number
+          iva_rate?: number
+          product_id?: string | null
+          quantity?: number
+          subtotal?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          afip_cae: string | null
+          afip_vencimiento_cae: string | null
+          client_cuit: string | null
+          client_name: string | null
+          created_at: string
+          created_by: string | null
+          date: string
+          direction: Database["public"]["Enums"]["invoice_direction"]
+          id: string
+          invoice_type: Database["public"]["Enums"]["invoice_type"]
+          iva_amount: number
+          notes: string | null
+          number: string | null
+          organization_id: string
+          status: Database["public"]["Enums"]["invoice_status"]
+          subtotal: number
+          total: number
+        }
+        Insert: {
+          afip_cae?: string | null
+          afip_vencimiento_cae?: string | null
+          client_cuit?: string | null
+          client_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          direction?: Database["public"]["Enums"]["invoice_direction"]
+          id?: string
+          invoice_type?: Database["public"]["Enums"]["invoice_type"]
+          iva_amount?: number
+          notes?: string | null
+          number?: string | null
+          organization_id: string
+          status?: Database["public"]["Enums"]["invoice_status"]
+          subtotal?: number
+          total?: number
+        }
+        Update: {
+          afip_cae?: string | null
+          afip_vencimiento_cae?: string | null
+          client_cuit?: string | null
+          client_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          direction?: Database["public"]["Enums"]["invoice_direction"]
+          id?: string
+          invoice_type?: Database["public"]["Enums"]["invoice_type"]
+          iva_amount?: number
+          notes?: string | null
+          number?: string | null
+          organization_id?: string
+          status?: Database["public"]["Enums"]["invoice_status"]
+          subtotal?: number
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -281,6 +704,51 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_subscriptions: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          id: string
+          organization_id: string
+          plan_id: string
+          starts_at: string
+          status: Database["public"]["Enums"]["subscription_status"]
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          organization_id: string
+          plan_id: string
+          starts_at?: string
+          status?: Database["public"]["Enums"]["subscription_status"]
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          organization_id?: string
+          plan_id?: string
+          starts_at?: string
+          status?: Database["public"]["Enums"]["subscription_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_subscriptions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
             referencedColumns: ["id"]
           },
         ]
@@ -425,6 +893,130 @@ export type Database = {
           },
         ]
       }
+      product_categories: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          organization_id: string
+          parent_id: string | null
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          organization_id: string
+          parent_id?: string | null
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          organization_id?: string
+          parent_id?: string | null
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_categories_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "product_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          barcode: string | null
+          category_id: string | null
+          cost_price: number
+          created_at: string
+          current_stock: number
+          description: string | null
+          id: string
+          is_active: boolean
+          iva_rate: number
+          min_stock: number
+          name: string
+          organization_id: string
+          sell_price: number
+          sku: string | null
+          supplier_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          barcode?: string | null
+          category_id?: string | null
+          cost_price?: number
+          created_at?: string
+          current_stock?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          iva_rate?: number
+          min_stock?: number
+          name: string
+          organization_id: string
+          sell_price?: number
+          sku?: string | null
+          supplier_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          barcode?: string | null
+          category_id?: string | null
+          cost_price?: number
+          created_at?: string
+          current_stock?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          iva_rate?: number
+          min_stock?: number
+          name?: string
+          organization_id?: string
+          sell_price?: number
+          sku?: string | null
+          supplier_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "product_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -457,6 +1049,115 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      purchase_items: {
+        Row: {
+          id: string
+          product_id: string | null
+          purchase_id: string
+          quantity: number
+          subtotal: number
+          unit_price: number
+        }
+        Insert: {
+          id?: string
+          product_id?: string | null
+          purchase_id: string
+          quantity?: number
+          subtotal?: number
+          unit_price?: number
+        }
+        Update: {
+          id?: string
+          product_id?: string | null
+          purchase_id?: string
+          quantity?: number
+          subtotal?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_items_purchase_id_fkey"
+            columns: ["purchase_id"]
+            isOneToOne: false
+            referencedRelation: "purchases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchases: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          date: string
+          id: string
+          invoice_id: string | null
+          is_formal: boolean
+          iva_amount: number
+          notes: string | null
+          organization_id: string
+          subtotal: number
+          supplier_id: string | null
+          total: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          id?: string
+          invoice_id?: string | null
+          is_formal?: boolean
+          iva_amount?: number
+          notes?: string | null
+          organization_id: string
+          subtotal?: number
+          supplier_id?: string | null
+          total?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          id?: string
+          invoice_id?: string | null
+          is_formal?: boolean
+          iva_amount?: number
+          notes?: string | null
+          organization_id?: string
+          subtotal?: number
+          supplier_id?: string | null
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchases_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchases_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchases_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       qr_codes: {
         Row: {
@@ -492,6 +1193,379 @@ export type Database = {
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salary_records: {
+        Row: {
+          base_salary: number
+          business_unit_id: string | null
+          created_at: string
+          created_by: string | null
+          deductions: number
+          extras: number
+          id: string
+          notes: string | null
+          organization_id: string
+          period_month: number
+          period_year: number
+          total: number
+          user_id: string
+        }
+        Insert: {
+          base_salary?: number
+          business_unit_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          deductions?: number
+          extras?: number
+          id?: string
+          notes?: string | null
+          organization_id: string
+          period_month: number
+          period_year: number
+          total?: number
+          user_id: string
+        }
+        Update: {
+          base_salary?: number
+          business_unit_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          deductions?: number
+          extras?: number
+          id?: string
+          notes?: string | null
+          organization_id?: string
+          period_month?: number
+          period_year?: number
+          total?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salary_records_business_unit_id_fkey"
+            columns: ["business_unit_id"]
+            isOneToOne: false
+            referencedRelation: "business_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salary_records_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sale_items: {
+        Row: {
+          cost_price_snapshot: number
+          id: string
+          product_id: string | null
+          quantity: number
+          sale_id: string
+          subtotal: number
+          unit_price: number
+        }
+        Insert: {
+          cost_price_snapshot?: number
+          id?: string
+          product_id?: string | null
+          quantity?: number
+          sale_id: string
+          subtotal?: number
+          unit_price?: number
+        }
+        Update: {
+          cost_price_snapshot?: number
+          id?: string
+          product_id?: string | null
+          quantity?: number
+          sale_id?: string
+          subtotal?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sale_items_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          invoice_id: string | null
+          is_formal: boolean
+          iva_amount: number
+          location_id: string | null
+          notes: string | null
+          organization_id: string
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          sale_channel: Database["public"]["Enums"]["sale_channel"]
+          seller_id: string | null
+          subtotal: number
+          total: number
+        }
+        Insert: {
+          created_at?: string
+          date?: string
+          id?: string
+          invoice_id?: string | null
+          is_formal?: boolean
+          iva_amount?: number
+          location_id?: string | null
+          notes?: string | null
+          organization_id: string
+          payment_method?: Database["public"]["Enums"]["payment_method"]
+          sale_channel?: Database["public"]["Enums"]["sale_channel"]
+          seller_id?: string | null
+          subtotal?: number
+          total?: number
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          invoice_id?: string | null
+          is_formal?: boolean
+          iva_amount?: number
+          location_id?: string | null
+          notes?: string | null
+          organization_id?: string
+          payment_method?: Database["public"]["Enums"]["payment_method"]
+          sale_channel?: Database["public"]["Enums"]["sale_channel"]
+          seller_id?: string | null
+          subtotal?: number
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_alerts: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          min_stock_override: number | null
+          notify_email: boolean
+          organization_id: string
+          product_id: string | null
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          min_stock_override?: number | null
+          notify_email?: boolean
+          organization_id: string
+          product_id?: string | null
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          min_stock_override?: number | null
+          notify_email?: boolean
+          organization_id?: string
+          product_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_alerts_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "product_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_alerts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_alerts_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_movements: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          movement_type: Database["public"]["Enums"]["stock_movement_type"]
+          notes: string | null
+          organization_id: string
+          product_id: string
+          quantity: number
+          reference_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          movement_type: Database["public"]["Enums"]["stock_movement_type"]
+          notes?: string | null
+          organization_id: string
+          product_id: string
+          quantity: number
+          reference_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          movement_type?: Database["public"]["Enums"]["stock_movement_type"]
+          notes?: string | null
+          organization_id?: string
+          product_id?: string
+          quantity?: number
+          reference_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscription_plans: {
+        Row: {
+          apps_included: string[]
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          price_monthly: number
+          price_yearly: number
+          slug: string
+        }
+        Insert: {
+          apps_included?: string[]
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          price_monthly?: number
+          price_yearly?: number
+          slug: string
+        }
+        Update: {
+          apps_included?: string[]
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          price_monthly?: number
+          price_yearly?: number
+          slug?: string
+        }
+        Relationships: []
+      }
+      suppliers: {
+        Row: {
+          address: string | null
+          created_at: string
+          cuit: string | null
+          email: string | null
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          organization_id: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          cuit?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          organization_id: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          cuit?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          organization_id?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suppliers_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -677,6 +1751,10 @@ export type Database = {
           start_time: string
         }[]
       }
+      get_org_subscription_apps: {
+        Args: { _user_id: string }
+        Returns: string[]
+      }
       get_user_email: { Args: { _user_id: string }; Returns: string }
       get_user_organization_id: { Args: { _user_id: string }; Returns: string }
       get_user_role: {
@@ -694,6 +1772,7 @@ export type Database = {
         Args: { _org_id: string; _user_id: string }
         Returns: boolean
       }
+      user_belongs_to_org: { Args: { _org_id: string }; Returns: boolean }
       users_share_organization: {
         Args: { _profile_user_id: string; _viewer_id: string }
         Returns: boolean
@@ -715,6 +1794,32 @@ export type Database = {
         | "other"
       document_status: "pending" | "approved" | "rejected"
       evaluation_status: "draft" | "completed" | "shared"
+      expense_sheet_status: "draft" | "approved" | "closed"
+      expense_type: "fijo" | "variable"
+      invoice_direction: "emitida" | "recibida"
+      invoice_status: "draft" | "confirmed" | "cancelled" | "afip_sent"
+      invoice_type:
+        | "factura_a"
+        | "factura_b"
+        | "factura_c"
+        | "nota_credito"
+        | "nota_debito"
+        | "informal"
+      objective_period: "diario" | "semanal" | "mensual"
+      objective_type:
+        | "ventas_monto"
+        | "ventas_cantidad"
+        | "mix_productos"
+        | "personalizado"
+      payment_method: "efectivo" | "tarjeta" | "transferencia" | "otro"
+      sale_channel: "local_fisico" | "catalogo" | "online"
+      stock_movement_type:
+        | "compra"
+        | "venta"
+        | "ajuste_positivo"
+        | "ajuste_negativo"
+        | "devolucion"
+      subscription_status: "active" | "trial" | "expired" | "cancelled"
       vacation_request_status: "pending" | "approved" | "rejected" | "cancelled"
     }
     CompositeTypes: {
@@ -860,6 +1965,35 @@ export const Constants = {
       ],
       document_status: ["pending", "approved", "rejected"],
       evaluation_status: ["draft", "completed", "shared"],
+      expense_sheet_status: ["draft", "approved", "closed"],
+      expense_type: ["fijo", "variable"],
+      invoice_direction: ["emitida", "recibida"],
+      invoice_status: ["draft", "confirmed", "cancelled", "afip_sent"],
+      invoice_type: [
+        "factura_a",
+        "factura_b",
+        "factura_c",
+        "nota_credito",
+        "nota_debito",
+        "informal",
+      ],
+      objective_period: ["diario", "semanal", "mensual"],
+      objective_type: [
+        "ventas_monto",
+        "ventas_cantidad",
+        "mix_productos",
+        "personalizado",
+      ],
+      payment_method: ["efectivo", "tarjeta", "transferencia", "otro"],
+      sale_channel: ["local_fisico", "catalogo", "online"],
+      stock_movement_type: [
+        "compra",
+        "venta",
+        "ajuste_positivo",
+        "ajuste_negativo",
+        "devolucion",
+      ],
+      subscription_status: ["active", "trial", "expired", "cancelled"],
       vacation_request_status: ["pending", "approved", "rejected", "cancelled"],
     },
   },

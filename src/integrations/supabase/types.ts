@@ -2038,6 +2038,15 @@ export type Database = {
       }
     }
     Functions: {
+      bulk_update_prices_from_exchange_rate: {
+        Args: {
+          _currency: string
+          _margin_pct?: number
+          _new_rate: number
+          _org_id: string
+        }
+        Returns: number
+      }
       get_iva_summary: {
         Args: { _org_id: string; _period_end: string; _period_start: string }
         Returns: {

@@ -11,6 +11,8 @@ interface SubscriptionPlan {
 export const useSubscription = () => {
   const { user } = useAuth();
   const [appsIncluded, setAppsIncluded] = useState<string[]>(["nomia"]);
+  // Note: get_org_subscription_apps and organization_subscriptions are not in
+  // the auto-generated types yet. We use .rpc / .from with type casts.
   const [plan, setPlan] = useState<SubscriptionPlan | null>(null);
   const [loading, setLoading] = useState(true);
 

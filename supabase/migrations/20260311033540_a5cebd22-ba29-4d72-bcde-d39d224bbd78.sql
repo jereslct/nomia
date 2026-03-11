@@ -1,0 +1,1 @@
+DELETE FROM public.user_roles WHERE user_id = 'a0000000-0000-0000-0000-000000000001' AND role = 'user';

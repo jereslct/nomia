@@ -36,6 +36,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useScheduleConfig } from "@/hooks/useScheduleConfig";
 import { useWorkShifts } from "@/hooks/useWorkShifts";
 import { usePendingInvitations } from "@/hooks/usePendingInvitations";
+import { AppNavButtons } from "@/components/AppNavButtons";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Popover,
@@ -294,6 +295,7 @@ const Dashboard = () => {
                 {isAdmin ? "Panel de Administrador" : "Panel de Usuario"}
               </p>
             </div>
+            {isAdmin && <AppNavButtons />}
           </div>
           <div className="flex items-center gap-2">
             {isAdmin && (

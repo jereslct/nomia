@@ -22,4 +22,27 @@ export const ROUTES = {
   RECIBOS: '/recibos',
   VACACIONES: '/vacaciones',
   EVALUACIONES: '/evaluaciones',
+
+  // Facturacion
+  FACTURACION_PANEL: '/facturacion',
+  FACTURACION_FACTURAS: '/facturacion/facturas',
+  FACTURACION_VENTAS: '/facturacion/ventas',
+  FACTURACION_COMPRAS: '/facturacion/compras',
+  FACTURACION_PRODUCTOS: '/facturacion/productos',
+  FACTURACION_STOCK: '/facturacion/stock',
+  FACTURACION_PROVEEDORES: '/facturacion/proveedores',
+  FACTURACION_VENDEDORES: '/facturacion/vendedores',
+  FACTURACION_REPORTES: '/facturacion/reportes',
+  FACTURACION_AFIP: '/facturacion/afip',
+  FACTURACION_IVA: '/facturacion/iva',
+
+  // Comercial
+  COMERCIAL_PANEL: '/comercial',
+  COMERCIAL_GASTOS: '/comercial/gastos',
+  COMERCIAL_PLANILLA: '/comercial/planilla',
+  COMERCIAL_SUELDOS: '/comercial/sueldos',
+  COMERCIAL_UNIDADES: '/comercial/unidades',
+  COMERCIAL_RENTABILIDAD: '/comercial/rentabilidad',
+  COMERCIAL_EQUILIBRIO: '/comercial/equilibrio',
+  COMERCIAL_REPORTES: '/comercial/reportes',
 } as const;

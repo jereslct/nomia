@@ -28,9 +28,29 @@ import EmployeeDocuments from "./pages/EmployeeDocuments";
 import PayStubs from "./pages/PayStubs";
 import Vacations from "./pages/Vacations";
 import Evaluations from "./pages/Evaluations";
+import FacturacionDashboard from "./pages/facturacion/FacturacionDashboard";
+import Facturas from "./pages/facturacion/Facturas";
+import Ventas from "./pages/facturacion/Ventas";
+import Compras from "./pages/facturacion/Compras";
+import Productos from "./pages/facturacion/Productos";
+import Stock from "./pages/facturacion/Stock";
+import Proveedores from "./pages/facturacion/Proveedores";
+import Vendedores from "./pages/facturacion/Vendedores";
+import ReportesVentas from "./pages/facturacion/ReportesVentas";
+import AfipConfig from "./pages/facturacion/AfipConfig";
+import ResumenIva from "./pages/facturacion/ResumenIva";
+import ComercialDashboard from "./pages/comercial/ComercialDashboard";
+import Gastos from "./pages/comercial/Gastos";
+import PlanillaGastos from "./pages/comercial/PlanillaGastos";
+import Sueldos from "./pages/comercial/Sueldos";
+import UnidadesNegocio from "./pages/comercial/UnidadesNegocio";
+import Rentabilidad from "./pages/comercial/Rentabilidad";
+import PuntoEquilibrio from "./pages/comercial/PuntoEquilibrio";
+import ReportesComercial from "./pages/comercial/ReportesComercial";
 import NotFound from "./pages/NotFound";
 import { OfflineBanner } from "./components/OfflineBanner";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { AppGuard } from "./components/AppGuard";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -151,6 +171,141 @@ const App = () => (
           <Route path={ROUTES.EVALUACIONES} element={
             <ProtectedRoute>
               <Evaluations />
+            </ProtectedRoute>
+          } />
+          {/* Facturacion routes - admin only, subscription gated */}
+          <Route path={ROUTES.FACTURACION_PANEL} element={
+            <ProtectedRoute requireAdmin>
+              <AppGuard requiredApp="facturacion" appName="Facturación">
+                <FacturacionDashboard />
+              </AppGuard>
+            </ProtectedRoute>
+          } />
+          <Route path={ROUTES.FACTURACION_FACTURAS} element={
+            <ProtectedRoute requireAdmin>
+              <AppGuard requiredApp="facturacion" appName="Facturación">
+                <Facturas />
+              </AppGuard>
+            </ProtectedRoute>
+          } />
+          <Route path={ROUTES.FACTURACION_VENTAS} element={
+            <ProtectedRoute requireAdmin>
+              <AppGuard requiredApp="facturacion" appName="Facturación">
+                <Ventas />
+              </AppGuard>
+            </ProtectedRoute>
+          } />
+          <Route path={ROUTES.FACTURACION_COMPRAS} element={
+            <ProtectedRoute requireAdmin>
+              <AppGuard requiredApp="facturacion" appName="Facturación">
+                <Compras />
+              </AppGuard>
+            </ProtectedRoute>
+          } />
+          <Route path={ROUTES.FACTURACION_PRODUCTOS} element={
+            <ProtectedRoute requireAdmin>
+              <AppGuard requiredApp="facturacion" appName="Facturación">
+                <Productos />
+              </AppGuard>
+            </ProtectedRoute>
+          } />
+          <Route path={ROUTES.FACTURACION_STOCK} element={
+            <ProtectedRoute requireAdmin>
+              <AppGuard requiredApp="facturacion" appName="Facturación">
+                <Stock />
+              </AppGuard>
+            </ProtectedRoute>
+          } />
+          <Route path={ROUTES.FACTURACION_PROVEEDORES} element={
+            <ProtectedRoute requireAdmin>
+              <AppGuard requiredApp="facturacion" appName="Facturación">
+                <Proveedores />
+              </AppGuard>
+            </ProtectedRoute>
+          } />
+          <Route path={ROUTES.FACTURACION_VENDEDORES} element={
+            <ProtectedRoute requireAdmin>
+              <AppGuard requiredApp="facturacion" appName="Facturación">
+                <Vendedores />
+              </AppGuard>
+            </ProtectedRoute>
+          } />
+          <Route path={ROUTES.FACTURACION_REPORTES} element={
+            <ProtectedRoute requireAdmin>
+              <AppGuard requiredApp="facturacion" appName="Facturación">
+                <ReportesVentas />
+              </AppGuard>
+            </ProtectedRoute>
+          } />
+          <Route path={ROUTES.FACTURACION_AFIP} element={
+            <ProtectedRoute requireAdmin>
+              <AppGuard requiredApp="facturacion" appName="Facturación">
+                <AfipConfig />
+              </AppGuard>
+            </ProtectedRoute>
+          } />
+          <Route path={ROUTES.FACTURACION_IVA} element={
+            <ProtectedRoute requireAdmin>
+              <AppGuard requiredApp="facturacion" appName="Facturación">
+                <ResumenIva />
+              </AppGuard>
+            </ProtectedRoute>
+          } />
+          {/* Comercial routes - admin only, subscription gated */}
+          <Route path={ROUTES.COMERCIAL_PANEL} element={
+            <ProtectedRoute requireAdmin>
+              <AppGuard requiredApp="comercial" appName="Control Comercial">
+                <ComercialDashboard />
+              </AppGuard>
+            </ProtectedRoute>
+          } />
+          <Route path={ROUTES.COMERCIAL_GASTOS} element={
+            <ProtectedRoute requireAdmin>
+              <AppGuard requiredApp="comercial" appName="Control Comercial">
+                <Gastos />
+              </AppGuard>
+            </ProtectedRoute>
+          } />
+          <Route path={ROUTES.COMERCIAL_PLANILLA} element={
+            <ProtectedRoute requireAdmin>
+              <AppGuard requiredApp="comercial" appName="Control Comercial">
+                <PlanillaGastos />
+              </AppGuard>
+            </ProtectedRoute>
+          } />
+          <Route path={ROUTES.COMERCIAL_SUELDOS} element={
+            <ProtectedRoute requireAdmin>
+              <AppGuard requiredApp="comercial" appName="Control Comercial">
+                <Sueldos />
+              </AppGuard>
+            </ProtectedRoute>
+          } />
+          <Route path={ROUTES.COMERCIAL_UNIDADES} element={
+            <ProtectedRoute requireAdmin>
+              <AppGuard requiredApp="comercial" appName="Control Comercial">
+                <UnidadesNegocio />
+              </AppGuard>
+            </ProtectedRoute>
+          } />
+          <Route path={ROUTES.COMERCIAL_RENTABILIDAD} element={
+            <ProtectedRoute requireAdmin>
+              <AppGuard requiredApp="comercial" appName="Control Comercial">
+                <Rentabilidad />
+              </AppGuard>
+            </ProtectedRoute>
+          } />
+          <Route path={ROUTES.COMERCIAL_EQUILIBRIO} element={
+            <ProtectedRoute requireAdmin>
+              <AppGuard requiredApp="comercial" appName="Control Comercial">
+                <PuntoEquilibrio />
+              </AppGuard>
+            </ProtectedRoute>
+          } />
+          <Route path={ROUTES.COMERCIAL_REPORTES} element={
+            <ProtectedRoute requireAdmin>
+              <AppGuard requiredApp="comercial" appName="Control Comercial">
+                <ReportesComercial />
+              </AppGuard>
             </ProtectedRoute>
           } />
           <Route path="*" element={<NotFound />} />

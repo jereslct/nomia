@@ -68,6 +68,7 @@ const App = () => (
         <Routes>
           <Route path={ROUTES.HOME} element={<Index />} />
           <Route path={ROUTES.ACCESO} element={<Auth />} />
+          <Route path={ROUTES.RECUPERAR} element={<ResetPassword />} />
           <Route path={ROUTES.PANEL} element={
             <ProtectedRoute>
               <Dashboard />

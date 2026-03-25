@@ -20,7 +20,7 @@ const Auth = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, loading, signIn, signUp } = useAuth();
+  const { user, loading, signIn, signUp, signInWithGoogle } = useAuth();
   
   const [isLogin, setIsLogin] = useState(searchParams.get("mode") !== "signup");
   const [isSubmitting, setIsSubmitting] = useState(false);

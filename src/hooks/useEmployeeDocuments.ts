@@ -46,10 +46,7 @@ export function useEmployeeDocuments(userId?: string) {
   }, [user, isAdmin]);
 
   const fetchDocuments = useCallback(async () => {
-    if (authLoading || !user) {
-      setLoading(false);
-      return;
-    }
+    if (authLoading || !user) return;
 
     try {
       setLoading(true);
@@ -91,8 +88,12 @@ export function useEmployeeDocuments(userId?: string) {
   }, [user, isAdmin, authLoading, userId, fetchOrganizationId]);
 
   useEffect(() => {
-    fetchDocuments();
-  }, [fetchDocuments]);
+    if (!authLoading && user) {
+      fetchDocuments();
+    } else if (!authLoading && !user) {
+      setLoading(false);
+    }
+  }, [authLoading, user, fetchDocuments]);
 
   const uploadDocument = useCallback(
     async ({ file, category, description, userId: targetUserId }: UploadDocumentParams) => {

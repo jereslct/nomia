@@ -116,8 +116,12 @@ const AdminAbsences = () => {
       .select("id, name")
       .eq("owner_id", user.id)
       .order("created_at", { ascending: true });
-    setOrganizations(data || []);
-  }, [user]);
+    const orgs = data || [];
+    setOrganizations(orgs);
+    if (orgs.length > 0 && !selectedListOrgId) {
+      setSelectedListOrgId(orgs[0].id);
+    }
+  }, [user, selectedListOrgId]);
 
   useEffect(() => {
     if (user && isAdmin) fetchOrganizations();

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -32,11 +34,15 @@ import {
   Eye,
   FileText,
   Loader2,
+  Plus,
   Search,
+  Upload,
   XCircle,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ROUTES } from "@/lib/routes";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 import { useEmployeeDocuments, type EmployeeDocument } from "@/hooks/useEmployeeDocuments";
 import { useToast } from "@/hooks/use-toast";
@@ -72,14 +78,61 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+interface OrgMember {
+  user_id: string;
+  full_name: string;
+}
+
 export default function AdminLegajos() {
-  const { documents, loading, updateDocumentStatus } = useEmployeeDocuments();
+  const { user } = useAuth();
+  const { documents, loading, organizationId, uploadDocument, updateDocumentStatus } = useEmployeeDocuments();
   const { toast } = useToast();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedDoc, setSelectedDoc] = useState<EmployeeDocument | null>(null);
+
+  // Upload dialog state
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [members, setMembers] = useState<OrgMember[]>([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
+  const [uploadUserId, setUploadUserId] = useState("");
+  const [uploadCategory, setUploadCategory] = useState<DocumentCategory>("other");
+  const [uploadDescription, setUploadDescription] = useState("");
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  // Fetch members for the upload dialog
+  const fetchMembers = useCallback(async () => {
+    if (!organizationId) return;
+    setLoadingMembers(true);
+    try {
+      const { data } = await supabase
+        .from("organization_members")
+        .select("user_id")
+        .eq("organization_id", organizationId)
+        .eq("status", "accepted");
+
+      const userIds = data?.map((m) => m.user_id).filter(Boolean) as string[];
+      if (!userIds?.length) { setMembers([]); return; }
+
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", userIds);
+
+      setMembers((profiles || []).map((p) => ({ user_id: p.user_id, full_name: p.full_name })));
+    } catch (err) {
+      console.error("Error fetching members:", err);
+    } finally {
+      setLoadingMembers(false);
+    }
+  }, [organizationId]);
+
+  useEffect(() => {
+    if (organizationId) fetchMembers();
+  }, [organizationId, fetchMembers]);
 
   const filteredDocuments = useMemo(() => {
     return documents.filter((doc) => {
@@ -113,6 +166,33 @@ export default function AdminLegajos() {
     }
   };
 
+  const handleUpload = async () => {
+    if (!uploadFile || !uploadUserId) return;
+    setUploading(true);
+    try {
+      await uploadDocument({
+        file: uploadFile,
+        category: uploadCategory,
+        description: uploadDescription || undefined,
+        userId: uploadUserId,
+      });
+      toast({ title: "Documento cargado", description: "El documento fue subido correctamente." });
+      setUploadOpen(false);
+      resetUploadForm();
+    } catch (err: any) {
+      toast({ title: "Error al subir documento", description: err?.message || "Intente nuevamente.", variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const resetUploadForm = () => {
+    setUploadUserId("");
+    setUploadCategory("other");
+    setUploadDescription("");
+    setUploadFile(null);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -124,18 +204,24 @@ export default function AdminLegajos() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-6 max-w-6xl">
-        <div className="flex items-center gap-3 mb-6">
-          <Link to={ROUTES.ADMIN}>
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold">Legajos</h1>
-            <p className="text-sm text-muted-foreground">
-              Gestión de documentos de empleados
-            </p>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <Link to={ROUTES.ADMIN}>
+              <Button variant="ghost" size="icon">
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-2xl font-bold">Legajos</h1>
+              <p className="text-sm text-muted-foreground">
+                Gestión de documentos de empleados
+              </p>
+            </div>
           </div>
+          <Button size="sm" onClick={() => setUploadOpen(true)}>
+            <Plus className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Cargar documento</span>
+          </Button>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
@@ -310,6 +396,7 @@ export default function AdminLegajos() {
         )}
       </div>
 
+      {/* Detail dialog */}
       <Dialog open={!!selectedDoc} onOpenChange={(open) => { if (!open) setSelectedDoc(null); }}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
@@ -389,6 +476,112 @@ export default function AdminLegajos() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Upload dialog */}
+      <Dialog open={uploadOpen} onOpenChange={(open) => { if (!open) { setUploadOpen(false); resetUploadForm(); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Cargar documento</DialogTitle>
+            <DialogDescription>
+              Subí un documento al legajo de un empleado
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Empleado</Label>
+              {loadingMembers ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                  <Loader2 className="w-4 h-4 animate-spin" /> Cargando empleados...
+                </div>
+              ) : (
+                <Select value={uploadUserId} onValueChange={setUploadUserId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar empleado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {members.map((m) => (
+                      <SelectItem key={m.user_id} value={m.user_id}>
+                        {m.full_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Categoría</Label>
+              <Select value={uploadCategory} onValueChange={(v) => setUploadCategory(v as DocumentCategory)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="curriculum">Currículum</SelectItem>
+                  <SelectItem value="arca_registration">Alta ARCA</SelectItem>
+                  <SelectItem value="signed_receipt">Recibo Firmado</SelectItem>
+                  <SelectItem value="other">Otro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Descripción (opcional)</Label>
+              <Textarea
+                placeholder="Descripción del documento..."
+                value={uploadDescription}
+                onChange={(e) => setUploadDescription(e.target.value)}
+                rows={2}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Archivo</Label>
+              <div className="border-2 border-dashed border-border rounded-lg p-4 text-center">
+                {uploadFile ? (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm">
+                      <FileText className="w-4 h-4 text-muted-foreground" />
+                      <span className="truncate max-w-[200px]">{uploadFile.name}</span>
+                      <span className="text-muted-foreground">({formatFileSize(uploadFile.size)})</span>
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={() => setUploadFile(null)}>
+                      Cambiar
+                    </Button>
+                  </div>
+                ) : (
+                  <label className="cursor-pointer flex flex-col items-center gap-2">
+                    <Upload className="w-8 h-8 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">Hacé clic para seleccionar un archivo</span>
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) setUploadFile(file);
+                      }}
+                    />
+                  </label>
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" className="flex-1" onClick={() => { setUploadOpen(false); resetUploadForm(); }}>
+                Cancelar
+              </Button>
+              <Button
+                className="flex-1"
+                disabled={!uploadFile || !uploadUserId || uploading}
+                onClick={handleUpload}
+              >
+                {uploading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
+                Subir documento
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

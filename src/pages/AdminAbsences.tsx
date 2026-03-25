@@ -80,7 +80,6 @@ interface OrgOption {
 const AdminAbsences = () => {
   const navigate = useNavigate();
   const { user, isAdmin, loading: authLoading } = useAuth();
-  const { absences, loading, organizationId, createAbsence, updateAbsenceStatus, refetch } = useAbsences();
   const { toast } = useToast();
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -90,8 +89,11 @@ const AdminAbsences = () => {
   const [dateTo, setDateTo] = useState("");
 
   const [organizations, setOrganizations] = useState<OrgOption[]>([]);
+  const [selectedListOrgId, setSelectedListOrgId] = useState<string | null>(null);
   const [members, setMembers] = useState<OrgMember[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
+
+  const { absences, loading, organizationId, createAbsence, updateAbsenceStatus, refetch } = useAbsences(undefined, selectedListOrgId);
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedOrgId, setSelectedOrgId] = useState("");

@@ -718,7 +718,7 @@ const AdminAbsences = () => {
               </Button>
               <Button
                 onClick={handleCreateAbsence}
-                disabled={submitting || !newAbsence.user_id || !newAbsence.date}
+                disabled={submitting || !newAbsence.user_id || !newAbsence.date || !selectedOrgId}
               >
                 {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 Registrar

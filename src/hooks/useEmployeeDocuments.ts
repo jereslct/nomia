@@ -78,7 +78,23 @@ export function useEmployeeDocuments(userId?: string) {
         return;
       }
 
-      setDocuments((data as unknown as EmployeeDocument[]) || []);
+      const docs = (data as unknown as EmployeeDocument[]) || [];
+
+      // Fetch profile names
+      const userIds = [...new Set(docs.map((d) => d.user_id))];
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", userIds);
+        const profileMap = new Map((profiles || []).map((p) => [p.user_id, p.full_name]));
+        docs.forEach((d) => {
+          const name = profileMap.get(d.user_id);
+          if (name) d.profiles = { full_name: name };
+        });
+      }
+
+      setDocuments(docs);
     } catch (err) {
       console.error("Error fetching documents:", err);
       setDocuments([]);

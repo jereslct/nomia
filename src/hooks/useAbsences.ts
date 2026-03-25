@@ -82,7 +82,7 @@ export function useAbsences(userId?: string, externalOrgId?: string | null) {
     setLoading(true);
 
     try {
-      const orgId = await fetchOrganizationId();
+      const orgId = externalOrgId || await fetchOrganizationId();
       setOrganizationId(orgId);
       if (!orgId) {
         setAbsences([]);
@@ -111,7 +111,7 @@ export function useAbsences(userId?: string, externalOrgId?: string | null) {
     } finally {
       setLoading(false);
     }
-  }, [user, isAdmin, authLoading, userId, fetchOrganizationId]);
+  }, [user, isAdmin, authLoading, userId, externalOrgId, fetchOrganizationId]);
 
   useEffect(() => {
     if (!authLoading && user) {

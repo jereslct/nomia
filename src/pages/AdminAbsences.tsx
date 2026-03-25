@@ -106,6 +106,21 @@ const AdminAbsences = () => {
     }
   }, [user, isAdmin, authLoading, navigate]);
 
+  // Fetch all organizations owned by admin
+  const fetchOrganizations = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("organizations")
+      .select("id, name")
+      .eq("owner_id", user.id)
+      .order("created_at", { ascending: true });
+    setOrganizations(data || []);
+  }, [user]);
+
+  useEffect(() => {
+    if (user && isAdmin) fetchOrganizations();
+  }, [user, isAdmin, fetchOrganizations]);
+
   const fetchMembers = useCallback(async () => {
     if (!organizationId) return;
     setLoadingMembers(true);
@@ -140,6 +155,42 @@ const AdminAbsences = () => {
   useEffect(() => {
     if (organizationId) fetchMembers();
   }, [organizationId, fetchMembers]);
+
+  // Fetch members for selected org in dialog
+  const fetchDialogMembers = useCallback(async (orgId: string) => {
+    if (!orgId) { setDialogMembers([]); return; }
+    setLoadingDialogMembers(true);
+    try {
+      const { data } = await supabase
+        .from("organization_members")
+        .select("user_id")
+        .eq("organization_id", orgId)
+        .eq("status", "accepted");
+
+      const userIds = data?.map((m) => m.user_id).filter(Boolean) as string[];
+      if (!userIds?.length) { setDialogMembers([]); return; }
+
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", userIds);
+
+      setDialogMembers(
+        (profiles || []).map((p) => ({ user_id: p.user_id, full_name: p.full_name })),
+      );
+    } catch (err) {
+      console.error("Error fetching dialog members:", err);
+    } finally {
+      setLoadingDialogMembers(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedOrgId) {
+      fetchDialogMembers(selectedOrgId);
+      setNewAbsence((p) => ({ ...p, user_id: "" }));
+    }
+  }, [selectedOrgId, fetchDialogMembers]);
 
   const filteredAbsences = useMemo(() => {
     let result = absences;

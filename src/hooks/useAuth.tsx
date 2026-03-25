@@ -128,6 +128,18 @@ export const useAuth = () => {
     return { error };
   };
 
+  const resetPassword = async (email: string) => {
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/recuperar-contrasena`,
+    });
+    return { data, error };
+  };
+
+  const updatePassword = async (password: string) => {
+    const { data, error } = await supabase.auth.updateUser({ password });
+    return { data, error };
+  };
+
   const signInWithGoogle = async () => {
     const { lovable } = await import("@/integrations/lovable/index");
     const result = await lovable.auth.signInWithOAuth("google", {

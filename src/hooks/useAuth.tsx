@@ -159,5 +159,7 @@ export const useAuth = () => {
     signIn,
     signOut,
     signInWithGoogle,
+    resetPassword,
+    updatePassword,
   };
 };

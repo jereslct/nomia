@@ -268,6 +268,15 @@ const Auth = () => {
                     />
                   </div>
                   {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
+                  {isLogin && (
+                    <button
+                      type="button"
+                      onClick={() => setShowForgotPassword(true)}
+                      className="text-xs text-primary hover:underline"
+                    >
+                      ¿Olvidaste tu contraseña?
+                    </button>
+                  )}
                 </div>
 
                 <Button 

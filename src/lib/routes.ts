@@ -1,6 +1,7 @@
 export const ROUTES = {
   HOME: '/',
   ACCESO: '/acceso',
+  RECUPERAR: '/recuperar-contrasena',
   PANEL: '/panel',
   ESCANEAR: '/escanear',
   ADMIN: '/admin',

@@ -33,6 +33,7 @@ interface CreateAbsenceParams {
   date: string;
   type: AbsenceType;
   justification?: string;
+  organization_id?: string;
 }
 
 interface UpdateStatusParams {
@@ -120,11 +121,13 @@ export function useAbsences(userId?: string) {
 
   const createAbsence = useCallback(
     async (params: CreateAbsenceParams) => {
-      if (!user || !organizationId) return { error: "Sin organización" };
+      if (!user) return { error: "Sin usuario" };
+      const orgId = params.organization_id || organizationId;
+      if (!orgId) return { error: "Sin organización" };
 
       const { error } = await supabase.from("absences").insert({
         user_id: params.user_id,
-        organization_id: organizationId,
+        organization_id: orgId,
         date: params.date,
         type: params.type,
         justification: params.justification || null,

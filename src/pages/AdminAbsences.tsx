@@ -72,6 +72,11 @@ interface OrgMember {
   full_name: string;
 }
 
+interface OrgOption {
+  id: string;
+  name: string;
+}
+
 const AdminAbsences = () => {
   const navigate = useNavigate();
   const { user, isAdmin, loading: authLoading } = useAuth();
@@ -84,10 +89,14 @@ const AdminAbsences = () => {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
+  const [organizations, setOrganizations] = useState<OrgOption[]>([]);
   const [members, setMembers] = useState<OrgMember[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [selectedOrgId, setSelectedOrgId] = useState("");
+  const [dialogMembers, setDialogMembers] = useState<OrgMember[]>([]);
+  const [loadingDialogMembers, setLoadingDialogMembers] = useState(false);
   const [newAbsence, setNewAbsence] = useState({ user_id: "", date: "", type: "unjustified" as AbsenceType, justification: "" });
   const [submitting, setSubmitting] = useState(false);
 
@@ -96,6 +105,21 @@ const AdminAbsences = () => {
       navigate(ROUTES.PANEL);
     }
   }, [user, isAdmin, authLoading, navigate]);
+
+  // Fetch all organizations owned by admin
+  const fetchOrganizations = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("organizations")
+      .select("id, name")
+      .eq("owner_id", user.id)
+      .order("created_at", { ascending: true });
+    setOrganizations(data || []);
+  }, [user]);
+
+  useEffect(() => {
+    if (user && isAdmin) fetchOrganizations();
+  }, [user, isAdmin, fetchOrganizations]);
 
   const fetchMembers = useCallback(async () => {
     if (!organizationId) return;
@@ -131,6 +155,42 @@ const AdminAbsences = () => {
   useEffect(() => {
     if (organizationId) fetchMembers();
   }, [organizationId, fetchMembers]);
+
+  // Fetch members for selected org in dialog
+  const fetchDialogMembers = useCallback(async (orgId: string) => {
+    if (!orgId) { setDialogMembers([]); return; }
+    setLoadingDialogMembers(true);
+    try {
+      const { data } = await supabase
+        .from("organization_members")
+        .select("user_id")
+        .eq("organization_id", orgId)
+        .eq("status", "accepted");
+
+      const userIds = data?.map((m) => m.user_id).filter(Boolean) as string[];
+      if (!userIds?.length) { setDialogMembers([]); return; }
+
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", userIds);
+
+      setDialogMembers(
+        (profiles || []).map((p) => ({ user_id: p.user_id, full_name: p.full_name })),
+      );
+    } catch (err) {
+      console.error("Error fetching dialog members:", err);
+    } finally {
+      setLoadingDialogMembers(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedOrgId) {
+      fetchDialogMembers(selectedOrgId);
+      setNewAbsence((p) => ({ ...p, user_id: "" }));
+    }
+  }, [selectedOrgId, fetchDialogMembers]);
 
   const filteredAbsences = useMemo(() => {
     let result = absences;
@@ -172,7 +232,7 @@ const AdminAbsences = () => {
   }, [absences]);
 
   const handleCreateAbsence = async () => {
-    if (!newAbsence.user_id || !newAbsence.date) return;
+    if (!newAbsence.user_id || !newAbsence.date || !selectedOrgId) return;
     setSubmitting(true);
 
     const { error } = await createAbsence({
@@ -180,6 +240,7 @@ const AdminAbsences = () => {
       date: newAbsence.date,
       type: newAbsence.type,
       justification: newAbsence.justification || undefined,
+      organization_id: selectedOrgId,
     });
 
     setSubmitting(false);
@@ -190,6 +251,7 @@ const AdminAbsences = () => {
       toast({ title: "Falta registrada", description: "La inasistencia fue registrada correctamente." });
       setCreateDialogOpen(false);
       setNewAbsence({ user_id: "", date: "", type: "unjustified", justification: "" });
+      setSelectedOrgId("");
     }
   };
 
@@ -260,7 +322,13 @@ const AdminAbsences = () => {
               <Download className="w-4 h-4 sm:mr-2" />
               <span className="hidden sm:inline">Exportar CSV</span>
             </Button>
-            <Button size="sm" onClick={() => setCreateDialogOpen(true)}>
+            <Button size="sm" onClick={() => {
+              if (organizations.length === 1) {
+                setSelectedOrgId(organizations[0].id);
+                fetchDialogMembers(organizations[0].id);
+              }
+              setCreateDialogOpen(true);
+            }}>
               <Plus className="w-4 h-4 sm:mr-2" />
               <span className="hidden sm:inline">Registrar falta</span>
             </Button>
@@ -574,14 +642,35 @@ const AdminAbsences = () => {
             <DialogDescription>Registra una inasistencia para un empleado.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 pt-2">
+            {organizations.length > 1 && (
+              <div className="space-y-2">
+                <Label>Organización</Label>
+                <Select value={selectedOrgId} onValueChange={setSelectedOrgId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar organización" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {organizations.map((org) => (
+                      <SelectItem key={org.id} value={org.id}>
+                        {org.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="employee">Empleado</Label>
-              <Select value={newAbsence.user_id} onValueChange={(v) => setNewAbsence((p) => ({ ...p, user_id: v }))}>
+              <Select
+                value={newAbsence.user_id}
+                onValueChange={(v) => setNewAbsence((p) => ({ ...p, user_id: v }))}
+                disabled={organizations.length > 1 && !selectedOrgId}
+              >
                 <SelectTrigger id="employee">
-                  <SelectValue placeholder="Seleccionar empleado" />
+                  <SelectValue placeholder={loadingDialogMembers ? "Cargando..." : "Seleccionar empleado"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {members.map((m) => (
+                  {(organizations.length > 1 ? dialogMembers : members).map((m) => (
                     <SelectItem key={m.user_id} value={m.user_id}>
                       {m.full_name}
                     </SelectItem>
@@ -629,7 +718,7 @@ const AdminAbsences = () => {
               </Button>
               <Button
                 onClick={handleCreateAbsence}
-                disabled={submitting || !newAbsence.user_id || !newAbsence.date}
+                disabled={submitting || !newAbsence.user_id || !newAbsence.date || !selectedOrgId}
               >
                 {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 Registrar

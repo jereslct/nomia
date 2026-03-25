@@ -83,7 +83,26 @@ export const usePayStubs = (userId?: string) => {
       const { data, error } = await query;
 
       if (error) throw error;
-      setPayStubs((data as unknown as PayStub[]) || []);
+
+      const stubs = (data as unknown as PayStub[]) || [];
+
+      // Fetch profile names
+      const userIds = [...new Set(stubs.map((s) => s.user_id))];
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, full_name, email")
+          .in("user_id", userIds);
+        const profileMap = new Map(
+          (profiles || []).map((p) => [p.user_id, { full_name: p.full_name, email: p.email }])
+        );
+        stubs.forEach((s) => {
+          const profile = profileMap.get(s.user_id);
+          if (profile) s.profiles = profile;
+        });
+      }
+
+      setPayStubs(stubs);
     } catch (error) {
       console.error("Error fetching pay stubs:", error);
       toast({

@@ -104,7 +104,23 @@ export function useAbsences(userId?: string, externalOrgId?: string | null) {
       const { data, error } = await query;
       if (error) throw error;
 
-      setAbsences((data as unknown as Absence[]) || []);
+      const absencesList = (data as unknown as Absence[]) || [];
+
+      // Fetch profile names
+      const userIds = [...new Set(absencesList.map((a) => a.user_id))];
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", userIds);
+        const profileMap = new Map((profiles || []).map((p) => [p.user_id, p.full_name]));
+        absencesList.forEach((a) => {
+          const name = profileMap.get(a.user_id);
+          if (name) a.profiles = { full_name: name };
+        });
+      }
+
+      setAbsences(absencesList);
     } catch (err) {
       console.error("Error fetching absences:", err);
       setAbsences([]);

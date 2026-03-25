@@ -322,7 +322,13 @@ const AdminAbsences = () => {
               <Download className="w-4 h-4 sm:mr-2" />
               <span className="hidden sm:inline">Exportar CSV</span>
             </Button>
-            <Button size="sm" onClick={() => setCreateDialogOpen(true)}>
+            <Button size="sm" onClick={() => {
+              if (organizations.length === 1) {
+                setSelectedOrgId(organizations[0].id);
+                fetchDialogMembers(organizations[0].id);
+              }
+              setCreateDialogOpen(true);
+            }}>
               <Plus className="w-4 h-4 sm:mr-2" />
               <span className="hidden sm:inline">Registrar falta</span>
             </Button>

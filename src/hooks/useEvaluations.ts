@@ -122,7 +122,7 @@ export function useEvaluations() {
 
       let evalQuery = supabase
         .from("performance_evaluations")
-        .select("*, profiles!performance_evaluations_user_id_fkey(full_name), evaluation_templates!performance_evaluations_template_id_fkey(name, criteria)")
+        .select("*, evaluation_templates(name, criteria)")
         .eq("organization_id", orgId)
         .order("created_at", { ascending: false });
 
@@ -151,13 +151,28 @@ export function useEvaluations() {
             shared_at: e.shared_at as string | null,
             created_at: e.created_at as string,
             updated_at: e.updated_at as string,
-            profiles: e.profiles as { full_name: string } | null,
+            profiles: null,
             evaluation_templates: tpl
               ? { name: tpl.name as string, criteria: (tpl.criteria || []) as Criterion[] }
               : null,
           };
         },
       );
+
+      // Fetch profile names for evaluations
+      const userIds = [...new Set(mapped.map((e) => e.user_id))];
+      if (userIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", userIds);
+        const profileMap = new Map((profilesData || []).map((p) => [p.user_id, p.full_name]));
+        mapped.forEach((e) => {
+          const name = profileMap.get(e.user_id);
+          if (name) e.profiles = { full_name: name };
+        });
+      }
+
       setEvaluations(mapped);
     } catch (err) {
       console.error("Error fetching evaluations:", err);

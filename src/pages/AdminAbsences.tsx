@@ -232,7 +232,7 @@ const AdminAbsences = () => {
   }, [absences]);
 
   const handleCreateAbsence = async () => {
-    if (!newAbsence.user_id || !newAbsence.date) return;
+    if (!newAbsence.user_id || !newAbsence.date || !selectedOrgId) return;
     setSubmitting(true);
 
     const { error } = await createAbsence({
@@ -240,6 +240,7 @@ const AdminAbsences = () => {
       date: newAbsence.date,
       type: newAbsence.type,
       justification: newAbsence.justification || undefined,
+      organization_id: selectedOrgId,
     });
 
     setSubmitting(false);
@@ -250,6 +251,7 @@ const AdminAbsences = () => {
       toast({ title: "Falta registrada", description: "La inasistencia fue registrada correctamente." });
       setCreateDialogOpen(false);
       setNewAbsence({ user_id: "", date: "", type: "unjustified", justification: "" });
+      setSelectedOrgId("");
     }
   };
 

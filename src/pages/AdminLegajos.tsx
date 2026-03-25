@@ -73,7 +73,7 @@ function formatFileSize(bytes: number): string {
 }
 
 export default function AdminLegajos() {
-  const { } = useAuth();
+  const { documents, loading, updateDocumentStatus } = useEmployeeDocuments();
   const { documents, loading, updateDocumentStatus } = useEmployeeDocuments();
   const { toast } = useToast();
 

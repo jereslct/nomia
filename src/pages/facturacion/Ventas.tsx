@@ -367,46 +367,50 @@ const Ventas = () => {
                         {cart.map((item) => (
                           <div
                             key={item.product_id}
-                            className="flex items-center gap-2 rounded-lg border border-border p-2"
+                            className="rounded-lg border border-border p-3 space-y-2"
                           >
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium truncate">{item.name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {formatCurrency(item.unit_price)} c/u
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-medium leading-tight">{item.name}</p>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  {formatCurrency(item.unit_price)} c/u
+                                </p>
+                              </div>
                               <Button
-                                variant="outline"
+                                variant="ghost"
                                 size="icon"
-                                className="h-7 w-7"
-                                onClick={() => updateQuantity(item.product_id, -1)}
+                                className="h-6 w-6 shrink-0 text-destructive hover:text-destructive"
+                                onClick={() => removeFromCart(item.product_id)}
                               >
-                                <Minus className="w-3 h-3" />
+                                <Trash2 className="w-3.5 h-3.5" />
                               </Button>
-                              <span className="w-8 text-center text-sm font-medium">
-                                {item.quantity}
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => updateQuantity(item.product_id, -1)}
+                                >
+                                  <Minus className="w-3 h-3" />
+                                </Button>
+                                <span className="w-8 text-center text-sm font-medium">
+                                  {item.quantity}
+                                </span>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => updateQuantity(item.product_id, 1)}
+                                >
+                                  <Plus className="w-3 h-3" />
+                                </Button>
+                              </div>
+                              <span className="text-sm font-semibold">
+                                {formatCurrency(item.subtotal)}
                               </span>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-7 w-7"
-                                onClick={() => updateQuantity(item.product_id, 1)}
-                              >
-                                <Plus className="w-3 h-3" />
-                              </Button>
                             </div>
-                            <span className="text-sm font-semibold w-20 text-right shrink-0">
-                              {formatCurrency(item.subtotal)}
-                            </span>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-destructive hover:text-destructive"
-                              onClick={() => removeFromCart(item.product_id)}
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
                           </div>
                         ))}
                       </div>

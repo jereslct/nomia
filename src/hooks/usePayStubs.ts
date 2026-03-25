@@ -112,7 +112,8 @@ export const usePayStubs = (userId?: string) => {
       const orgId = await getOrganizationId();
       if (!orgId) throw new Error("No se encontró la organización.");
 
-      const filePath = `${orgId}/${targetUserId}/${periodYear}_${periodMonth}_${file.name}`;
+      const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const filePath = `${orgId}/${targetUserId}/${periodYear}_${periodMonth}_${sanitizedName}`;
 
       const { error: uploadError } = await supabase.storage
         .from("pay-stubs")

@@ -72,6 +72,11 @@ interface OrgMember {
   full_name: string;
 }
 
+interface OrgOption {
+  id: string;
+  name: string;
+}
+
 const AdminAbsences = () => {
   const navigate = useNavigate();
   const { user, isAdmin, loading: authLoading } = useAuth();
@@ -84,10 +89,14 @@ const AdminAbsences = () => {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
+  const [organizations, setOrganizations] = useState<OrgOption[]>([]);
   const [members, setMembers] = useState<OrgMember[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [selectedOrgId, setSelectedOrgId] = useState("");
+  const [dialogMembers, setDialogMembers] = useState<OrgMember[]>([]);
+  const [loadingDialogMembers, setLoadingDialogMembers] = useState(false);
   const [newAbsence, setNewAbsence] = useState({ user_id: "", date: "", type: "unjustified" as AbsenceType, justification: "" });
   const [submitting, setSubmitting] = useState(false);
 

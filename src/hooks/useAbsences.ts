@@ -49,7 +49,7 @@ interface UpdateJustificationParams {
   certificate_file_name?: string;
 }
 
-export function useAbsences(userId?: string) {
+export function useAbsences(userId?: string, externalOrgId?: string | null) {
   const { user, isAdmin, loading: authLoading } = useAuth();
   const [absences, setAbsences] = useState<Absence[]>([]);
   const [loading, setLoading] = useState(true);

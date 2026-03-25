@@ -33,6 +33,7 @@ interface CreateAbsenceParams {
   date: string;
   type: AbsenceType;
   justification?: string;
+  organization_id?: string;
 }
 
 interface UpdateStatusParams {

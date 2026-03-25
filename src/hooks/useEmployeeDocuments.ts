@@ -101,7 +101,8 @@ export function useEmployeeDocuments(userId?: string) {
 
       const targetUser = targetUserId || user.id;
       const timestamp = Date.now();
-      const filePath = `${organizationId}/${targetUser}/${timestamp}_${file.name}`;
+      const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const filePath = `${organizationId}/${targetUser}/${timestamp}_${sanitizedName}`;
 
       const { error: uploadError } = await supabase.storage
         .from("employee-documents")

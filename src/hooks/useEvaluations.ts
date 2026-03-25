@@ -122,7 +122,7 @@ export function useEvaluations() {
 
       let evalQuery = supabase
         .from("performance_evaluations")
-        .select("*, profiles!performance_evaluations_user_id_fkey(full_name), evaluation_templates!performance_evaluations_template_id_fkey(name, criteria)")
+        .select("*, evaluation_templates(name, criteria)")
         .eq("organization_id", orgId)
         .order("created_at", { ascending: false });
 

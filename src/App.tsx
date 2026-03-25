@@ -7,6 +7,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ROUTES } from "@/lib/routes";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import ScanQR from "./pages/ScanQR";
 import AdminQR from "./pages/AdminQR";
@@ -68,6 +69,7 @@ const App = () => (
         <Routes>
           <Route path={ROUTES.HOME} element={<Index />} />
           <Route path={ROUTES.ACCESO} element={<Auth />} />
+          <Route path={ROUTES.RECUPERAR} element={<ResetPassword />} />
           <Route path={ROUTES.PANEL} element={
             <ProtectedRoute>
               <Dashboard />

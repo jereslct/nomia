@@ -49,7 +49,7 @@ interface UpdateJustificationParams {
   certificate_file_name?: string;
 }
 
-export function useAbsences(userId?: string) {
+export function useAbsences(userId?: string, externalOrgId?: string | null) {
   const { user, isAdmin, loading: authLoading } = useAuth();
   const [absences, setAbsences] = useState<Absence[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,7 +82,7 @@ export function useAbsences(userId?: string) {
     setLoading(true);
 
     try {
-      const orgId = await fetchOrganizationId();
+      const orgId = externalOrgId || await fetchOrganizationId();
       setOrganizationId(orgId);
       if (!orgId) {
         setAbsences([]);
@@ -111,7 +111,7 @@ export function useAbsences(userId?: string) {
     } finally {
       setLoading(false);
     }
-  }, [user, isAdmin, authLoading, userId, fetchOrganizationId]);
+  }, [user, isAdmin, authLoading, userId, externalOrgId, fetchOrganizationId]);
 
   useEffect(() => {
     if (!authLoading && user) {

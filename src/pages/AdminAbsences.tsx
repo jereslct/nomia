@@ -80,7 +80,6 @@ interface OrgOption {
 const AdminAbsences = () => {
   const navigate = useNavigate();
   const { user, isAdmin, loading: authLoading } = useAuth();
-  const { absences, loading, organizationId, createAbsence, updateAbsenceStatus, refetch } = useAbsences();
   const { toast } = useToast();
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -90,8 +89,11 @@ const AdminAbsences = () => {
   const [dateTo, setDateTo] = useState("");
 
   const [organizations, setOrganizations] = useState<OrgOption[]>([]);
+  const [selectedListOrgId, setSelectedListOrgId] = useState<string | null>(null);
   const [members, setMembers] = useState<OrgMember[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
+
+  const { absences, loading, organizationId, createAbsence, updateAbsenceStatus, refetch } = useAbsences(undefined, selectedListOrgId);
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedOrgId, setSelectedOrgId] = useState("");
@@ -114,8 +116,12 @@ const AdminAbsences = () => {
       .select("id, name")
       .eq("owner_id", user.id)
       .order("created_at", { ascending: true });
-    setOrganizations(data || []);
-  }, [user]);
+    const orgs = data || [];
+    setOrganizations(orgs);
+    if (orgs.length > 0 && !selectedListOrgId) {
+      setSelectedListOrgId(orgs[0].id);
+    }
+  }, [user, selectedListOrgId]);
 
   useEffect(() => {
     if (user && isAdmin) fetchOrganizations();
@@ -249,6 +255,7 @@ const AdminAbsences = () => {
       toast({ title: "Error", description: error, variant: "destructive" });
     } else {
       toast({ title: "Falta registrada", description: "La inasistencia fue registrada correctamente." });
+      setSelectedListOrgId(selectedOrgId);
       setCreateDialogOpen(false);
       setNewAbsence({ user_id: "", date: "", type: "unjustified", justification: "" });
       setSelectedOrgId("");

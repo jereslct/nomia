@@ -96,21 +96,32 @@ const AdminVacations = () => {
     if (!organizationId) return;
     setLoadingMembers(true);
 
-    const { data } = await supabase
-      .from("organization_members")
-      .select("user_id, profiles!organization_members_user_id_fkey(full_name)")
-      .eq("organization_id", organizationId)
-      .eq("status", "accepted");
+    try {
+      const { data } = await supabase
+        .from("organization_members")
+        .select("user_id")
+        .eq("organization_id", organizationId)
+        .eq("status", "accepted");
 
-    const list: OrgMember[] = (data || [])
-      .filter((m: Record<string, unknown>) => m.user_id && m.profiles)
-      .map((m: Record<string, unknown>) => ({
-        user_id: m.user_id as string,
-        full_name: (m.profiles as Record<string, string>)?.full_name || "Sin nombre",
-      }));
+      const userIds = (data || []).map((m) => m.user_id).filter(Boolean) as string[];
+      if (!userIds.length) {
+        setMembers([]);
+        return;
+      }
 
-    setMembers(list);
-    setLoadingMembers(false);
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", userIds);
+
+      setMembers(
+        (profiles || []).map((p) => ({ user_id: p.user_id, full_name: p.full_name })),
+      );
+    } catch (err) {
+      console.error("Error fetching members:", err);
+    } finally {
+      setLoadingMembers(false);
+    }
   }, [organizationId]);
 
   useEffect(() => {

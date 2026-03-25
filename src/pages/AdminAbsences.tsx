@@ -636,14 +636,35 @@ const AdminAbsences = () => {
             <DialogDescription>Registra una inasistencia para un empleado.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 pt-2">
+            {organizations.length > 1 && (
+              <div className="space-y-2">
+                <Label>Organización</Label>
+                <Select value={selectedOrgId} onValueChange={setSelectedOrgId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar organización" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {organizations.map((org) => (
+                      <SelectItem key={org.id} value={org.id}>
+                        {org.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="employee">Empleado</Label>
-              <Select value={newAbsence.user_id} onValueChange={(v) => setNewAbsence((p) => ({ ...p, user_id: v }))}>
+              <Select
+                value={newAbsence.user_id}
+                onValueChange={(v) => setNewAbsence((p) => ({ ...p, user_id: v }))}
+                disabled={organizations.length > 1 && !selectedOrgId}
+              >
                 <SelectTrigger id="employee">
-                  <SelectValue placeholder="Seleccionar empleado" />
+                  <SelectValue placeholder={loadingDialogMembers ? "Cargando..." : "Seleccionar empleado"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {members.map((m) => (
+                  {(organizations.length > 1 ? dialogMembers : members).map((m) => (
                     <SelectItem key={m.user_id} value={m.user_id}>
                       {m.full_name}
                     </SelectItem>

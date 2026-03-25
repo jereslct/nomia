@@ -255,6 +255,7 @@ const AdminAbsences = () => {
       toast({ title: "Error", description: error, variant: "destructive" });
     } else {
       toast({ title: "Falta registrada", description: "La inasistencia fue registrada correctamente." });
+      setSelectedListOrgId(selectedOrgId);
       setCreateDialogOpen(false);
       setNewAbsence({ user_id: "", date: "", type: "unjustified", justification: "" });
       setSelectedOrgId("");

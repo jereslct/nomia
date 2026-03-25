@@ -117,7 +117,23 @@ export function useVacations() {
       const { data: requestsData, error } = await query;
       if (error) throw error;
 
-      setRequests((requestsData as unknown as VacationRequest[]) || []);
+      const reqs = (requestsData as unknown as VacationRequest[]) || [];
+
+      // Fetch profile names for requests
+      const reqUserIds = [...new Set(reqs.map((r) => r.user_id))];
+      if (reqUserIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", reqUserIds);
+        const profileMap = new Map((profilesData || []).map((p) => [p.user_id, p.full_name]));
+        reqs.forEach((r) => {
+          const name = profileMap.get(r.user_id);
+          if (name) r.profiles = { full_name: name };
+        });
+      }
+
+      setRequests(reqs);
     } catch (err) {
       console.error("Error fetching vacations:", err);
       setBalance(null);

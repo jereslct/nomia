@@ -1,31 +1,45 @@
+# Reestructuración: Nomia solo QR / Asistencia
 
+Sacamos por completo los módulos de Facturación y Control Comercial (botones, rutas, páginas, hooks y tablas). La app queda enfocada en QR, asistencia y RRHH.
 
-# Plan: Insertar datos ficticios de facturación
+## 1. Accesos y navegación
 
-## Objetivo
-Poblar las tablas de facturación de la organización "Compulsiva Centro" (`674c4825-14e9-47fd-84a1-f078aba8c8af`) del usuario `jere@gmail.com` con datos demo realistas.
+- Eliminar el componente de botones de apps (Facturación / Comercial) que aparece en el panel y en los headers.
+- Quitar la pantalla de bloqueo por plan (aparecía cuando el módulo no estaba incluido en la suscripción).
+- Sacar el bloque "Fase 3 – Control Comercial" del texto de la landing si corresponde dejarlo, se mantiene como roadmap informativo.
 
-## Datos a insertar
+## 2. Rutas
 
-| Tabla | Cantidad | Detalle |
-|-------|----------|---------|
-| `product_categories` | 5 | Remeras, Pantalones, Camperas, Accesorios, Calzado |
-| `brands` | 3 | Compulsiva, Urban Style, Street Wear |
-| `suppliers` | 3 | Textiles del Sur, Confecciones Patagonia, Importadora Fashion |
-| `customers` | 5 | Mix de consumidor final y responsable inscripto |
-| `products` | 15 | Productos con stock, SKU, precios de costo/venta, IVA 21% |
-| `invoices` | 12 | 8 emitidas + 4 recibidas, varios tipos (A/B/C/NC), estados (confirmed/draft) |
-| `invoice_items` | ~12 | Ítems asociados a las facturas |
-| `sales` | 13 | Ventas de marzo (10 históricas + 3 de hoy), distintos canales y medios de pago |
-| `sale_items` | ~19 | Productos vendidos |
-| `purchases` | 4 | Compras a proveedores con ítems |
-| `purchase_items` | 7 | Ítems de compras |
-| `points_of_sale` | 2 | Caja 1 y Caja 2 |
-| `exchange_rates` | 1 | USD a $1.250,50 |
+- Borrar todas las rutas `/facturacion/*` (panel, facturas, ventas, compras, productos, stock, proveedores, vendedores, reportes, AFIP, IVA).
+- Borrar todas las rutas `/comercial/*` (panel, gastos, planilla, sueldos, unidades, rentabilidad, punto de equilibrio, reportes).
+- Limpiar esas entradas del archivo central de rutas y sus imports en el router.
+- Cualquier URL vieja cae en la pantalla de "no encontrado" existente.
 
-## Implementación
+## 3. Código
 
-Una sola migración SQL con todos los INSERTs usando `ON CONFLICT DO NOTHING` para ser idempotente. Los datos cubren todo marzo 2026 con ventas del día actual para que el dashboard muestre métricas activas.
+- Eliminar las carpetas de páginas `src/pages/facturacion` y `src/pages/comercial`.
+- Eliminar los hooks exclusivos de esos módulos: productos, categorías, marcas, proveedores, clientes, facturas, ventas, compras, inventario, stock, pagos, puntos de venta, tipo de cambio, resumen de IVA, performance de vendedores y suscripción.
+- Verificar que no queden imports rotos y que el build pase.
 
-**Nota técnica**: La tabla `purchases` no tiene columna `status`, así que se omite ese campo.
+## 4. Base de datos
 
+Migración que elimina las tablas de ambos módulos junto con sus enums, funciones y triggers asociados.
+
+Facturación: productos, categorías de producto, marcas, proveedores, clientes, facturas y sus ítems, ventas y sus ítems, compras y sus ítems, movimientos de stock, alertas de stock, puntos de venta, cotizaciones, configuración AFIP, pagos y objetivos de venta.
+
+Comercial: unidades de negocio, categorías de gastos, gastos, planillas de gastos y sueldos.
+
+También se quitan las funciones de IVA, actualización masiva de precios y el trigger de stock, más los enums que sólo usaban esas tablas.
+
+Las tablas de suscripciones (planes y suscripción por organización) también se eliminan, ya que sólo servían para habilitar estos dos módulos.
+
+Esta acción borra los datos demo cargados (Indumentaria Urbana y los datos de prueba de jere@gmail.com). El código queda recuperable desde el historial de git.
+
+## Detalles técnicos
+
+- `src/lib/routes.ts`: quitar bloques `FACTURACION_*` y `COMERCIAL_*`.
+- `src/App.tsx`: quitar imports y `<Route>` de ambos módulos, y el import de `AppGuard`.
+- Borrar `src/components/AppNavButtons.tsx`, `src/components/AppGuard.tsx`, `src/hooks/useSubscription.ts`.
+- Quitar usos de `<AppNavButtons />` en `src/pages/Dashboard.tsx`.
+- Migración con `DROP TABLE ... CASCADE` en orden de dependencias, `DROP FUNCTION` (`get_iva_summary`, `bulk_update_prices_from_exchange_rate`, `update_product_stock`, `get_org_subscription_apps`) y `DROP TYPE` de los enums huérfanos.
+- Regenerar tipos tras la migración y validar build.

@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import type { Tables, Enums } from "@/integrations/supabase/types";
+import { toStoragePath } from "@/lib/storageFiles";
+
 
 type DocumentCategory = Enums<"document_category">;
 type DocumentStatus = Enums<"document_status">;

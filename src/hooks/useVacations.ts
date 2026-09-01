@@ -54,6 +54,7 @@ interface UpdateBalanceParams {
 export function useVacations() {
   const { user, isAdmin, loading: authLoading } = useAuth();
   const [balance, setBalance] = useState<VacationBalance | null>(null);
+  const [balances, setBalances] = useState<VacationBalance[]>([]);
   const [requests, setRequests] = useState<VacationRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [organizationId, setOrganizationId] = useState<string | null>(null);

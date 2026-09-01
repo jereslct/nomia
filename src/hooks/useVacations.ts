@@ -296,6 +296,7 @@ export function useVacations() {
 
   return {
     balance,
+    balances,
     requests,
     loading,
     organizationId,

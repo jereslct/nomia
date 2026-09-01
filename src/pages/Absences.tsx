@@ -33,6 +33,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { openStorageFile } from "@/lib/storageFiles";
 
 const TYPE_CONFIG: Record<AbsenceType, { label: string; color: string; icon: React.ElementType }> = {
   unjustified: { label: "Sin justificar", color: "bg-destructive/10 text-destructive border-destructive/30", icon: AlertTriangle },
@@ -113,11 +114,7 @@ const Absences = () => {
 
         if (uploadError) throw uploadError;
 
-        const { data: urlData } = supabase.storage
-          .from("absence-certificates")
-          .getPublicUrl(path);
-
-        certificateUrl = urlData.publicUrl;
+        certificateUrl = path;
         certificateFileName = certificateFile.name;
       }
 
@@ -245,14 +242,16 @@ const Absences = () => {
                             {absence.certificate_file_name && (
                               <div className="flex items-center gap-1.5 text-xs text-blue-600">
                                 <Paperclip className="w-3.5 h-3.5" />
-                                <a
-                                  href={absence.certificate_url || "#"}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    absence.certificate_url &&
+                                    openStorageFile("absence-certificates", absence.certificate_url)
+                                  }
                                   className="hover:underline truncate"
                                 >
                                   {absence.certificate_file_name}
-                                </a>
+                                </button>
                               </div>
                             )}
 

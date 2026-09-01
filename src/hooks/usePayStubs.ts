@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { toStoragePath } from "@/lib/storageFiles";
 
 interface PayStub {
   id: string;
@@ -140,17 +141,14 @@ export const usePayStubs = (userId?: string) => {
 
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
-        .from("pay-stubs")
-        .getPublicUrl(filePath);
-
       const { error: insertError } = await supabase.from("pay_stubs").insert({
         user_id: targetUserId,
         organization_id: orgId,
         period_month: periodMonth,
         period_year: periodYear,
         file_name: file.name,
-        file_url: urlData.publicUrl,
+        file_url: filePath,
+
         file_size: file.size,
         uploaded_by: user.id,
       });
@@ -202,8 +200,10 @@ export const usePayStubs = (userId?: string) => {
       const stub = payStubs.find((ps) => ps.id === id);
       if (!stub) return;
 
-      const filePath = `${stub.organization_id}/${stub.user_id}/${stub.period_year}_${stub.period_month}_${stub.file_name}`;
-      await supabase.storage.from("pay-stubs").remove([filePath]);
+      const filePath = toStoragePath("pay-stubs", stub.file_url);
+      if (filePath) {
+        await supabase.storage.from("pay-stubs").remove([filePath]);
+      }
 
       const { error } = await supabase.from("pay_stubs").delete().eq("id", id);
 

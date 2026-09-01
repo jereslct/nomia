@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import type { Tables, Enums } from "@/integrations/supabase/types";
+import { toStoragePath } from "@/lib/storageFiles";
+
 
 type DocumentCategory = Enums<"document_category">;
 type DocumentStatus = Enums<"document_status">;
@@ -126,10 +128,6 @@ export function useEmployeeDocuments(userId?: string) {
 
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
-        .from("employee-documents")
-        .getPublicUrl(filePath);
-
       const { error: insertError } = await supabase
         .from("employee_documents")
         .insert({
@@ -137,7 +135,8 @@ export function useEmployeeDocuments(userId?: string) {
           organization_id: organizationId,
           category,
           file_name: file.name,
-          file_url: urlData.publicUrl,
+          file_url: filePath,
+
           file_size: file.size,
           description: description || null,
           uploaded_by: user.id,
@@ -169,13 +168,12 @@ export function useEmployeeDocuments(userId?: string) {
       const doc = documents.find((d) => d.id === id);
       if (!doc) throw new Error("Documento no encontrado");
 
-      // Extract storage path from the public URL
-      const url = new URL(doc.file_url);
-      const storagePath = url.pathname.split("/employee-documents/").pop();
+      const storagePath = toStoragePath("employee-documents", doc.file_url);
 
       if (storagePath) {
-        await supabase.storage.from("employee-documents").remove([decodeURIComponent(storagePath)]);
+        await supabase.storage.from("employee-documents").remove([storagePath]);
       }
+
 
       const { error } = await supabase.from("employee_documents").delete().eq("id", id);
 

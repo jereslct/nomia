@@ -152,7 +152,7 @@ const Index = () => {
             <span className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
               Sin hardware especial
-            </div_soon>
+            </span>
             <span className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
               Solo un celular y un monitor

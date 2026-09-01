@@ -1,3 +1,4 @@
+import { Seo } from "@/components/Seo";
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -142,6 +143,7 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen gradient-hero flex flex-col">
+      <Seo title="Ingresar — Nomia" description="Accedé a tu cuenta de Nomia para fichar asistencia, ver tu historial y gestionar tu equipo." path="/acceso" />
       {/* Back to Home */}
       <div className="p-4 shrink-0">
         <Link to={ROUTES.HOME} className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">

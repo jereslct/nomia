@@ -1,3 +1,4 @@
+import { Seo } from "@/components/Seo";
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -115,6 +116,7 @@ const ResetPassword = () => {
 
   return (
     <div className="min-h-screen gradient-hero flex flex-col">
+      <Seo title="Recuperar contraseña — Nomia" description="Restablecé la contraseña de tu cuenta de Nomia." path="/recuperar-contrasena" noindex />
       <div className="p-4 shrink-0">
         <Link to={ROUTES.ACCESO} className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft className="w-4 h-4" />

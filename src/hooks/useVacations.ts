@@ -90,6 +90,7 @@ export function useVacations() {
       setOrganizationId(orgId);
       if (!orgId) {
         setBalance(null);
+        setBalances([]);
         setRequests([]);
         return;
       }

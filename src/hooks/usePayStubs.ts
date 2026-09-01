@@ -140,17 +140,14 @@ export const usePayStubs = (userId?: string) => {
 
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
-        .from("pay-stubs")
-        .getPublicUrl(filePath);
-
       const { error: insertError } = await supabase.from("pay_stubs").insert({
         user_id: targetUserId,
         organization_id: orgId,
         period_month: periodMonth,
         period_year: periodYear,
         file_name: file.name,
-        file_url: urlData.publicUrl,
+        file_url: filePath,
+
         file_size: file.size,
         uploaded_by: user.id,
       });

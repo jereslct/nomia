@@ -703,12 +703,6 @@ const Admin = () => {
               Vacaciones
             </Button>
           </Link>
-          <Link to={ROUTES.ADMIN_EVALUACIONES}>
-            <Button variant="outline" size="sm" className="gap-2">
-              <Star className="w-4 h-4 text-violet-500" />
-              Evaluaciones
-            </Button>
-          </Link>
         </div>
 
         {/* Stats Cards */}

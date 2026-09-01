@@ -109,11 +109,6 @@ const App = () => (
               <AdminVacations />
             </ProtectedRoute>
           } />
-          <Route path={ROUTES.ADMIN_EVALUACIONES} element={
-            <ProtectedRoute requireAdmin>
-              <AdminEvaluations />
-            </ProtectedRoute>
-          } />
           <Route path={ROUTES.EMPLEADO} element={
             <ProtectedRoute>
               <Employee />

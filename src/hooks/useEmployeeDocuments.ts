@@ -126,10 +126,6 @@ export function useEmployeeDocuments(userId?: string) {
 
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
-        .from("employee-documents")
-        .getPublicUrl(filePath);
-
       const { error: insertError } = await supabase
         .from("employee_documents")
         .insert({
@@ -137,7 +133,8 @@ export function useEmployeeDocuments(userId?: string) {
           organization_id: organizationId,
           category,
           file_name: file.name,
-          file_url: urlData.publicUrl,
+          file_url: filePath,
+
           file_size: file.size,
           description: description || null,
           uploaded_by: user.id,

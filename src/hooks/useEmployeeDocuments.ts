@@ -166,13 +166,12 @@ export function useEmployeeDocuments(userId?: string) {
       const doc = documents.find((d) => d.id === id);
       if (!doc) throw new Error("Documento no encontrado");
 
-      // Extract storage path from the public URL
-      const url = new URL(doc.file_url);
-      const storagePath = url.pathname.split("/employee-documents/").pop();
+      const storagePath = toStoragePath("employee-documents", doc.file_url);
 
       if (storagePath) {
-        await supabase.storage.from("employee-documents").remove([decodeURIComponent(storagePath)]);
+        await supabase.storage.from("employee-documents").remove([storagePath]);
       }
+
 
       const { error } = await supabase.from("employee_documents").delete().eq("id", id);
 

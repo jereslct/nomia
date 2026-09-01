@@ -1,3 +1,4 @@
+import { Seo } from "@/components/Seo";
 import { Button } from "@/components/ui/button";
 import {
   QrCode, ShieldCheck, BarChart3, Clock, Store,
@@ -71,6 +72,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
+      <Seo title="Nomia — Control de asistencia con QR" description="Fichaje de personal con códigos QR: multi-sucursal, turnos, reportes en tiempo real y control antifraude. Reemplazá la planilla de papel." path="/" />
       {/* ─── Navbar ─── */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/50 backdrop-blur-2xl border-b border-border/20">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">

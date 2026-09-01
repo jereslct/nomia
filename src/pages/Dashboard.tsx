@@ -1,3 +1,4 @@
+import { Seo } from "@/components/Seo";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -280,6 +281,7 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Seo title="Panel — Nomia" description="Panel principal de Nomia: fichá tu entrada y salida y revisá tu actividad reciente." path="/panel" noindex />
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">

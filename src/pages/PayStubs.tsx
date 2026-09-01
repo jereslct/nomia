@@ -56,8 +56,8 @@ const PayStubs = () => {
   }
 
   return (
-    <Seo title="Mis recibos de sueldo — Nomia" description="Descargá tus recibos de sueldo." path="/recibos" noindex />
     <div className="min-h-screen bg-gray-50">
+    <Seo title="Mis recibos de sueldo — Nomia" description="Descargá tus recibos de sueldo." path="/recibos" noindex />
       <div className="max-w-4xl mx-auto px-4 py-6 sm:py-8">
         <div className="flex items-center gap-3 mb-6">
           <Link to={ROUTES.PANEL}>

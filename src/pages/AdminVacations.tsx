@@ -225,8 +225,8 @@ const AdminVacations = () => {
   }
 
   return (
-    <Seo title="Gestión de vacaciones — Nomia" description="Administrá las vacaciones y balances del personal." path="/admin/vacaciones" noindex />
     <div className="min-h-screen bg-background">
+    <Seo title="Gestión de vacaciones — Nomia" description="Administrá las vacaciones y balances del personal." path="/admin/vacaciones" noindex />
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 h-16 flex items-center gap-3">
           <Link to={ROUTES.ADMIN}>

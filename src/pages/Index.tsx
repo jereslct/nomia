@@ -94,7 +94,7 @@ const Index = () => {
       </nav>
 
       {/* ─── Hero ─── */}
-      <section ref={heroRef} className="relative min-h-[85vh] flex items-center justify-center overflow-hidden pt-16 pb-12">
+      <section ref={heroRef} className="relative flex items-center justify-center overflow-hidden pt-16 pb-16 md:pb-20">
         {/* Animated background */}
         <motion.div style={{ y: heroY, opacity: heroOpacity }} className="absolute inset-0">
           <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-background" />

@@ -1,3 +1,4 @@
+import { Seo } from "@/components/Seo";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -352,6 +353,7 @@ const AdminLocations = () => {
   }
 
   return (
+    <Seo title="Ubicaciones — Nomia" description="Administrá las sucursales y ubicaciones de fichaje." path="/admin/ubicaciones" noindex />
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 h-16 flex items-center gap-4">

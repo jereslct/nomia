@@ -65,7 +65,7 @@ const formatDate = (dateStr: string) => {
 const AdminVacations = () => {
   const navigate = useNavigate();
   const { user, isAdmin, loading: authLoading } = useAuth();
-  const { requests, loading, organizationId, reviewRequest, updateBalance, refetch } = useVacations();
+  const { requests, balances, loading, organizationId, reviewRequest, updateBalance, refetch } = useVacations();
   const { toast } = useToast();
 
   const [members, setMembers] = useState<OrgMember[]>([]);

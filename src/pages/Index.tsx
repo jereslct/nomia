@@ -1,125 +1,73 @@
 import { Button } from "@/components/ui/button";
 import {
-  QrCode, Calculator, Receipt, TrendingUp, MessageSquare,
-  ArrowRight, ExternalLink, Sparkles, ChevronLeft, ChevronRight, ArrowUpRight,
-  Briefcase, Heart
+  QrCode, ShieldCheck, BarChart3, Clock, Store,
+  Smartphone, ArrowRight, Sparkles, MonitorPlay, FileSpreadsheet, Bell
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ROUTES } from "@/lib/routes";
-import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { motion, useScroll, useTransform } from "framer-motion";
+import { useRef } from "react";
 
 /* ═══════════════════ DATA ═══════════════════ */
 
-const categories = [
-  { id: "negocios", label: "Negocios", icon: Briefcase, color: "#3b82f6" },
-  { id: "bienestar", label: "Bienestar", icon: Heart, color: "#10b981" },
-] as const;
-
-const projects = [
+const features = [
   {
-    id: 1,
-    name: "Nomia",
-    subtitle: "Control de Asistencia",
-    description: "Ingreso y egreso de empleados a través de QR. Gestión de horarios, turnos, reportes en tiempo real y multi-ubicación.",
+    icon: ShieldCheck,
+    title: "QR seguros y dinámicos",
+    description: "Códigos con firma criptográfica que expiran automáticamente. Imposibles de falsificar ni reutilizar con capturas de pantalla.",
+  },
+  {
     icon: QrCode,
-    status: "live" as const,
-    url: "https://beam-in-out.lovable.app",
-    internalUrl: ROUTES.ACCESO,
-    tags: ["QR Scan", "Turnos", "Reportes", "Multi-sede"],
-    phase: "Fase 1",
-    color: "#3b82f6",
-    category: "negocios" as const,
-    accentGradient: "from-blue-500 via-cyan-400 to-blue-600",
-    mockupGradient: "from-blue-600/20 via-cyan-500/10 to-transparent",
+    title: "Fichaje en 2 segundos",
+    description: "El empleado abre la app, escanea el QR de la sucursal y listo: entrada o salida registrada con hora exacta y ubicación.",
   },
   {
-    id: 2,
-    name: "ViaticSync",
-    subtitle: "Rendición de Gastos",
-    description: "Escaneá comprobantes con IA, armá tu rendición en minutos y exportá el Excel listo para contabilidad. Todo desde el celular.",
-    icon: Receipt,
-    status: "live" as const,
-    url: "https://viaticos-sync.letschange.space/landing",
-    tags: ["OCR con IA", "Multi-Comprobante", "Excel", "100% Móvil"],
-    phase: "Activo",
-    color: "#c87533",
-    category: "negocios" as const,
-    accentGradient: "from-amber-600 via-orange-400 to-amber-700",
-    mockupGradient: "from-amber-600/20 via-orange-500/10 to-transparent",
+    icon: Store,
+    title: "Multi-sucursal",
+    description: "Gestioná todas tus tiendas desde una sola cuenta. Cada sede con sus empleados, turnos y configuración independiente.",
   },
   {
-    id: 3,
-    name: "NutriChat",
-    subtitle: "Asistente Nutricional IA",
-    description: "Convertí tu plan nutricional en PDF en un asistente inteligente. Lista de compras automática, soporte instantáneo y cero alucinaciones con tecnología RAG.",
-    icon: MessageSquare,
-    url: "https://nutrichat.letschange.space/",
-    status: "live" as const,
-    tags: ["IA + RAG", "PDF a Chat", "Lista de Compras", "100% Tu Plan"],
-    color: "#10b981",
-    category: "bienestar" as const,
-    accentGradient: "from-emerald-500 via-teal-400 to-emerald-600",
-    mockupGradient: "from-emerald-600/20 via-teal-500/10 to-transparent",
+    icon: Clock,
+    title: "Turnos y tolerancias",
+    description: "Configurá horarios de entrada y salida con tolerancias configurables. Semáforo visual de puntualidad en tiempo real.",
   },
   {
-    id: 4,
-    name: "Factura Pro",
-    subtitle: "Facturación & Stock",
-    description: "Facturación completa, stock, catálogo online, venta por local físico, reportes de vendedores.",
-    icon: Receipt,
-    status: "coming_soon" as const,
-    tags: ["Facturación", "Stock", "Catálogo", "Ventas"],
-    phase: "Fase 2",
-    color: "#f59e0b",
-    category: "negocios" as const,
-    accentGradient: "from-amber-500 via-orange-400 to-amber-600",
-    mockupGradient: "from-amber-600/20 via-orange-500/10 to-transparent",
+    icon: BarChart3,
+    title: "Dashboard en tiempo real",
+    description: "Mirá quién llegó, quién está tarde y quién ya se fue. Todo tu equipo, todas las sucursales, en una sola pantalla.",
   },
   {
-    id: 5,
-    name: "Rentabilidad 360",
-    subtitle: "Control de Gastos",
-    description: "Control integral por unidad de negocio. Sueldos, servicios, rentabilidad y punto de equilibrio.",
-    icon: TrendingUp,
-    status: "coming_soon" as const,
-    tags: ["Gastos", "Sueldos", "Rentabilidad", "Equilibrio"],
-    phase: "Fase 3",
-    color: "#ef4444",
-    category: "negocios" as const,
-    accentGradient: "from-rose-500 via-pink-400 to-rose-600",
-    mockupGradient: "from-rose-600/20 via-pink-500/10 to-transparent",
+    icon: FileSpreadsheet,
+    title: "Reportes exportables",
+    description: "Puntualidad, horas trabajadas y ausencias. Exportá a CSV o Excel multi-hoja con un clic, listos para contabilidad.",
+  },
+];
+
+const steps = [
+  {
+    icon: MonitorPlay,
+    title: "Generá el QR",
+    description: "Desde el panel, generá el código y mostralo en la tablet o monitor de la sucursal.",
+  },
+  {
+    icon: Smartphone,
+    title: "El empleado escanea",
+    description: "Al llegar y al irse, escanea el QR desde su celular con la cámara. Sin instalar nada.",
+  },
+  {
+    icon: Bell,
+    title: "Todo queda registrado",
+    description: "Horario, ubicación y puntualidad quedan guardados al instante en tus reportes.",
   },
 ];
 
 /* ═══════════════════ COMPONENT ═══════════════════ */
 
 const Index = () => {
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [direction, setDirection] = useState(0);
   const heroRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
   const heroY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
   const heroOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
-
-  const paginate = useCallback((dir: number) => {
-    setDirection(dir);
-    setCurrentSlide((prev) => (prev + dir + projects.length) % projects.length);
-  }, []);
-
-  // Auto-advance carousel
-  useEffect(() => {
-    const timer = setInterval(() => paginate(1), 24000);
-    return () => clearInterval(timer);
-  }, [paginate]);
-
-  const current = projects[currentSlide];
-
-  const slideVariants = {
-    enter: (d: number) => ({ x: d > 0 ? "100%" : "-100%", opacity: 0, scale: 0.9 }),
-    center: { x: 0, opacity: 1, scale: 1 },
-    exit: (d: number) => ({ x: d > 0 ? "-100%" : "100%", opacity: 0, scale: 0.9 }),
-  };
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
@@ -128,9 +76,9 @@ const Index = () => {
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/20">
-              <span className="text-primary-foreground font-black text-sm">S</span>
+              <QrCode className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="font-black text-lg tracking-tight">Suite</span>
+            <span className="font-black text-lg tracking-tight">Nomia</span>
           </div>
           <div className="flex items-center gap-2">
             <Link to={ROUTES.ACCESO}>
@@ -143,13 +91,13 @@ const Index = () => {
         </div>
       </nav>
 
-      {/* ─── Hero Full-Screen ─── */}
-      <section ref={heroRef} className="relative min-h-[60vh] flex items-center justify-center overflow-hidden pt-16 pb-8">
+      {/* ─── Hero ─── */}
+      <section ref={heroRef} className="relative min-h-[85vh] flex items-center justify-center overflow-hidden pt-16 pb-12">
         {/* Animated background */}
         <motion.div style={{ y: heroY, opacity: heroOpacity }} className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-b from-primary/3 via-transparent to-background" />
-          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-primary/4 blur-[120px]" />
-          <div className="absolute bottom-1/4 left-1/4 w-[300px] h-[300px] rounded-full bg-accent/3 blur-[100px]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-background" />
+          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-primary/5 blur-[120px]" />
+          <div className="absolute bottom-1/4 left-1/4 w-[300px] h-[300px] rounded-full bg-accent/5 blur-[100px]" />
         </motion.div>
 
         <div className="relative z-10 container mx-auto px-6 text-center space-y-6">
@@ -161,17 +109,18 @@ const Index = () => {
           >
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border/50 bg-card/50 backdrop-blur-sm text-sm font-medium text-muted-foreground">
               <Sparkles className="w-4 h-4 text-primary" />
-              Ecosistema de Gestión para Tiendas
+              Control de asistencia con QR
             </div>
 
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tighter leading-[0.9]">
-              <span className="block">Gestión</span>
-              <span className="block text-gradient">sin límites</span>
+              <span className="block">Fichaje por QR,</span>
+              <span className="block text-gradient">cero planillas</span>
             </h1>
 
-            <p className="text-base md:text-lg text-muted-foreground max-w-lg mx-auto leading-relaxed">
-              Todo lo que necesitás para administrar tu negocio,
-              desde la asistencia hasta la rentabilidad.
+            <p className="text-base md:text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">
+              Nomia reemplaza la planilla de papel: tus empleados marcan entrada y salida
+              escaneando un QR desde su celular. Puntualidad, horarios y reportes de
+              todas tus sucursales en un solo panel.
             </p>
           </motion.div>
 
@@ -179,394 +128,186 @@ const Index = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4, duration: 0.6 }}
-            className="flex items-center justify-center gap-4"
+            className="flex flex-col sm:flex-row items-center justify-center gap-3"
           >
-            <a href="#gallery">
-              <Button variant="hero" size="xl" className="group">
-                Ver Proyectos
+            <Link to={`${ROUTES.ACCESO}?mode=signup`}>
+              <Button variant="hero" size="xl" className="group w-full sm:w-auto">
+                Crear cuenta gratis
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </Link>
+            <a href="#como-funciona">
+              <Button variant="outline" size="xl" className="w-full sm:w-auto">
+                Cómo funciona
               </Button>
             </a>
           </motion.div>
 
-          {/* Scroll indicator */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 1.2 }}
-            className="mt-6"
+            transition={{ delay: 1 }}
+            className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 pt-2 text-xs text-muted-foreground"
           >
-            <div className="w-6 h-10 rounded-full border-2 border-muted-foreground/30 flex justify-center pt-2 mx-auto">
-              <motion.div
-                animate={{ y: [0, 12, 0] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
-                className="w-1.5 h-1.5 rounded-full bg-primary"
-              />
-            </div>
+            <span className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              Sin hardware especial
+            </div_soon>
+            <span className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              Solo un celular y un monitor
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              Multi-sucursal
+            </span>
           </motion.div>
         </div>
       </section>
 
-      {/* ─── Visual Gallery / Carousel ─── */}
-      <section id="gallery" className="relative py-10 px-6">
-        <div className="container mx-auto max-w-7xl">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-8 space-y-2"
-          >
-            <p className="text-sm font-bold text-primary uppercase tracking-[0.2em]">Portafolio</p>
-            <h2 className="text-3xl md:text-5xl font-black tracking-tight">Nuestros Productos</h2>
-          </motion.div>
-
-          {/* Carousel */}
-          <div className="relative">
-            {/* Main slide */}
-            <div className="relative min-h-[520px] md:h-[460px] rounded-3xl overflow-hidden bg-card border border-border/50">
-              <AnimatePresence custom={direction} mode="wait">
-                <motion.div
-                  key={currentSlide}
-                  custom={direction}
-                  variants={slideVariants}
-                  initial="enter"
-                  animate="center"
-                  exit="exit"
-                  transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] }}
-                  className="absolute inset-0 flex flex-col md:flex-row"
-                >
-                  {/* Left: Visual */}
-                  <div className="relative w-full md:w-1/2 h-[160px] md:h-full flex items-center justify-center overflow-hidden flex-shrink-0">
-                    <div className={`absolute inset-0 bg-gradient-to-br ${current.mockupGradient}`} />
-
-                    {/* Decorative circles - hidden on mobile */}
-                    <div className="absolute inset-0 hidden md:flex items-center justify-center">
-                      <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-                        className="absolute w-[400px] h-[400px] rounded-full border border-border/20"
-                      />
-                      <motion.div
-                        animate={{ rotate: -360 }}
-                        transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
-                        className="absolute w-[280px] h-[280px] rounded-full border border-border/10"
-                      />
-                    </div>
-
-                    {/* Icon */}
-                    <motion.div
-                      initial={{ scale: 0.5, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ delay: 0.2, duration: 0.5 }}
-                      className="relative z-10"
-                    >
-                      <div
-                        className={`w-16 h-16 md:w-32 md:h-32 rounded-2xl md:rounded-3xl bg-gradient-to-br ${current.accentGradient} flex items-center justify-center shadow-2xl`}
-                        style={{ boxShadow: `0 25px 60px -15px ${current.color}40` }}
-                      >
-                        <current.icon className="w-8 h-8 md:w-16 md:h-16 text-white" strokeWidth={1.5} />
-                      </div>
-                    </motion.div>
-                  </div>
-
-                  {/* Right: Info */}
-                  <div className="w-full md:w-1/2 flex-1 md:h-full flex flex-col justify-center p-5 md:p-10 overflow-y-auto">
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.15, duration: 0.5 }}
-                      className="space-y-3 md:space-y-5"
-                    >
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {(() => {
-                          const cat = categories.find(c => c.id === current.category);
-                          return cat ? (
-                            <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.15em] px-2.5 py-1 rounded-full bg-secondary text-muted-foreground">
-                              <cat.icon className="w-3 h-3" />
-                              {cat.label}
-                            </span>
-                          ) : null;
-                        })()}
-                        {current.phase && (
-                          <span
-                            className="text-xs font-black uppercase tracking-[0.15em] px-3 py-1 rounded-full"
-                            style={{ background: `${current.color}15`, color: current.color }}
-                          >
-                            {current.phase}
-                          </span>
-                        )}
-                        <StatusBadge status={current.status} />
-                      </div>
-
-                      <div>
-                        <h3 className="text-2xl md:text-4xl font-black tracking-tight">{current.name}</h3>
-                        <p className="text-sm md:text-base text-muted-foreground mt-0.5">{current.subtitle}</p>
-                      </div>
-
-                      <p className="text-muted-foreground leading-relaxed text-sm md:text-base max-w-md">
-                        {current.description}
-                      </p>
-
-                      <div className="flex flex-wrap gap-2">
-                        {current.tags.map((t) => (
-                          <span key={t} className="px-3 py-1 rounded-full bg-secondary text-secondary-foreground text-xs font-medium">
-                            {t}
-                          </span>
-                        ))}
-                      </div>
-
-                      {current.status === "live" && current.url && (
-                        <div className="flex gap-3 pt-3">
-                          <a href={current.url} target="_blank" rel="noopener noreferrer">
-                            <Button variant="outline" size="lg">
-                              <ExternalLink className="w-4 h-4" />
-                              Ver Sitio
-                            </Button>
-                          </a>
-                        </div>
-                      )}
-                    </motion.div>
-                  </div>
-                </motion.div>
-              </AnimatePresence>
-
-              {/* Nav arrows */}
-              <button
-                onClick={() => paginate(-1)}
-                className="absolute left-2 md:left-4 bottom-4 md:top-1/2 md:bottom-auto md:-translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 rounded-full bg-background/80 backdrop-blur-sm border border-border/50 flex items-center justify-center hover:bg-background transition-colors shadow-lg"
-              >
-                <ChevronLeft className="w-4 h-4 md:w-5 md:h-5" />
-              </button>
-              <button
-                onClick={() => paginate(1)}
-                className="absolute right-2 md:right-4 bottom-4 md:top-1/2 md:bottom-auto md:-translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 rounded-full bg-background/80 backdrop-blur-sm border border-border/50 flex items-center justify-center hover:bg-background transition-colors shadow-lg"
-              >
-                <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
-              </button>
-            </div>
-
-            {/* Thumbnails */}
-            <div className="flex items-center justify-start md:justify-center gap-2 mt-4 md:mt-5 overflow-x-auto pb-2 scrollbar-hide">
-              {categories.map((cat, catIdx) => (
-                <div key={cat.id} className="flex items-center gap-2">
-                  {catIdx > 0 && (
-                    <div className="w-px h-6 bg-border/60 mx-1" />
-                  )}
-                  <span className="text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground hidden md:flex items-center gap-1 mr-1">
-                    <cat.icon className="w-3 h-3" style={{ color: cat.color }} />
-                    {cat.label}
-                  </span>
-                  {projects.filter(p => p.category === cat.id).map((p) => {
-                    const i = projects.indexOf(p);
-                    return (
-                      <button
-                        key={p.id}
-                        onClick={() => { setDirection(i > currentSlide ? 1 : -1); setCurrentSlide(i); }}
-                        className={`group relative flex items-center gap-2 px-3 py-2 rounded-2xl border transition-all duration-300 ${
-                          i === currentSlide
-                            ? "border-primary bg-primary/10 shadow-md shadow-primary/10"
-                            : "border-border/50 bg-card/50 hover:border-border hover:bg-card"
-                        }`}
-                      >
-                        <div
-                          className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${
-                            i === currentSlide ? "scale-110" : "opacity-60 group-hover:opacity-100"
-                          }`}
-                          style={{ background: i === currentSlide ? `${p.color}20` : undefined }}
-                        >
-                          <p.icon className="w-3.5 h-3.5" style={{ color: p.color }} />
-                        </div>
-                        <span className={`text-xs font-semibold hidden md:block transition-colors ${
-                          i === currentSlide ? "text-foreground" : "text-muted-foreground"
-                        }`}>
-                          {p.name}
-                        </span>
-                        {i === currentSlide && (
-                          <motion.div
-                            className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-primary"
-                            initial={{ scaleX: 0, originX: 0 }}
-                            animate={{ scaleX: 1 }}
-                            transition={{ duration: 6, ease: "linear" }}
-                            key={`progress-${currentSlide}`}
-                          />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ─── Bento Grid ─── */}
-      <section className="py-10 px-6">
+      {/* ─── Features ─── */}
+      <section id="funcionalidades" className="relative py-16 px-6">
         <div className="container mx-auto max-w-6xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-8 space-y-2"
+            className="text-center mb-10 space-y-2"
           >
-            <p className="text-sm font-bold text-primary uppercase tracking-[0.2em]">Ecosistema</p>
-            <h2 className="text-2xl md:text-4xl font-black tracking-tight">Todos los módulos</h2>
-            <p className="text-sm text-muted-foreground max-w-lg mx-auto">
-              Cada pieza se conecta con las demás para darte una visión completa.
+            <p className="text-sm font-bold text-primary uppercase tracking-[0.2em]">Funcionalidades</p>
+            <h2 className="text-3xl md:text-5xl font-black tracking-tight">Todo lo que necesitás</h2>
+            <p className="text-sm md:text-base text-muted-foreground max-w-lg mx-auto">
+              Un sistema completo de asistencia laboral, simple para el empleado y poderoso para el administrador.
             </p>
           </motion.div>
 
-          {categories.map((cat) => {
-            const catProjects = projects.filter(p => p.category === cat.id);
-            return (
-              <div key={cat.id} className="mb-8 last:mb-0">
-                {/* Category header */}
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  className="flex items-center gap-3 mb-4"
-                >
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center"
-                    style={{ background: `${cat.color}15` }}
-                  >
-                    <cat.icon className="w-5 h-5" style={{ color: cat.color }} />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-black tracking-tight">{cat.label}</h3>
-                    <p className="text-xs text-muted-foreground">
-                      {cat.id === "negocios" ? "Herramientas para gestionar tu empresa" : "Soluciones para tu bienestar personal"}
-                    </p>
-                  </div>
-                  <div className="flex-1 h-px bg-border/50 ml-4" />
-                </motion.div>
-
-                {/* Grid */}
-                <div className={`grid grid-cols-1 gap-3 ${
-                  catProjects.length === 1 ? "md:grid-cols-1 max-w-md" :
-                  catProjects.length === 2 ? "md:grid-cols-2" :
-                  catProjects.length === 3 ? "md:grid-cols-3" : "md:grid-cols-2"
-                }`}>
-                  {catProjects.map((p, i) => (
-                    <motion.div
-                      key={p.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: i * 0.06, duration: 0.4 }}
-                      className="group relative rounded-2xl overflow-hidden border border-border/50 bg-card hover:border-border transition-all duration-300 cursor-pointer"
-                      onClick={() => {
-                        if (p.url && p.status === "live") window.open(p.url, "_blank");
-                      }}
-                    >
-                      <div className={`absolute inset-0 bg-gradient-to-br ${p.mockupGradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
-
-                      <div className="relative p-5 space-y-4 z-10">
-                        <div className="flex items-start justify-between">
-                          <div
-                            className={`w-12 h-12 rounded-xl bg-gradient-to-br ${p.accentGradient} flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300`}
-                            style={{ boxShadow: `0 8px 20px -8px ${p.color}30` }}
-                          >
-                            <p.icon className="w-6 h-6 text-white" strokeWidth={1.5} />
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <StatusBadge status={p.status} />
-                            {p.status === "live" && (
-                              <ArrowUpRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="space-y-1.5">
-                          {p.phase && (
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
-                              {p.phase}
-                            </span>
-                          )}
-                          <h3 className="text-xl font-black tracking-tight">{p.name}</h3>
-                          <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">{p.description}</p>
-                        </div>
-
-                        <div className="flex flex-wrap gap-1.5">
-                          {p.tags.slice(0, 3).map((t) => (
-                            <span key={t} className="px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground text-[10px] font-semibold">
-                              {t}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* ─── Roadmap Visual ─── */}
-      <section className="py-10 px-6 bg-card/50">
-        <div className="container mx-auto max-w-5xl">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-8 space-y-2"
-          >
-            <p className="text-sm font-bold text-primary uppercase tracking-[0.2em]">Roadmap</p>
-            <h2 className="text-2xl md:text-4xl font-black tracking-tight">El camino</h2>
-          </motion.div>
-
-          <div className="space-y-4">
-            {[
-              { phase: "Fase 1", title: "Control de Asistencia", desc: "QR, horarios, legajo, vacaciones, evaluación, reportes de faltas.", status: "live", color: "#3b82f6" },
-              { phase: "Fase 2", title: "Facturación & AFIP", desc: "Conexión AFIP, facturación, stock, catálogo, reportes de ventas, alertas de faltantes.", status: "building", color: "#f59e0b" },
-              { phase: "Fase 3", title: "Control Comercial", desc: "Gastos por unidad de negocio, sueldos, rentabilidad, punto de equilibrio.", status: "planned", color: "#ef4444" },
-            ].map((phase, i) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {features.map((f, i) => (
               <motion.div
-                key={i}
-                initial={{ opacity: 0, x: -30 }}
-                whileInView={{ opacity: 1, x: 0 }}
+                key={f.title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: i * 0.1, duration: 0.5 }}
-                className="relative flex gap-6 items-start"
+                transition={{ delay: i * 0.06, duration: 0.4 }}
+                className="glass-card rounded-2xl p-6 hover-lift space-y-3"
               >
-                {/* Timeline */}
-                <div className="flex flex-col items-center flex-shrink-0">
-                  <div
-                    className="w-4 h-4 rounded-full ring-4 ring-background z-10"
-                    style={{ background: phase.color }}
-                  />
-                  {i < 2 && <div className="w-px h-full bg-border mt-2" />}
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/20">
+                  <f.icon className="w-5 h-5 text-primary-foreground" strokeWidth={1.8} />
                 </div>
-
-                {/* Card */}
-                <div className="glass-card rounded-2xl p-5 flex-1 hover-lift mb-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <span
-                      className="text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full"
-                      style={{ background: `${phase.color}15`, color: phase.color }}
-                    >
-                      {phase.phase}
-                    </span>
-                    <span className={`text-xs font-semibold ${
-                      phase.status === "live" ? "text-emerald-500" : phase.status === "building" ? "text-amber-500" : "text-muted-foreground"
-                    }`}>
-                      {phase.status === "live" ? "● Completado" : phase.status === "building" ? "◐ En progreso" : "○ Planificado"}
-                    </span>
-                  </div>
-                  <h3 className="text-xl font-bold mb-1">{phase.title}</h3>
-                  <p className="text-sm text-muted-foreground">{phase.desc}</p>
-                </div>
+                <h3 className="text-lg font-black tracking-tight">{f.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{f.description}</p>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
+      {/* ─── Cómo funciona ─── */}
+      <section id="como-funciona" className="py-16 px-6 bg-card/50">
+        <div className="container mx-auto max-w-5xl">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-10 space-y-2"
+          >
+            <p className="text-sm font-bold text-primary uppercase tracking-[0.2em]">Simple de usar</p>
+            <h2 className="text-3xl md:text-5xl font-black tracking-tight">Cómo funciona</h2>
+            <p className="text-sm md:text-base text-muted-foreground max-w-lg mx-auto">
+              Tres pasos, cero fricción. Tu equipo empieza a fichar el mismo día.
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {steps.map((s, i) => (
+              <motion.div
+                key={s.title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1, duration: 0.5 }}
+                className="relative rounded-2xl border border-border/50 bg-card p-6 space-y-3"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <s.icon className="w-5 h-5 text-primary" />
+                  </div>
+                  <span className="text-4xl font-black text-muted-foreground/15 select-none">{`0${i + 1}`}</span>
+                </div>
+                <h3 className="text-lg font-black tracking-tight">{s.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{s.description}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Seguridad ─── */}
+      <section className="py-16 px-6">
+        <div className="container mx-auto max-w-5xl">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="space-y-4"
+            >
+              <p className="text-sm font-bold text-primary uppercase tracking-[0.2em]">Anti-fraude</p>
+              <h2 className="text-3xl md:text-4xl font-black tracking-tight leading-tight">
+                Un QR que no se puede engañar
+              </h2>
+              <p className="text-muted-foreground leading-relaxed">
+                Cada código QR se genera con una firma criptográfica y expira en segundos o minutos.
+                Un screenshot de ayer, de ayer a la mañana o incluso de hace un minuto no sirve:
+                la validación ocurre en el servidor, con la hora exacta y la ubicación.
+              </p>
+              <div className="flex flex-wrap gap-2 pt-1">
+                {["Firma HMAC-SHA256", "Expiración configurable", "Validación server-side", "Sin reutilización"].map((tag) => (
+                  <span key={tag} className="px-3 py-1 rounded-full bg-secondary text-secondary-foreground text-xs font-medium">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="relative flex items-center justify-center"
+            >
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+                  className="w-[320px] h-[320px] rounded-full border border-border/20"
+                />
+                <motion.div
+                  animate={{ rotate: -360 }}
+                  transition={{ duration: 45, repeat: Infinity, ease: "linear" }}
+                  className="absolute w-[220px] h-[220px] rounded-full border border-border/10"
+                />
+              </div>
+              <div className="relative glass-card rounded-3xl p-8 flex flex-col items-center gap-4 shadow-2xl shadow-primary/10">
+                <div className="w-32 h-32 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-xl shadow-primary/25">
+                  <QrCode className="w-20 h-20 text-primary-foreground" strokeWidth={1.5} />
+                </div>
+                <div className="text-center space-y-1">
+                  <p className="text-xs font-mono text-muted-foreground">nomia:nonce|ubicación|firma</p>
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1.5 justify-center">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Válido por 30 segundos
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
       {/* ─── CTA ─── */}
-      <section className="py-10 px-6">
+      <section className="py-16 px-6">
         <div className="container mx-auto max-w-4xl">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -579,11 +320,12 @@ const Index = () => {
 
             <div className="relative p-8 md:p-12 text-center space-y-4">
               <h2 className="text-2xl md:text-4xl font-black tracking-tight text-primary-foreground leading-tight">
-                Empezá a gestionar
-                <br />tu negocio hoy
+                Dejá las planillas de papel
+                <br />y empezá a fichar con QR
               </h2>
-              <p className="text-primary-foreground/70 max-w-lg mx-auto text-base">
-                Nomia ya está disponible. Registrate gratis y probá el control de asistencia por QR.
+              <p className="text-primary-foreground/80 max-w-lg mx-auto text-base">
+                Cargá tu equipo, generá el QR y en minutos tenés el control de asistencia
+                de todas tus sucursales funcionando.
               </p>
               <Link to={`${ROUTES.ACCESO}?mode=signup`}>
                 <Button
@@ -604,28 +346,15 @@ const Index = () => {
         <div className="container mx-auto max-w-6xl flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-              <span className="text-primary-foreground font-black text-xs">S</span>
+              <QrCode className="w-4 h-4 text-primary-foreground" />
             </div>
-            <span className="font-bold">Suite</span>
+            <span className="font-bold">Nomia</span>
           </div>
-          <p className="text-sm text-muted-foreground">© 2026 · Todos los derechos reservados.</p>
+          <p className="text-sm text-muted-foreground">© 2026 Nomia · Control de asistencia con QR</p>
         </div>
       </footer>
     </div>
   );
 };
-
-/* ═══════════════════ SUB-COMPONENTS ═══════════════════ */
-
-const StatusBadge = ({ status }: { status: "live" | "coming_soon" }) => (
-  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${
-    status === "live"
-      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-      : "bg-secondary text-muted-foreground"
-  }`}>
-    {status === "live" && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
-    {status === "live" ? "Disponible" : "Próximamente"}
-  </span>
-);
 
 export default Index;

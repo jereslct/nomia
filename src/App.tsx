@@ -20,7 +20,6 @@ import AdminAbsences from "./pages/AdminAbsences";
 import AdminLegajos from "./pages/AdminLegajos";
 import AdminPayStubs from "./pages/AdminPayStubs";
 import AdminVacations from "./pages/AdminVacations";
-import AdminEvaluations from "./pages/AdminEvaluations";
 import Employee from "./pages/Employee";
 import History from "./pages/History";
 import Profile from "./pages/Profile";

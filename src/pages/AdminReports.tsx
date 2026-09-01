@@ -618,8 +618,8 @@ const fetchRecords = async (orgIds: string[]) => {
   const periodLabel = `${format(rangeStart, "d MMM", { locale: es })} - ${format(rangeEnd, "d MMM yyyy", { locale: es })}`;
 
   return (
-    <Seo title="Reportes de asistencia — Nomia" description="Reportes y estadísticas de asistencia del personal." path="/admin/reportes" noindex />
     <div className="min-h-screen bg-background">
+    <Seo title="Reportes de asistencia — Nomia" description="Reportes y estadísticas de asistencia del personal." path="/admin/reportes" noindex />
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 min-h-16 py-2 flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-3">

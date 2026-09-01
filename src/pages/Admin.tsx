@@ -638,8 +638,8 @@ const Admin = () => {
   }
 
   return (
-    <Seo title="Panel de administración — Nomia" description="Gestioná empleados, asistencia y configuración de tu organización." path="/admin" noindex />
     <div className="min-h-screen bg-background">
+    <Seo title="Panel de administración — Nomia" description="Gestioná empleados, asistencia y configuración de tu organización." path="/admin" noindex />
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 min-h-16 py-2 flex items-center justify-between gap-2 flex-wrap">

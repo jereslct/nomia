@@ -29,8 +29,8 @@ const ScanQR = () => {
   }
 
   return (
-    <Seo title="Escanear QR — Nomia" description="Fichá tu entrada o salida escaneando el código QR." path="/escanear" noindex />
     <div className="min-h-screen bg-background">
+    <Seo title="Escanear QR — Nomia" description="Fichá tu entrada o salida escaneando el código QR." path="/escanear" noindex />
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 h-16 flex items-center gap-4">
           <Link to={ROUTES.PANEL}><Button variant="ghost" size="icon" aria-label="Volver"><ArrowLeft className="w-5 h-5" /></Button></Link>

@@ -22,5 +22,5 @@ export const ROUTES = {
   AUSENCIAS: '/ausencias',
   RECIBOS: '/recibos',
   VACACIONES: '/vacaciones',
-  EVALUACIONES: '/evaluaciones',
+  
 } as const;

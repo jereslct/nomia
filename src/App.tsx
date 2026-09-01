@@ -150,11 +150,6 @@ const App = () => (
               <Vacations />
             </ProtectedRoute>
           } />
-          <Route path={ROUTES.EVALUACIONES} element={
-            <ProtectedRoute>
-              <Evaluations />
-            </ProtectedRoute>
-          } />
           <Route path="*" element={<NotFound />} />
         </Routes>
         </main>

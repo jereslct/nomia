@@ -614,20 +614,6 @@ const Dashboard = () => {
                   </CardContent>
                 </Card>
               </Link>
-              <Link to={ROUTES.EVALUACIONES}>
-                <Card className="glass-card hover-lift cursor-pointer group h-full">
-                  <CardContent className="p-6 flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-violet-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <Star className="w-7 h-7 text-violet-500" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold">Evaluaciones</h3>
-                      <p className="text-sm text-muted-foreground">Mi desempeño</p>
-                    </div>
-                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
-                  </CardContent>
-                </Card>
-              </Link>
             </>
           )}
         </div>

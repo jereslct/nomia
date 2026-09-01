@@ -13,6 +13,7 @@ export interface VacationBalance {
   used_days: number;
   created_at: string;
   updated_at: string;
+  profiles?: { full_name: string } | null;
 }
 
 export interface VacationRequest {

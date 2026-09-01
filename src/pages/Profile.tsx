@@ -308,8 +308,8 @@ const Profile = () => {
 
   if (!user) return null;
 
-      <Seo title="Mi perfil — Nomia" description="Gestioná tu perfil y datos personales." path="/perfil" noindex />
   return (
+    <Seo title="Mi perfil — Nomia" description="Gestioná tu perfil y datos personales." path="/perfil" noindex />
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">

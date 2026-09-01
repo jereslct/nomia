@@ -203,8 +203,8 @@ export default function AdminLegajos() {
     );
   }
 
-      <Seo title="Legajos de empleados — Nomia" description="Gestioná los documentos y legajos del personal." path="/admin/legajos" noindex />
   return (
+    <Seo title="Legajos de empleados — Nomia" description="Gestioná los documentos y legajos del personal." path="/admin/legajos" noindex />
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-6 max-w-6xl">
         <div className="flex items-center justify-between mb-6">

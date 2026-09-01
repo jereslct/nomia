@@ -148,8 +148,8 @@ const Absences = () => {
     );
   }
 
-      <Seo title="Mis ausencias — Nomia" description="Consultá y registrá tus ausencias y certificados." path="/ausencias" noindex />
   return (
+    <Seo title="Mis ausencias — Nomia" description="Consultá y registrá tus ausencias y certificados." path="/ausencias" noindex />
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 h-16 flex items-center gap-4">

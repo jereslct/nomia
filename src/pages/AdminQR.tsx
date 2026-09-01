@@ -286,8 +286,8 @@ const AdminQR = () => {
     );
   }
 
-      <Seo title="Gestión de QR — Nomia" description="Generá y administrá los códigos QR de asistencia." path="/admin/qr" noindex />
   return (
+    <Seo title="Gestión de QR — Nomia" description="Generá y administrá los códigos QR de asistencia." path="/admin/qr" noindex />
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">

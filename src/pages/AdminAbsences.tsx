@@ -311,8 +311,8 @@ const AdminAbsences = () => {
     );
   }
 
-      <Seo title="Gestión de ausencias — Nomia" description="Administrá las ausencias y faltas del personal." path="/admin/ausencias" noindex />
   return (
+    <Seo title="Gestión de ausencias — Nomia" description="Administrá las ausencias y faltas del personal." path="/admin/ausencias" noindex />
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 min-h-16 py-2 flex items-center justify-between gap-2 flex-wrap">

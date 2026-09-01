@@ -151,8 +151,8 @@ const Employee = () => {
 
   const firstName = profile?.full_name?.split(" ")[0] || "Usuario";
 
-      <Seo title="Mi panel — Nomia" description="Tu panel de empleado: fichaje, historial y novedades." path="/empleado" noindex />
   return (
+    <Seo title="Mi panel — Nomia" description="Tu panel de empleado: fichaje, historial y novedades." path="/empleado" noindex />
     <div className="min-h-screen bg-background flex flex-col">
       <header className="bg-background/80 backdrop-blur-lg border-b border-border safe-area-inset">
         <div className="px-4 h-14 flex items-center justify-between">

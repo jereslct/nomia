@@ -28,8 +28,8 @@ const ScanQR = () => {
     return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
   }
 
-      <Seo title="Escanear QR — Nomia" description="Fichá tu entrada o salida escaneando el código QR." path="/escanear" noindex />
   return (
+    <Seo title="Escanear QR — Nomia" description="Fichá tu entrada o salida escaneando el código QR." path="/escanear" noindex />
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 h-16 flex items-center gap-4">

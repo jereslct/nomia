@@ -1,3 +1,4 @@
+import { Seo } from "@/components/Seo";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -285,6 +286,7 @@ const AdminQR = () => {
     );
   }
 
+      <Seo title="Gestión de QR — Nomia" description="Generá y administrá los códigos QR de asistencia." path="/admin/qr" noindex />
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}

@@ -1,3 +1,4 @@
+import { Seo } from "@/components/Seo";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -150,6 +151,7 @@ const Employee = () => {
 
   const firstName = profile?.full_name?.split(" ")[0] || "Usuario";
 
+      <Seo title="Mi panel — Nomia" description="Tu panel de empleado: fichaje, historial y novedades." path="/empleado" noindex />
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <header className="bg-background/80 backdrop-blur-lg border-b border-border safe-area-inset">

@@ -1,3 +1,4 @@
+import { Seo } from "@/components/Seo";
 import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { ROUTES } from "@/lib/routes";
@@ -210,6 +211,7 @@ const AdminPayStubs = () => {
     );
   }
 
+      <Seo title="Gestión de recibos — Nomia" description="Cargá y gestioná los recibos de sueldo del personal." path="/admin/recibos" noindex />
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 py-6 sm:py-8">

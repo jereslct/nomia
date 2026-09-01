@@ -1,3 +1,4 @@
+import { Seo } from "@/components/Seo";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -307,6 +308,7 @@ const Profile = () => {
 
   if (!user) return null;
 
+      <Seo title="Mi perfil — Nomia" description="Gestioná tu perfil y datos personales." path="/perfil" noindex />
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}

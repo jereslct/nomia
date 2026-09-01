@@ -1,3 +1,4 @@
+import { Seo } from "@/components/Seo";
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -154,6 +155,7 @@ export default function EmployeeDocuments() {
     setSelectedCategory("curriculum");
   };
 
+      <Seo title="Mis documentos — Nomia" description="Consultá y subí tus documentos personales." path="/perfil/documentos" noindex />
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">

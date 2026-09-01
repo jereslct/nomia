@@ -1,3 +1,4 @@
+import { Seo } from "@/components/Seo";
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { ROUTES } from "@/lib/routes";
@@ -112,6 +113,7 @@ const Vacations = () => {
     );
   }
 
+      <Seo title="Mis vacaciones — Nomia" description="Consultá tu balance y solicitá vacaciones." path="/vacaciones" noindex />
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">

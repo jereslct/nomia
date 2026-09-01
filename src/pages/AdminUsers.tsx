@@ -1,3 +1,4 @@
+import { Seo } from "@/components/Seo";
 import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -802,6 +803,7 @@ const AdminUsers = () => {
     );
   }
 
+      <Seo title="Gestión de usuarios — Nomia" description="Administrá los usuarios y roles de tu organización." path="/admin/usuarios" noindex />
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}

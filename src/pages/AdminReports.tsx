@@ -1,3 +1,4 @@
+import { Seo } from "@/components/Seo";
 import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -616,6 +617,7 @@ const fetchRecords = async (orgIds: string[]) => {
   const { start: rangeStart, end: rangeEnd } = getDateRange();
   const periodLabel = `${format(rangeStart, "d MMM", { locale: es })} - ${format(rangeEnd, "d MMM yyyy", { locale: es })}`;
 
+      <Seo title="Reportes de asistencia — Nomia" description="Reportes y estadísticas de asistencia del personal." path="/admin/reportes" noindex />
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">

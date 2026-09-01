@@ -1,3 +1,4 @@
+import { Seo } from "@/components/Seo";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -636,6 +637,7 @@ const Admin = () => {
     );
   }
 
+      <Seo title="Panel de administración — Nomia" description="Gestioná empleados, asistencia y configuración de tu organización." path="/admin" noindex />
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}

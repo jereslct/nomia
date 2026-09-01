@@ -28,7 +28,6 @@ import Absences from "./pages/Absences";
 import EmployeeDocuments from "./pages/EmployeeDocuments";
 import PayStubs from "./pages/PayStubs";
 import Vacations from "./pages/Vacations";
-import Evaluations from "./pages/Evaluations";
 import NotFound from "./pages/NotFound";
 import { OfflineBanner } from "./components/OfflineBanner";
 import { ErrorBoundary } from "./components/ErrorBoundary";

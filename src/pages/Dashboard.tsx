@@ -25,7 +25,6 @@ import {
   FolderOpen,
   Receipt,
   Palmtree,
-  Star,
   AlertTriangle,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";

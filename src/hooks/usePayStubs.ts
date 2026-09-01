@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { toStoragePath } from "@/lib/storageFiles";
 
 interface PayStub {
   id: string;
@@ -199,8 +200,10 @@ export const usePayStubs = (userId?: string) => {
       const stub = payStubs.find((ps) => ps.id === id);
       if (!stub) return;
 
-      const filePath = `${stub.organization_id}/${stub.user_id}/${stub.period_year}_${stub.period_month}_${stub.file_name}`;
-      await supabase.storage.from("pay-stubs").remove([filePath]);
+      const filePath = toStoragePath("pay-stubs", stub.file_url);
+      if (filePath) {
+        await supabase.storage.from("pay-stubs").remove([filePath]);
+      }
 
       const { error } = await supabase.from("pay_stubs").delete().eq("id", id);
 

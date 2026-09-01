@@ -52,6 +52,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { openStorageFile } from "@/lib/storageFiles";
 
 const TYPE_CONFIG: Record<AbsenceType, { label: string; color: string; icon: React.ElementType }> = {
   unjustified: { label: "Sin justificar", color: "bg-destructive/10 text-destructive border-destructive/30", icon: AlertTriangle },
@@ -501,15 +502,17 @@ const AdminAbsences = () => {
                                 <p className="text-sm truncate">{absence.justification}</p>
                               )}
                               {absence.certificate_file_name && (
-                                <a
-                                  href={absence.certificate_url || "#"}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    absence.certificate_url &&
+                                    openStorageFile("absence-certificates", absence.certificate_url)
+                                  }
                                   className="flex items-center gap-1 text-xs text-blue-600 hover:underline"
                                 >
                                   <Paperclip className="w-3 h-3" />
                                   {absence.certificate_file_name}
-                                </a>
+                                </button>
                               )}
                               {!absence.justification && !absence.certificate_file_name && (
                                 <span className="text-sm text-muted-foreground">—</span>
@@ -598,15 +601,17 @@ const AdminAbsences = () => {
                         )}
 
                         {absence.certificate_file_name && (
-                          <a
-                            href={absence.certificate_url || "#"}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          <button
+                            type="button"
+                            onClick={() =>
+                              absence.certificate_url &&
+                              openStorageFile("absence-certificates", absence.certificate_url)
+                            }
                             className="flex items-center gap-1 text-xs text-blue-600 hover:underline"
                           >
                             <Paperclip className="w-3.5 h-3.5" />
                             {absence.certificate_file_name}
-                          </a>
+                          </button>
                         )}
 
                         {absence.status === "pending" && (

@@ -35,6 +35,7 @@ import { ROUTES } from "@/lib/routes";
 import { useEmployeeDocuments, type EmployeeDocument } from "@/hooks/useEmployeeDocuments";
 import { useToast } from "@/hooks/use-toast";
 import type { Enums } from "@/integrations/supabase/types";
+import { openStorageFile } from "@/lib/storageFiles";
 
 type DocumentCategory = Enums<"document_category">;
 
@@ -217,10 +218,12 @@ export default function EmployeeDocuments() {
                         )}
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0">
-                        <Button variant="ghost" size="icon" asChild>
-                          <a href={doc.file_url} target="_blank" rel="noopener noreferrer">
-                            <Download className="h-4 w-4" />
-                          </a>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openStorageFile("employee-documents", doc.file_url)}
+                        >
+                          <Download className="h-4 w-4" />
                         </Button>
                         {doc.uploaded_by === user.id && (
                           <Button

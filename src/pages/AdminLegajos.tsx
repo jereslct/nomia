@@ -47,6 +47,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useEmployeeDocuments, type EmployeeDocument } from "@/hooks/useEmployeeDocuments";
 import { useToast } from "@/hooks/use-toast";
 import type { Enums } from "@/integrations/supabase/types";
+import { openStorageFile } from "@/lib/storageFiles";
 
 type DocumentCategory = Enums<"document_category">;
 type DocumentStatus = Enums<"document_status">;
@@ -360,10 +361,13 @@ export default function AdminLegajos() {
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" title="Descargar" asChild>
-                            <a href={doc.file_url} target="_blank" rel="noopener noreferrer">
-                              <Download className="h-4 w-4" />
-                            </a>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Descargar"
+                            onClick={() => openStorageFile("employee-documents", doc.file_url)}
+                          >
+                            <Download className="h-4 w-4" />
                           </Button>
                           {doc.status !== "approved" && (
                             <Button
@@ -443,11 +447,12 @@ export default function AdminLegajos() {
                 )}
               </div>
               <div className="flex gap-2">
-                <Button className="flex-1" asChild>
-                  <a href={selectedDoc.file_url} target="_blank" rel="noopener noreferrer">
-                    <Download className="h-4 w-4 mr-2" />
-                    Descargar
-                  </a>
+                <Button
+                  className="flex-1"
+                  onClick={() => openStorageFile("employee-documents", selectedDoc.file_url)}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Descargar
                 </Button>
                 {selectedDoc.status !== "approved" && (
                   <Button

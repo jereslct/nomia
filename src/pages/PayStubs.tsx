@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Download, FileText, Loader2 } from "lucide-react";
 import { usePayStubs } from "@/hooks/usePayStubs";
+import { openStorageFile } from "@/lib/storageFiles";
 
 const MONTH_NAMES = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -33,7 +34,14 @@ const PayStubs = () => {
 
   const handleDownload = async (stub: (typeof payStubs)[0]) => {
     await markAsDownloaded(stub.id);
-    window.open(stub.file_url, "_blank");
+    const ok = await openStorageFile("pay-stubs", stub.file_url);
+    if (!ok) {
+      toast({
+        title: "Error",
+        description: "No se pudo abrir el recibo.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (loading) {

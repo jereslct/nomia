@@ -13,6 +13,7 @@ export interface VacationBalance {
   used_days: number;
   created_at: string;
   updated_at: string;
+  profiles?: { full_name: string } | null;
 }
 
 export interface VacationRequest {
@@ -53,6 +54,7 @@ interface UpdateBalanceParams {
 export function useVacations() {
   const { user, isAdmin, loading: authLoading } = useAuth();
   const [balance, setBalance] = useState<VacationBalance | null>(null);
+  const [balances, setBalances] = useState<VacationBalance[]>([]);
   const [requests, setRequests] = useState<VacationRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
@@ -88,6 +90,7 @@ export function useVacations() {
       setOrganizationId(orgId);
       if (!orgId) {
         setBalance(null);
+        setBalances([]);
         setRequests([]);
         return;
       }
@@ -103,6 +106,33 @@ export function useVacations() {
         .maybeSingle();
 
       setBalance(balanceData as VacationBalance | null);
+
+      // Admin: all balances of the organization for the current year
+      if (isAdmin) {
+        const { data: allBalances } = await supabase
+          .from("vacation_balances")
+          .select("*")
+          .eq("organization_id", orgId)
+          .eq("year", currentYear);
+
+        const bals = (allBalances as unknown as VacationBalance[]) || [];
+        const balUserIds = [...new Set(bals.map((b) => b.user_id))];
+        if (balUserIds.length > 0) {
+          const { data: balProfiles } = await supabase
+            .from("profiles")
+            .select("user_id, full_name")
+            .in("user_id", balUserIds);
+          const map = new Map((balProfiles || []).map((p) => [p.user_id, p.full_name]));
+          bals.forEach((b) => {
+            const name = map.get(b.user_id);
+            if (name) b.profiles = { full_name: name };
+          });
+        }
+        setBalances(bals);
+      } else {
+        setBalances([]);
+      }
+
 
       let query = supabase
         .from("vacation_requests")
@@ -266,6 +296,7 @@ export function useVacations() {
 
   return {
     balance,
+    balances,
     requests,
     loading,
     organizationId,

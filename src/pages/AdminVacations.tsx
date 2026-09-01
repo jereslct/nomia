@@ -462,6 +462,44 @@ const AdminVacations = () => {
                 Guardar
               </Button>
             </div>
+
+            <div className="mt-6">
+              <p className="text-sm font-medium mb-2">
+                Balances asignados {new Date().getFullYear()}
+              </p>
+              {balances.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Todavía no hay días de vacaciones asignados.
+                </p>
+              ) : (
+                <div className="rounded-lg border overflow-hidden overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50">
+                        <TableHead>Empleado</TableHead>
+                        <TableHead className="text-center">Días totales</TableHead>
+                        <TableHead className="text-center">Usados</TableHead>
+                        <TableHead className="text-center">Disponibles</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {balances.map((b) => (
+                        <TableRow key={b.id}>
+                          <TableCell className="font-medium">
+                            {b.profiles?.full_name || getEmployeeName(b.user_id)}
+                          </TableCell>
+                          <TableCell className="text-center">{b.total_days}</TableCell>
+                          <TableCell className="text-center">{b.used_days}</TableCell>
+                          <TableCell className="text-center font-semibold">
+                            {b.total_days - b.used_days}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
       </main>

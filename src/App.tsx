@@ -28,7 +28,6 @@ import Absences from "./pages/Absences";
 import EmployeeDocuments from "./pages/EmployeeDocuments";
 import PayStubs from "./pages/PayStubs";
 import Vacations from "./pages/Vacations";
-import Evaluations from "./pages/Evaluations";
 import NotFound from "./pages/NotFound";
 import { OfflineBanner } from "./components/OfflineBanner";
 import { ErrorBoundary } from "./components/ErrorBoundary";
@@ -148,11 +147,6 @@ const App = () => (
           <Route path={ROUTES.VACACIONES} element={
             <ProtectedRoute>
               <Vacations />
-            </ProtectedRoute>
-          } />
-          <Route path={ROUTES.EVALUACIONES} element={
-            <ProtectedRoute>
-              <Evaluations />
             </ProtectedRoute>
           } />
           <Route path="*" element={<NotFound />} />

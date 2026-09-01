@@ -20,7 +20,6 @@ import AdminAbsences from "./pages/AdminAbsences";
 import AdminLegajos from "./pages/AdminLegajos";
 import AdminPayStubs from "./pages/AdminPayStubs";
 import AdminVacations from "./pages/AdminVacations";
-import AdminEvaluations from "./pages/AdminEvaluations";
 import Employee from "./pages/Employee";
 import History from "./pages/History";
 import Profile from "./pages/Profile";
@@ -107,11 +106,6 @@ const App = () => (
           <Route path={ROUTES.ADMIN_VACACIONES} element={
             <ProtectedRoute requireAdmin>
               <AdminVacations />
-            </ProtectedRoute>
-          } />
-          <Route path={ROUTES.ADMIN_EVALUACIONES} element={
-            <ProtectedRoute requireAdmin>
-              <AdminEvaluations />
             </ProtectedRoute>
           } />
           <Route path={ROUTES.EMPLEADO} element={

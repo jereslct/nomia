@@ -14,7 +14,7 @@ export const ROUTES = {
   ADMIN_LEGAJOS: '/admin/legajos',
   ADMIN_RECIBOS: '/admin/recibos',
   ADMIN_VACACIONES: '/admin/vacaciones',
-  ADMIN_EVALUACIONES: '/admin/evaluaciones',
+  
   EMPLEADO: '/empleado',
   HISTORIAL: '/historial',
   PERFIL: '/perfil',

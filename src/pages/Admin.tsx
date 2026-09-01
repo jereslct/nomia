@@ -31,7 +31,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { ArrowLeft, QrCode, RefreshCw, Users, Clock, MapPin, Loader2, BarChart3, UserX, ClipboardPen, LogIn, LogOut, AlertTriangle, FolderOpen, Receipt, Palmtree, Star, ChevronRight } from "lucide-react";
+import { ArrowLeft, QrCode, RefreshCw, Users, Clock, MapPin, Loader2, BarChart3, UserX, ClipboardPen, LogIn, LogOut, AlertTriangle, FolderOpen, Receipt, Palmtree, ChevronRight } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { ROUTES } from "@/lib/routes";
 import { useAuth } from "@/hooks/useAuth";
@@ -701,12 +701,6 @@ const Admin = () => {
             <Button variant="outline" size="sm" className="gap-2">
               <Palmtree className="w-4 h-4 text-cyan-500" />
               Vacaciones
-            </Button>
-          </Link>
-          <Link to={ROUTES.ADMIN_EVALUACIONES}>
-            <Button variant="outline" size="sm" className="gap-2">
-              <Star className="w-4 h-4 text-violet-500" />
-              Evaluaciones
             </Button>
           </Link>
         </div>

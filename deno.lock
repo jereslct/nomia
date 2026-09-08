@@ -80,6 +80,7 @@
         "npm:postcss@^8.5.6",
         "npm:react-day-picker@^8.10.1",
         "npm:react-dom@^18.3.1",
+        "npm:react-helmet-async@3",
         "npm:react-hook-form@^7.61.1",
         "npm:react-image-crop@^11.0.10",
         "npm:react-qr-code@^2.0.18",

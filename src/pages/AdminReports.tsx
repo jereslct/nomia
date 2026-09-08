@@ -22,6 +22,8 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarPicker } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 import {
   Command,
   CommandEmpty,
@@ -45,6 +47,7 @@ import {
   BarChart3,
   Building2,
   Calendar,
+  CalendarIcon,
   Check,
   ChevronDown,
   ChevronLeft,
@@ -82,6 +85,8 @@ import {
   subMonths,
   format,
   eachDayOfInterval,
+  startOfDay,
+  endOfDay,
 } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -108,7 +113,7 @@ interface OrgInfo {
   name: string;
 }
 
-type PeriodType = "this_week" | "this_month" | "last_month";
+type PeriodType = "this_week" | "this_month" | "last_month" | "custom";
 
 interface EmployeeReport {
   userId: string;
@@ -133,6 +138,7 @@ const PERIOD_OPTIONS: { value: PeriodType; label: string }[] = [
   { value: "this_week", label: "Esta semana" },
   { value: "this_month", label: "Este mes" },
   { value: "last_month", label: "Mes anterior" },
+  { value: "custom", label: "Rango personalizado" },
 ];
 
 const PIE_COLORS = ["hsl(var(--success))", "hsl(var(--warning))", "hsl(var(--muted))"];
@@ -207,6 +213,8 @@ const AdminReports = () => {
   const { config: scheduleConfig } = useScheduleConfig();
 
   const [period, setPeriod] = useState<PeriodType>("this_month");
+  const [customStart, setCustomStart] = useState<Date | undefined>(startOfMonth(new Date()));
+  const [customEnd, setCustomEnd] = useState<Date | undefined>(new Date());
   const [orgFilter, setOrgFilter] = useState<string>("all");
   const [employeeFilter, setEmployeeFilter] = useState<string>("all");
 
@@ -255,7 +263,7 @@ const AdminReports = () => {
       fetchRecords(getActiveOrgIds(organizations, orgFilter));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orgFilter, period]);
+  }, [orgFilter, period, customStart, customEnd]);
 
   // Reset employee filter when org changes
   useEffect(() => {
@@ -272,6 +280,12 @@ const AdminReports = () => {
       case "last_month": {
         const lastMonth = subMonths(now, 1);
         return { start: startOfMonth(lastMonth), end: endOfMonth(lastMonth) };
+      }
+      case "custom": {
+        const start = customStart ?? startOfMonth(now);
+        const end = customEnd ?? now;
+        const [s, e] = start <= end ? [start, end] : [end, start];
+        return { start: startOfDay(s), end: endOfDay(e) };
       }
     }
   };
@@ -465,7 +479,7 @@ const fetchRecords = async (orgIds: string[]) => {
         tarde: lateCount,
       };
     });
-  }, [filteredRecords, period, scheduleConfig]);
+  }, [filteredRecords, period, customStart, customEnd, scheduleConfig]);
 
   const pieData = useMemo(() => {
     return [
@@ -709,6 +723,59 @@ const fetchRecords = async (orgIds: string[]) => {
                   </SelectContent>
                 </Select>
               </div>
+
+              {period === "custom" && (
+                <>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-muted-foreground">Desde</label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn("w-[160px] justify-start text-left font-normal", !customStart && "text-muted-foreground")}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {customStart ? format(customStart, "dd/MM/yyyy") : <span>Elegir fecha</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <CalendarPicker
+                          mode="single"
+                          selected={customStart}
+                          onSelect={setCustomStart}
+                          locale={es}
+                          initialFocus
+                          className="p-3 pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-muted-foreground">Hasta</label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn("w-[160px] justify-start text-left font-normal", !customEnd && "text-muted-foreground")}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {customEnd ? format(customEnd, "dd/MM/yyyy") : <span>Elegir fecha</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <CalendarPicker
+                          mode="single"
+                          selected={customEnd}
+                          onSelect={setCustomEnd}
+                          locale={es}
+                          initialFocus
+                          className="p-3 pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </>
+              )}
 
               {organizations.length > 1 && (
                 <div className="space-y-1.5 min-w-[180px]">

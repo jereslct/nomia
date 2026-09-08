@@ -666,40 +666,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_org_default_shift: {
-        Args: { _org_id: string }
-        Returns: {
-          active_days: number[]
-          end_time: string
-          entry_grace_minutes: number
-          exit_grace_minutes: number
-          id: string
-          start_time: string
-        }[]
-      }
-      get_user_email: { Args: { _user_id: string }; Returns: string }
-      get_user_organization_id: { Args: { _user_id: string }; Returns: string }
-      get_user_role: {
-        Args: { _user_id: string }
-        Returns: Database["public"]["Enums"]["app_role"]
-      }
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
-      is_org_admin: { Args: { _org_id: string }; Returns: boolean }
-      is_organization_owner: {
-        Args: { _org_id: string; _user_id: string }
-        Returns: boolean
-      }
-      user_belongs_to_org: { Args: { _org_id: string }; Returns: boolean }
-      users_share_organization: {
-        Args: { _profile_user_id: string; _viewer_id: string }
-        Returns: boolean
-      }
+      [_ in never]: never
     }
     Enums: {
       absence_status: "pending" | "approved" | "rejected"

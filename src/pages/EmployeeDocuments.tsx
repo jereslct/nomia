@@ -160,7 +160,7 @@ export default function EmployeeDocuments() {
     <Seo title="Mis documentos — Nomia" description="Consultá y subí tus documentos personales." path="/perfil/documentos" noindex />
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 sm:px-6 h-16 flex items-center gap-3">
-          <Link to={ROUTES.PERFIL}>
+          <Link to={ROUTES.PANEL}>
             <Button variant="ghost" size="icon" aria-label="Volver">
               <ArrowLeft className="h-5 w-5" />
             </Button>

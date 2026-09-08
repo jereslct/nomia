@@ -56,8 +56,13 @@ const AdminQR = () => {
       setIsLoadingLocations(true);
 
       const { data: orgData } = await supabase
-        .rpc("get_user_organization_id", { _user_id: user.id });
-      const orgId = orgData || null;
+        .from("organizations")
+        .select("id")
+        .eq("owner_id", user.id)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      const orgId = orgData?.id || null;
 
       if (!orgId) {
         toast({

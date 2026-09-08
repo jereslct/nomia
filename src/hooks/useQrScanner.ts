@@ -77,6 +77,10 @@ export function useQrScanner({ elementId, onSuccess, useBarCodeDetector = false 
         scannerRef.current = null;
       } catch {}
     }
+    setStatus("idle");
+    setRecordType(null);
+    setErrorMessage("");
+    setErrorCode("");
   }, []);
 
   const setError = useCallback((message: string, code: string = "") => {

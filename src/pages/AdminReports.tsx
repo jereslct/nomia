@@ -479,7 +479,7 @@ const fetchRecords = async (orgIds: string[]) => {
         tarde: lateCount,
       };
     });
-  }, [filteredRecords, period, scheduleConfig]);
+  }, [filteredRecords, period, customStart, customEnd, scheduleConfig]);
 
   const pieData = useMemo(() => {
     return [

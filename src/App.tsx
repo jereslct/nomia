@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ROUTES } from "@/lib/routes";
 import Index from "./pages/Index";
@@ -12,7 +12,7 @@ import Dashboard from "./pages/Dashboard";
 import ScanQR from "./pages/ScanQR";
 import AdminQR from "./pages/AdminQR";
 import Admin from "./pages/Admin";
-import AdminUsers from "./pages/AdminUsers";
+import AdminEmployees from "./pages/AdminEmployees";
 import AdminReports from "./pages/AdminReports";
 import AdminLocations from "./pages/AdminLocations";
 import AdminShifts from "./pages/AdminShifts";
@@ -68,9 +68,10 @@ const App = () => (
               <AdminQR />
             </ProtectedRoute>
           } />
-          <Route path={ROUTES.ADMIN_USUARIOS} element={
+          <Route path={ROUTES.ADMIN_USUARIOS} element={<Navigate to={ROUTES.ADMIN_EMPLEADOS} replace />} />
+          <Route path={ROUTES.ADMIN_EMPLEADOS} element={
             <ProtectedRoute requireAdmin>
-              <AdminUsers />
+              <AdminEmployees />
             </ProtectedRoute>
           } />
           <Route path={ROUTES.ADMIN_REPORTES} element={

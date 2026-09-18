@@ -354,7 +354,7 @@ const Dashboard = () => {
                   </div>
                   {pendingCount > 0 && (
                     <div className="p-3 border-t border-border">
-                      <Link to={ROUTES.ADMIN_USUARIOS} className="w-full">
+                      <Link to={ROUTES.ADMIN_EMPLEADOS} className="w-full">
                         <Button variant="outline" size="sm" className="w-full text-xs">
                           Ver todas las invitaciones
                           <ChevronRight className="w-3 h-3 ml-1" />
@@ -398,7 +398,7 @@ const Dashboard = () => {
                   : `${pendingCount} usuarios aún no aceptaron sus invitaciones`}
               </p>
             </div>
-            <Link to={ROUTES.ADMIN_USUARIOS}>
+            <Link to={ROUTES.ADMIN_EMPLEADOS}>
               <Button variant="outline" size="sm" className="shrink-0 text-xs">
                 Gestionar
                 <ChevronRight className="w-3 h-3 ml-1" />
@@ -458,15 +458,15 @@ const Dashboard = () => {
                   </CardContent>
                 </Card>
               </Link>
-              <Link to={ROUTES.ADMIN_USUARIOS}>
+              <Link to={ROUTES.ADMIN_EMPLEADOS}>
                 <Card className="glass-card hover-lift cursor-pointer group h-full">
                   <CardContent className="p-6 flex items-center gap-4">
                     <div className="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center group-hover:scale-110 transition-transform">
                       <Users className="w-7 h-7 text-accent" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-semibold">Organizaciones</h3>
-                      <p className="text-sm text-muted-foreground">Gestionar equipo</p>
+                      <h3 className="font-semibold">Empleados</h3>
+                      <p className="text-sm text-muted-foreground">Altas, faltas, legajos y más</p>
                     </div>
                     <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
                   </CardContent>

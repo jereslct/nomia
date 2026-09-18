@@ -1,4 +1,5 @@
 import { Seo } from "@/components/Seo";
+import { EmployeesTabs } from "@/components/EmployeesTabs";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ROUTES } from "@/lib/routes";
@@ -239,6 +240,7 @@ const AdminVacations = () => {
       </header>
 
       <main className="container mx-auto px-4 py-6 max-w-5xl space-y-6">
+        <EmployeesTabs />
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Card className="glass-card">
             <CardContent className="pt-6">

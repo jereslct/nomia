@@ -681,28 +681,10 @@ const Admin = () => {
       <main className="container mx-auto px-4 py-8 space-y-8">
         {/* Quick Navigation */}
         <div className="flex flex-wrap gap-2">
-          <Link to={ROUTES.ADMIN_AUSENCIAS}>
+          <Link to={ROUTES.ADMIN_EMPLEADOS}>
             <Button variant="outline" size="sm" className="gap-2">
-              <AlertTriangle className="w-4 h-4 text-destructive" />
-              Faltas
-            </Button>
-          </Link>
-          <Link to={ROUTES.ADMIN_LEGAJOS}>
-            <Button variant="outline" size="sm" className="gap-2">
-              <FolderOpen className="w-4 h-4 text-blue-500" />
-              Legajos
-            </Button>
-          </Link>
-          <Link to={ROUTES.ADMIN_RECIBOS}>
-            <Button variant="outline" size="sm" className="gap-2">
-              <Receipt className="w-4 h-4 text-emerald-500" />
-              Recibos
-            </Button>
-          </Link>
-          <Link to={ROUTES.ADMIN_VACACIONES}>
-            <Button variant="outline" size="sm" className="gap-2">
-              <Palmtree className="w-4 h-4 text-cyan-500" />
-              Vacaciones
+              <Users className="w-4 h-4 text-primary" />
+              Empleados
             </Button>
           </Link>
         </div>

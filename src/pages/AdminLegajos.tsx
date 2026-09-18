@@ -1,4 +1,5 @@
 import { Seo } from "@/components/Seo";
+import { EmployeesTabs } from "@/components/EmployeesTabs";
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -207,6 +208,7 @@ export default function AdminLegajos() {
     <div className="min-h-screen bg-background">
     <Seo title="Legajos de empleados — Nomia" description="Gestioná los documentos y legajos del personal." path="/admin/legajos" noindex />
       <div className="container mx-auto px-4 py-6 max-w-6xl">
+        <div className="mb-6"><EmployeesTabs /></div>
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <Link to={ROUTES.ADMIN}>

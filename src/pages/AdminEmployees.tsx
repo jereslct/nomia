@@ -95,7 +95,7 @@ const getInitials = (name: string) => {
     .slice(0, 2);
 };
 
-const AdminUsers = () => {
+const AdminEmployees = () => {
   const navigate = useNavigate();
   const { user, profile, isAdmin, loading } = useAuth();
   const { toast } = useToast();
@@ -133,6 +133,126 @@ const AdminUsers = () => {
   const [isBulkInviting, setIsBulkInviting] = useState(false);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [isBulkReinviting, setIsBulkReinviting] = useState(false);
+
+  // Manual employee creation
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [createFullName, setCreateFullName] = useState("");
+  const [createEmail, setCreateEmail] = useState("");
+  const [createPassword, setCreatePassword] = useState("");
+  const [createOrgId, setCreateOrgId] = useState("");
+  const [createPhone, setCreatePhone] = useState("");
+  const [createRole, setCreateRole] = useState<"user" | "admin">("user");
+  const [createLocationId, setCreateLocationId] = useState("");
+  const [createShiftId, setCreateShiftId] = useState("");
+  const [createError, setCreateError] = useState("");
+  const [isCreatingEmployee, setIsCreatingEmployee] = useState(false);
+  const [createdSummary, setCreatedSummary] = useState<{ full_name: string; email: string; password: string } | null>(null);
+  const [orgLocations, setOrgLocations] = useState<{ id: string; name: string }[]>([]);
+  const [orgShifts, setOrgShifts] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    if (!createOrgId) {
+      setOrgLocations([]);
+      setOrgShifts([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const [{ data: locs }, { data: shifts }] = await Promise.all([
+        supabase.from("locations").select("id, name").eq("organization_id", createOrgId).eq("is_active", true).order("name"),
+        supabase.from("work_shifts").select("id, name").eq("organization_id", createOrgId).order("name"),
+      ]);
+      if (cancelled) return;
+      setOrgLocations(locs || []);
+      setOrgShifts(shifts || []);
+    })();
+    return () => { cancelled = true; };
+  }, [createOrgId]);
+
+  const generatePassword = () => {
+    const chars = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    const bytes = new Uint32Array(12);
+    crypto.getRandomValues(bytes);
+    const pwd = Array.from(bytes, (b) => chars[b % chars.length]).join("");
+    setCreatePassword(pwd);
+  };
+
+  const openCreateDialog = () => {
+    setCreateFullName("");
+    setCreateEmail("");
+    setCreatePassword("");
+    setCreatePhone("");
+    setCreateRole("user");
+    setCreateLocationId("");
+    setCreateShiftId("");
+    setCreateError("");
+    setCreatedSummary(null);
+    setCreateOrgId(selectedOrg?.id || organizations[0]?.id || "");
+    setCreateDialogOpen(true);
+  };
+
+  const handleCreateEmployee = async () => {
+    setCreateError("");
+    if (createFullName.trim().length < 2) {
+      setCreateError("Ingresá el nombre completo del empleado.");
+      return;
+    }
+    try {
+      emailSchema.parse(createEmail.trim());
+    } catch {
+      setCreateError("Ingresá un correo electrónico válido.");
+      return;
+    }
+    if (createPassword.length < 8) {
+      setCreateError("La contraseña temporal debe tener al menos 8 caracteres.");
+      return;
+    }
+    if (!createOrgId) {
+      setCreateError("Seleccioná una organización.");
+      return;
+    }
+
+    setIsCreatingEmployee(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-employee", {
+        body: {
+          full_name: createFullName.trim(),
+          email: createEmail.trim().toLowerCase(),
+          password: createPassword,
+          organization_id: createOrgId,
+          phone_number: createPhone.trim() || null,
+          role: createRole,
+          location_id: createLocationId || null,
+          shift_id: createShiftId || null,
+        },
+      });
+
+      const payload = data as { error?: string; success?: boolean } | null;
+      if (error || payload?.error) {
+        setCreateError(payload?.error || "No se pudo crear el empleado. Intentá de nuevo.");
+        return;
+      }
+
+      setCreatedSummary({
+        full_name: createFullName.trim(),
+        email: createEmail.trim().toLowerCase(),
+        password: createPassword,
+      });
+      toast({
+        title: "Empleado dado de alta",
+        description: `${createFullName.trim()} ya puede iniciar sesión.`,
+      });
+
+      fetchOrganizations();
+      if (selectedOrg?.id === createOrgId) fetchMembers(createOrgId);
+      if (showAllEmployees) fetchAllMembers();
+    } catch (err) {
+      console.error("Error creating employee:", err);
+      setCreateError("No se pudo crear el empleado. Intentá de nuevo.");
+    } finally {
+      setIsCreatingEmployee(false);
+    }
+  };
 
   useEffect(() => {
     if (!loading && (!user || !isAdmin)) {

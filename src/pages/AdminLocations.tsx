@@ -382,7 +382,7 @@ const AdminLocations = () => {
               <p className="text-muted-foreground">No tienes organizaciones creadas.</p>
               <p className="text-sm text-muted-foreground mt-1">
                 Crea una organización primero desde{" "}
-                <Link to={ROUTES.ADMIN_USUARIOS} className="text-primary underline">
+                <Link to={ROUTES.ADMIN_EMPLEADOS} className="text-primary underline">
                   Gestión de Usuarios
                 </Link>.
               </p>

@@ -701,7 +701,7 @@ const fetchRecords = async (orgIds: string[]) => {
               <Users className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
               <p className="text-muted-foreground">No se encontró ninguna organización</p>
               <p className="text-sm text-muted-foreground mt-1">Crea una organización primero desde el panel de administración</p>
-              <Link to={ROUTES.ADMIN_USUARIOS} className="mt-4 inline-block">
+              <Link to={ROUTES.ADMIN_EMPLEADOS} className="mt-4 inline-block">
                 <Button variant="outline" size="sm">Ir a Organizaciones</Button>
               </Link>
             </CardContent>

@@ -461,6 +461,10 @@ const fetchRecords = async (orgIds: string[]) => {
     const { start, end } = getDateRange();
     const today = new Date();
     const effectiveEnd = end > today ? today : end;
+    // Guard: custom ranges fully in the future produce a reversed interval
+    if (start > effectiveEnd) {
+      return [];
+    }
     const days = eachDayOfInterval({ start, end: effectiveEnd });
 
     return days.map((day) => {

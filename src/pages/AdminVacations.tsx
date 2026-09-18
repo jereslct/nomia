@@ -239,6 +239,7 @@ const AdminVacations = () => {
       </header>
 
       <main className="container mx-auto px-4 py-6 max-w-5xl space-y-6">
+        <EmployeesTabs />
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Card className="glass-card">
             <CardContent className="pt-6">

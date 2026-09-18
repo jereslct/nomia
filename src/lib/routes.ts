@@ -7,6 +7,7 @@ export const ROUTES = {
   ADMIN: '/admin',
   ADMIN_QR: '/admin/qr',
   ADMIN_USUARIOS: '/admin/usuarios',
+  ADMIN_EMPLEADOS: '/admin/empleados',
   ADMIN_REPORTES: '/admin/reportes',
   ADMIN_UBICACIONES: '/admin/ubicaciones',
   ADMIN_TURNOS: '/admin/turnos',

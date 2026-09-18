@@ -55,6 +55,8 @@ const AdminQR = () => {
     try {
       setIsLoadingLocations(true);
 
+      let orgId: string | null = null;
+
       const { data: orgData } = await supabase
         .from("organizations")
         .select("id")
@@ -62,7 +64,19 @@ const AdminQR = () => {
         .order("created_at", { ascending: true })
         .limit(1)
         .maybeSingle();
-      const orgId = orgData?.id || null;
+      orgId = orgData?.id || null;
+
+      // Fallback: admin added as a member of an organization they don't own
+      if (!orgId) {
+        const { data: memberData } = await supabase
+          .from("organization_members")
+          .select("organization_id")
+          .eq("user_id", user.id)
+          .eq("status", "accepted")
+          .limit(1)
+          .maybeSingle();
+        orgId = memberData?.organization_id || null;
+      }
 
       if (!orgId) {
         toast({

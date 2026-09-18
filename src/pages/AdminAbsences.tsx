@@ -1,4 +1,5 @@
 import { Seo } from "@/components/Seo";
+import { EmployeesTabs } from "@/components/EmployeesTabs";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

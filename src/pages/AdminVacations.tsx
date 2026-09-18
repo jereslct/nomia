@@ -1,4 +1,5 @@
 import { Seo } from "@/components/Seo";
+import { EmployeesTabs } from "@/components/EmployeesTabs";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ROUTES } from "@/lib/routes";

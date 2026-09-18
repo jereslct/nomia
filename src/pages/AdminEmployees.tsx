@@ -1,4 +1,5 @@
 import { Seo } from "@/components/Seo";
+import { EmployeesTabs } from "@/components/EmployeesTabs";
 import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -925,7 +926,7 @@ const AdminEmployees = () => {
 
   return (
     <div className="min-h-screen bg-background">
-    <Seo title="Gestión de usuarios — Nomia" description="Administrá los usuarios y roles de tu organización." path="/admin/usuarios" noindex />
+    <Seo title="Empleados — Nomia" description="Administrá los empleados, altas y roles de tu organización." path="/admin/empleados" noindex />
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
@@ -936,14 +937,15 @@ const AdminEmployees = () => {
               </Button>
             </Link>
             <div>
-              <h1 className="font-bold text-lg">Gestión de Organizaciones</h1>
-              <p className="text-xs text-muted-foreground">Administra tus organizaciones y equipos</p>
+              <h1 className="font-bold text-lg">Empleados</h1>
+              <p className="text-xs text-muted-foreground">Altas, legajos y gestión del personal</p>
             </div>
           </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-8 space-y-8">
+        <EmployeesTabs />
         {/* Organizations Section */}
         <Card className="glass-card">
           <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-4">
@@ -954,7 +956,134 @@ const AdminEmployees = () => {
               </CardTitle>
               <CardDescription>Selecciona una organización para ver sus empleados</CardDescription>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+            <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="hero" size="sm" onClick={openCreateDialog} disabled={organizations.length === 0}>
+                  <UserPlus className="w-4 h-4" />
+                  Dar de alta empleado
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-h-[85vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Dar de alta empleado</DialogTitle>
+                  <DialogDescription>
+                    Creá la cuenta del empleado con una contraseña temporal. Va a poder ingresar enseguida.
+                  </DialogDescription>
+                </DialogHeader>
+
+                {createdSummary ? (
+                  <div className="space-y-4 py-2">
+                    <div className="rounded-lg border border-success/30 bg-success/10 p-4 space-y-1 text-sm">
+                      <p className="font-medium">{createdSummary.full_name} ya puede ingresar</p>
+                      <p><span className="text-muted-foreground">Correo: </span>{createdSummary.email}</p>
+                      <p><span className="text-muted-foreground">Contraseña: </span>{createdSummary.password}</p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => {
+                        navigator.clipboard?.writeText(
+                          `Correo: ${createdSummary.email}\nContraseña: ${createdSummary.password}`
+                        );
+                        toast({ title: "Datos copiados", description: "Ya podés enviárselos al empleado." });
+                      }}
+                    >
+                      Copiar datos de acceso
+                    </Button>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>Cerrar</Button>
+                      <Button onClick={openCreateDialog}>
+                        <UserPlus className="w-4 h-4" />
+                        Cargar otro
+                      </Button>
+                    </DialogFooter>
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-4 py-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="empName">Nombre completo *</Label>
+                        <Input id="empName" value={createFullName} onChange={(e) => setCreateFullName(e.target.value)} placeholder="Ej: Ana Pérez" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="empEmail">Correo electrónico *</Label>
+                        <Input id="empEmail" type="email" value={createEmail} onChange={(e) => setCreateEmail(e.target.value)} placeholder="empleado@email.com" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="empPass">Contraseña temporal *</Label>
+                        <div className="flex gap-2">
+                          <Input id="empPass" value={createPassword} onChange={(e) => setCreatePassword(e.target.value)} placeholder="Mínimo 8 caracteres" />
+                          <Button type="button" variant="outline" onClick={generatePassword}>Generar</Button>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Organización *</Label>
+                        <Select value={createOrgId} onValueChange={(v) => { setCreateOrgId(v); setCreateLocationId(""); setCreateShiftId(""); }}>
+                          <SelectTrigger><SelectValue placeholder="Seleccioná una organización" /></SelectTrigger>
+                          <SelectContent>
+                            {organizations.map((o) => (
+                              <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="empPhone">Teléfono</Label>
+                          <Input id="empPhone" value={createPhone} onChange={(e) => setCreatePhone(e.target.value)} placeholder="Opcional" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Rol</Label>
+                          <Select value={createRole} onValueChange={(v) => setCreateRole(v as "user" | "admin")}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="user">Empleado</SelectItem>
+                              <SelectItem value="admin">Administrador</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Sucursal</Label>
+                          <Select value={createLocationId} onValueChange={setCreateLocationId} disabled={orgLocations.length === 0}>
+                            <SelectTrigger><SelectValue placeholder={orgLocations.length ? "Opcional" : "Sin sucursales"} /></SelectTrigger>
+                            <SelectContent>
+                              {orgLocations.map((l) => (
+                                <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Turno</Label>
+                          <Select value={createShiftId} onValueChange={setCreateShiftId} disabled={orgShifts.length === 0}>
+                            <SelectTrigger><SelectValue placeholder={orgShifts.length ? "Opcional" : "Sin turnos"} /></SelectTrigger>
+                            <SelectContent>
+                              {orgShifts.map((s) => (
+                                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      {createError && <p className="text-sm text-destructive">{createError}</p>}
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>Cancelar</Button>
+                      <Button onClick={handleCreateEmployee} disabled={isCreatingEmployee}>
+                        {isCreatingEmployee ? (
+                          <><Loader2 className="w-4 h-4 animate-spin" /> Creando...</>
+                        ) : (
+                          <><UserPlus className="w-4 h-4" /> Crear empleado</>
+                        )}
+                      </Button>
+                    </DialogFooter>
+                  </>
+                )}
+              </DialogContent>
+            </Dialog>
             <Dialog open={orgDialogOpen} onOpenChange={setOrgDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm">
@@ -1551,4 +1680,4 @@ const AdminEmployees = () => {
   );
 };
 
-export default AdminUsers;
+export default AdminEmployees;
